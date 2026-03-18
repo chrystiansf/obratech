@@ -710,7 +710,10 @@ nav{padding:4px 0;flex:1}
       <div class="card">
         <div class="ch"><div class="ct">💳 Lançamentos</div>
           <div class="ca">
-            <button class="btn sm" onclick="finLimparFiltros()" id="fin-limpar-btn" title="Limpar todos os filtros" style="display:none">✕ Limpar filtros</button>
+            <select class="sel" id="fin-obra-rapido" style="height:28px;font-size:11px;width:170px" onchange="finFiltrarObra(this.value)">
+              <option value="">🏗️ Todas as obras</option>
+            </select>
+            <button class="btn sm" onclick="finLimparFiltros()" id="fin-limpar-btn" title="Limpar todos os filtros" style="display:none">✕ Limpar</button>
             <button class="btn sm" onclick="exportFinPDF()">📄 PDF</button>
             <button class="btn sm" onclick="exportFinXLS()">📊 Excel</button>
             <button class="btn sm pri" onclick="openModal('lanc')">＋ Lançamento</button>
@@ -3025,11 +3028,30 @@ function _finThBtn(campo,label){
 
 function finLimparFiltros(){
   Object.keys(_finFiltros).forEach(k=>_finFiltros[k]=k==='dataIni'||k==='dataFim'?'':null);
+  const sel=document.getElementById('fin-obra-rapido');
+  if(sel) sel.value='';
+  renderFin();
+}
+
+// Filtro rápido de obra no financeiro
+function finFiltrarObra(obraId){
+  if(!obraId){
+    _finFiltros.obra = null;
+  } else {
+    _finFiltros.obra = new Set([String(obraId)]);
+  }
   renderFin();
 }
 
 function renderFin(){
   fillSelects();
+  // Popular seletor rápido de obra
+  const finObraRapido = document.getElementById('fin-obra-rapido');
+  if(finObraRapido){
+    const curVal = finObraRapido.value;
+    finObraRapido.innerHTML = '<option value="">🏗️ Todas as obras</option>' +
+      DB.obras.map(o=>`<option value="${o.id}"${curVal===String(o.id)?' selected':''}>${o.nome}</option>`).join('');
+  }
   const isObra=true;
   const lans=DB.lancs.filter(l=>{
     if(_finFiltros.obra!==null&&!_finFiltros.obra.has(String(l.obraId))) return false;
