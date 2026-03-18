@@ -769,21 +769,7 @@ nav{padding:4px 0;flex:1}
         </div>
       </div>
 
-      <!-- Fornecedores -->
-      <div class="card">
-        <div class="ch" style="margin-bottom:10px">
-          <div><div class="ct">🏢 Fornecedores</div><div class="cs" style="font-size:10px;color:var(--txt3)">Empresas e prestadores de serviço</div></div>
-          <button class="btn sm pri" onclick="cadastroAdd('fornecedor')">＋ Novo</button>
-        </div>
-        <div id="cad-fornecedores-list"></div>
-        <div id="cad-fornecedores-form" style="display:none;margin-top:9px">
-          <div style="display:flex;gap:6px">
-            <input class="inp" id="cad-fornecedores-inp" placeholder="Nome do fornecedor..." style="flex:1">
-            <button class="btn sm grn" onclick="cadastroSave('fornecedor')">✓</button>
-            <button class="btn sm" onclick="cadastroCancel('fornecedor')">✕</button>
-          </div>
-        </div>
-      </div>
+      <!-- Fornecedores gerenciados na aba Fornecedores -->
 
     </div>
   </div>
@@ -1246,7 +1232,7 @@ async function carregarDadosSupabase(){
       safe(supa.from('nao_conformidades').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('categorias').select('nome').eq('empresa_id',eid).order('nome')),
       safe(supa.from('centros_custo').select('nome').eq('empresa_id',eid).order('nome')),
-      safe(supa.from('fornecedores').select('nome').eq('empresa_id',eid).order('nome')),
+      safe(supa.from('fornecedores').select('*').eq('empresa_id',eid).order('nome')),
       safe(supa.from('demandas').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
     ]);
 
@@ -1263,7 +1249,7 @@ async function carregarDadosSupabase(){
     if(ncs.data)         DB.ncs        = ncs.data.map(mapNc);
     if(cats.data)        DB.categorias = cats.data.map(r=>r.nome);
     if(ccs.data)         DB.centros    = ccs.data.map(r=>r.nome);
-    if(forns.data)       DB.fornecedores = forns.data.map(r=>r.nome);
+    if(forns.data)       DB.fornecedores = forns.data.map(r=>({id:r.id,nome:r.nome,tipo:r.tipo,cnpj:r.cnpj,contato:r.contato,email:r.email,telefone:r.telefone}));
     
     console.log('✓ Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos');
   } catch(e){
@@ -1282,7 +1268,7 @@ function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
-function mapNc(r){return{id:r.id,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
+function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 
 // ── Save: salvar no Supabase ──────────────────────────────────
 // Override da função save() para persistir no Supabase
@@ -1420,7 +1406,7 @@ function iniciarRealtime(){
         contratos:r=>{DB.contratos=r.map(mapContrato);renderContratos();},
         pagamentos:r=>{DB.pgtos=r.map(mapPgto);renderContratos();},
         nao_conformidades:r=>{DB.ncs=r.map(mapNc);renderQual&&renderQual();},
-        demandas:r=>{DB.demandas=r.map(x=>({id:x.id,titulo:x.titulo,desc:x.descricao,obraId:x.obra_id,categoria:x.categoria,responsavel:x.responsavel,prazo:x.prazo,prioridade:x.prioridade,status:x.status,obs:x.obs,_supa:true}));if(document.getElementById('p-demandas')?.style.display!=='none')renderDemandas();},
+        demandas:r=>{DB.demandas=r.map(x=>({id:x.id,numero:x.numero,titulo:x.titulo,desc:x.descricao,obraId:x.obra_id,categoria:x.categoria,responsavel:x.responsavel,prazo:x.prazo,prioridade:x.prioridade,status:x.status,obs:x.obs,_supa:true}));if(document.getElementById('p-demandas')?.style.display!=='none')renderDemandas();},
         pontos:r=>{DB.pontos=r.map(row=>({id:row.id,colabId:row.colaborador_id,obraId:row.obra_id,data:row.data,presente:row.presente,tipo:row.tipo,_supa:true}));},
       };
       if(m[tabela]) m[tabela](data);
@@ -1955,6 +1941,18 @@ function engSeq(nome){
 
 // Calcula % esperado hoje para uma etapa com base no prazo da obra
 function pctEsperadoHoje(obra, etapa){
+  // Prioridade 1: usar datas especificas da etapa (inicio/fim)
+  if(etapa.inicio && etapa.fim){
+    const ini=new Date(etapa.inicio+"T00:00:00");
+    const fim=new Date(etapa.fim+"T23:59:59");
+    const hoje=new Date();
+    if(hoje < ini) return 0;
+    if(hoje > fim) return 100;
+    const dur=fim-ini;
+    if(dur<=0) return 0;
+    return Math.round((hoje-ini)/dur*100);
+  }
+  // Fallback: datas da obra com engSeq
   if(!obra.dataIni||!obra.dataFim)return null;
   const ini=new Date(obra.dataIni);
   const fim=new Date(obra.dataFim);
@@ -1962,11 +1960,10 @@ function pctEsperadoHoje(obra, etapa){
   const duracaoTotal=fim-ini;
   if(duracaoTotal<=0)return null;
   const decorrido=Math.max(0,Math.min(hoje-ini,duracaoTotal));
-  const obraPctAtual=decorrido/duracaoTotal*100; // % do prazo da obra já consumido
+  const obraPctAtual=decorrido/duracaoTotal*100;
   const seq=engSeq(etapa.nome);
-  // Dentro da janela desta etapa, quanto deveria estar feito?
-  if(obraPctAtual<=seq.s)return 0;      // ainda não começou
-  if(obraPctAtual>=seq.e)return 100;    // já deveria ter terminado
+  if(obraPctAtual<=seq.s)return 0;
+  if(obraPctAtual>=seq.e)return 100;
   return Math.round((obraPctAtual-seq.s)/(seq.e-seq.s)*100);
 }
 
@@ -2165,7 +2162,7 @@ function renderFotoGrid(){
 }
 function addFotos(e){Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{rdoFotos.push({name:f.name,data:ev.target.result});renderFotoGrid();};r.readAsDataURL(f);});e.target.value='';}
 function saveRDO(status){
-  const oId=parseInt(document.getElementById('rdo-obra').value);if(!oId){toast('⚠️','Selecione uma obra!');return;}
+  const oId=document.getElementById('rdo-obra').value;if(!oId){toast('⚠️','Selecione uma obra!');return;}
   const data=document.getElementById('rdo-data').value;if(!data){toast('⚠️','Informe a data!');return;}
   const prev=parseInt(document.getElementById('rdo-prev').value)||0;
   const real=parseInt(document.getElementById('rdo-real').value)||0;
@@ -2841,7 +2838,7 @@ function renderCadastros(){
   };
   renderList('centros',   'cad-centros-list',    '🏷️', 0);
   renderList('categorias','cad-categorias-list', '🗂️', 7);
-  renderList('fornecedores','cad-fornecedores-list','🏢', 0);
+  // Fornecedores gerenciados na aba Fornecedores — não renderizar aqui
 }
 
 function cadastroAdd(tipo){
@@ -3047,8 +3044,9 @@ function _finBuildDrop(campo){
         const checked=filtro===null||filtro.has(String(o.id));
         const c=obraColor(DB.obras.find(x=>String(x.id)===String(o.id))||{});
         const dotC=c==='g'?'var(--green)':c==='r'?'var(--red)':c==='fin'?'var(--green)':'var(--txt3)';
-        return `<div class="cf-item" onclick="_finCheckItem('${campo}','${o.id}',true);event.stopPropagation()">
-          <input type="checkbox" id="cf-chk-${campo}-${o.id}" ${checked?'checked':''} onclick="_finCheckItem('${campo}','${o.id}',true);event.stopPropagation()">
+        const safeId=String(o.id).replace(/[^a-zA-Z0-9_-]/g,'');
+        return `<div class="cf-item" data-campo="${campo}" data-val="${o.id}" data-isobra="1" onclick="_finItemClick(this);event.stopPropagation()">
+          <input type="checkbox" id="cf-chk-${campo}-${safeId}" ${checked?'checked':''} onclick="_finItemClick(this.parentElement);event.stopPropagation()">
           <span class="cf-dot" style="background:${dotC}"></span>
           <span style="flex:1">${o.nome}</span>
         </div>`;
@@ -3057,8 +3055,8 @@ function _finBuildDrop(campo){
         const safe=CSS.escape(v);
         const checked=filtro===null||filtro.has(v);
         const dot=campo==='tipo'?`<span class="cf-dot" style="background:${CORES_TIPO[v]||'var(--txt3)'}"></span>`:'';
-        return `<div class="cf-item" onclick="_finCheckItem('${campo}','${v.replace(/'/g,"\'")}',false);event.stopPropagation()">
-          <input type="checkbox" id="cf-chk-${campo}-${safe}" ${checked?'checked':''} onclick="_finCheckItem('${campo}','${v.replace(/'/g,"\'")}',false);event.stopPropagation()">
+        return `<div class="cf-item" data-campo="${campo}" data-val="${v.replace(/"/g,'&quot;')}" data-isobra="0" onclick="_finItemClick(this);event.stopPropagation()">
+          <input type="checkbox" id="cf-chk-${campo}-${safe}" ${checked?'checked':''} onclick="_finItemClick(this.parentElement);event.stopPropagation()">
           ${dot}<span style="flex:1">${v}</span>
         </div>`;
       }).join('');
@@ -3072,6 +3070,12 @@ function _finBuildDrop(campo){
     ${items}
     <div class="cf-footer"><button onclick="event.stopPropagation();_finAplicarFiltro('${campo}',${isObra});(()=>{const d=document.getElementById('cf-drop-${campo}');if(d)d.classList.remove('open');_finDropAberto=null;})()">✓ Aplicar</button></div>
   </div>`;
+}
+function _finItemClick(el){
+  const campo=el.dataset.campo;
+  const val=el.dataset.val;
+  const isObra=el.dataset.isobra==='1';
+  _finCheckItem(campo,val,isObra);
 }
 
 function _finThBtn(campo,label){
@@ -3739,7 +3743,7 @@ function renderQual(){
     <div class="kpi"><div class="kl">⏰ Vencidas</div><div class="kv" style="color:${vc?'var(--red)':'var(--green)'}">${vc}</div><div class="kd ${vc?'dn':'up'}">${vc?'Urgente':'Nenhuma'}</div></div>`;
   const el=document.getElementById('nc-tbl');
   if(!ncs.length){el.innerHTML='<div class="t-empty">Nenhuma NC. <button class="btn pri sm" onclick="openModal(&apos;nc&apos;)" style="margin-left:8px">＋ Registrar</button></div>';}
-  else el.innerHTML=`<table class="tbl"><tr><th>#</th><th>Obra</th><th>Etapa</th><th>Descrição</th><th>Prazo</th><th>Grau</th><th>Status</th><th></th></tr>`+ncs.sort((a,b)=>String(b.id).localeCompare(String(a.id))).map(n=>{const o=DB.obras.find(x=>String(x.id)===String(n.obraId));const vend=n.prazo&&new Date(n.prazo)<new Date()&&n.status!=='Fechada';return`<tr><td>#${n.id}</td><td>${o?.nome||'—'}</td><td>${n.etapa||'—'}</td><td class="n">${n.desc}</td><td style="color:${vend?'var(--red)':'inherit'}">${n.prazo?fmtDt(n.prazo):'—'}${vend?' ⚠':''}</td><td><span class="b ${n.grau==='Alta'?'br':n.grau==='Média'?'by':'bn'}">${n.grau||'Baixa'}</span></td><td><span class="b ${n.status==='Fechada'?'bg':'by'}">${n.status}</span></td><td><div class="ta-actions">${n.status!=='Fechada'?`<button class="btn sm" onclick="fecharNC('${n.id}')" title="Fechar NC">✓</button>`:''}<button class="btn sm ico" onclick="openModal('nc','${n.id}')">✏️</button><button class="btn sm ico" onclick="delNC('${n.id}')">🗑️</button></div></td></tr>`;}).join('')+'</table>';
+  else el.innerHTML=`<table class="tbl"><tr><th>Nº</th><th>Obra</th><th>Etapa</th><th>Descrição</th><th>Prazo</th><th>Grau</th><th>Status</th><th></th></tr>`+ncs.sort((a,b)=>String(b.id).localeCompare(String(a.id))).map((n,i)=>{const o=DB.obras.find(x=>String(x.id)===String(n.obraId));const vend=n.prazo&&new Date(n.prazo)<new Date()&&n.status!=='Fechada';return`<tr><td style="font-weight:600;color:var(--primary)">#${n.numero||String(n.id).substring(0,8)}</td><td>${o?.nome||'—'}</td><td>${n.etapa||'—'}</td><td class="n">${n.desc}</td><td style="color:${vend?'var(--red)':'inherit'}">${n.prazo?fmtDt(n.prazo):'—'}${vend?' ⚠':''}</td><td><span class="b ${n.grau==='Alta'?'br':n.grau==='Média'?'by':'bn'}">${n.grau||'Baixa'}</span></td><td><span class="b ${n.status==='Fechada'?'bg':'by'}">${n.status}</span></td><td><div class="ta-actions">${n.status!=='Fechada'?`<button class="btn sm" onclick="fecharNC('${n.id}')" title="Fechar NC">✓</button>`:''}<button class="btn sm ico" onclick="openModal('nc','${n.id}')">✏️</button><button class="btn sm ico" onclick="delNC('${n.id}')">🗑️</button></div></td></tr>`;}).join('')+'</table>';
   setTimeout(()=>{
     const ets=[...new Set(ncs.map(n=>n.etapa).filter(Boolean))];
     const vals=ets.map(et=>{const t=ncs.filter(n=>n.etapa===et).length;const f=ncs.filter(n=>n.etapa===et&&n.status==='Fechada').length;return t?Math.round(f/t*100):100;});
@@ -3881,7 +3885,7 @@ function openModal(type,editId=null){
     // Opções dinâmicas dos cadastros
     const catOpts=(DB.categorias||[]).map(x=>`<option${l?.cat===x?' selected':''}>${x}</option>`).join('');
     const ccOpts='<option value="">— Selecionar —</option>'+(DB.centros||[]).map(x=>`<option${l?.cc===x?' selected':''}>${x}</option>`).join('');
-    const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(x=>`<option${l?.forn===x?' selected':''}>${x}</option>`).join('');
+    const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(x=>{const nome=typeof x==='object'?x.nome:x;return`<option${l?.forn===nome?' selected':''}>${nome}</option>`;}).join('');
     body=`<div class="g g2">
       <div class="fg"><label class="lbl">Tipo *</label>
         <select class="sel" id="l-tipo">
@@ -3912,7 +3916,7 @@ function openModal(type,editId=null){
         <select class="sel" id="l-cc">${ccOpts}</select>
       </div>
       <div class="fg"><label class="lbl">Fornecedor
-        <button type="button" onclick="cadastroAddInline('fornecedor','l-forn-sel')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer" title="Novo fornecedor">＋ novo</button>
+        <button type="button" onclick="closeModal();goPage('fornecedores')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer" title="Cadastrar fornecedor">＋ cadastrar</button>
       </label>
         <select class="sel" id="l-forn-sel" onchange="document.getElementById('l-forn-txt').value=this.value==='— Selecionar —'?'':this.value">${fornOpts}</select>
         <input class="inp" id="l-forn-txt" value="${l?.forn||''}" placeholder="Ou digitar manualmente..." style="margin-top:5px;font-size:12px">
@@ -3954,7 +3958,7 @@ function openModal(type,editId=null){
     // Unidades disponíveis — padrão + custom
     if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];
     const unOpts=DB.unidades.map(u=>`<option value="${u}"${m?.un===u?' selected':''}>${u}</option>`).join('');
-    const fornOpts2=(DB.fornecedores||[]).map(x=>`<option value="${x}"${m?.forn===x?' selected':''}>${x}</option>`).join('');
+    const fornOpts2=(DB.fornecedores||[]).map(x=>{const nome=typeof x==='object'?x.nome:x;return`<option value="${nome}"${m?.forn===nome?' selected':''}>${nome}</option>`;}).join('');
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Material *</label><input class="inp" id="mat-nome" value="${m?.material||''}" placeholder="Ex: Cimento CP-II 50kg"></div>
       <div class="fg"><label class="lbl">Unidade de Medida *
@@ -3965,7 +3969,7 @@ function openModal(type,editId=null){
       <div class="fg"><label class="lbl">Estoque Mínimo</label><input type="number" class="inp" id="mat-min" value="${m?.min||0}" min="0"></div>
       <div class="fg"><label class="lbl">Preço Unitário (R$)</label><input type="number" class="inp" id="mat-preco" value="${m?.preco||0}" min="0" step="0.01"></div>
       <div class="fg"><label class="lbl">Fornecedor
-        <button type="button" onclick="cadastroAddInline('fornecedor','mat-forn-sel');document.getElementById('mat-forn-txt').value=document.getElementById('mat-forn-sel').value" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer">＋ novo</button>
+        <button type="button" onclick="closeModal();goPage('fornecedores')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer">＋ cadastrar</button>
       </label>
         <select class="sel" id="mat-forn-sel" onchange="document.getElementById('mat-forn-txt').value=this.value">
           <option value="">— Selecionar —</option>${fornOpts2}
@@ -4057,13 +4061,13 @@ function openModal(type,editId=null){
     title=ct?'Editar Contrato':'📑 Novo Contrato';
     const catOpts=(DB.categorias||[]).map(x=>`<option value="${x}"${ct?.cat===x?' selected':''}>${x}</option>`).join('');
     const ccOpts=(DB.centros||[]).map(x=>`<option value="${x}"${ct?.cc===x?' selected':''}>${x}</option>`).join('');
-    const fornOpts=(DB.fornecedores||[]).map(x=>`<option value="${x}"${ct?.forn===x?' selected':''}>${x}</option>`).join('');
+    const fornOpts=(DB.fornecedores||[]).map(x=>{const nome=typeof x==='object'?x.nome:x;return`<option value="${nome}"${ct?.forn===nome?' selected':''}>${nome}</option>`;}).join('');
     const etapasFilt=DB.etapas.filter(e=>!ct?.obraId||e.obraId==ct?.obraId);
     const etapasOpts=etapasFilt.map(e=>`<option value="${e.nome}"${ct?.etapa===e.nome?' selected':''}>${e.nome}</option>`).join('');
     body=`<div class="g g2">
       <div class="fg"><label class="lbl">Número do Contrato</label><input class="inp" id="ct-num" value="${ct?.numero||''}" placeholder="Ex: CT-2025-001"></div>
       <div class="fg"><label class="lbl">Fornecedor *
-        <button type="button" onclick="cadastroAddInline('fornecedor','ct-forn-sel');document.getElementById('ct-forn-txt').value=document.getElementById('ct-forn-sel').value" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer">＋ novo</button>
+        <button type="button" onclick="closeModal();goPage('fornecedores')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer">＋ cadastrar</button>
       </label>
         <select class="sel" id="ct-forn-sel" onchange="document.getElementById('ct-forn-txt').value=this.value">
           <option value="">— Selecionar —</option>${fornOpts}
@@ -4226,9 +4230,11 @@ function openModal(type,editId=null){
         supaUpdate('nao_conformidades',n.id,{obra_id:dados.obraId||null,etapa:dados.etapa,descricao:dados.desc,grau:dados.grau,prazo:dados.prazo||null,responsavel:dados.resp,status:dados.status,acao:dados.acao});
       } else {
         const novoId=uuidv4();
-        const newN={id:novoId,...dados,_supa:true};
+        const maxNumNC=Math.max(0,...(DB.ncs||[]).map(x=>Number(x.numero||0)));
+        const numeroNC=maxNumNC+1;
+        const newN={id:novoId,numero:numeroNC,...dados,_supa:true};
         DB.ncs.push(newN);
-        supaInsert('nao_conformidades',{id:novoId,obra_id:dados.obraId||null,etapa:dados.etapa,descricao:dados.desc,grau:dados.grau,prazo:dados.prazo||null,responsavel:dados.resp,status:dados.status,acao:dados.acao});
+        supaInsert('nao_conformidades',{id:novoId,numero:numeroNC,obra_id:dados.obraId||null,etapa:dados.etapa,descricao:dados.desc,grau:dados.grau,prazo:dados.prazo||null,responsavel:dados.resp,status:dados.status,acao:dados.acao});
       }
       save();renderQual();toast('✅',n?'NC atualizada!':'NC registrada!');return true;
     };
@@ -4281,10 +4287,13 @@ function openModal(type,editId=null){
         supaUpdate('demandas',d.id,dados);
       } else {
         const novoId=uuidv4();
-        const nd={id:novoId,...dados,_supa:true};
+        // Gerar número sequencial baseado no maior número existente
+        const maxNum=Math.max(0,...(DB.demandas||[]).map(x=>Number(x.numero||0)));
+        const numero=maxNum+1;
+        const nd={id:novoId,numero,...dados,_supa:true};
         if(!DB.demandas) DB.demandas=[];
         DB.demandas.push(nd);
-        supaInsert('demandas',{id:novoId,...dados});
+        supaInsert('demandas',{id:novoId,numero,...dados});
       }
       save();renderDemandas();toast('✅',d?'Demanda atualizada!':'Demanda criada!');return true;
     };
