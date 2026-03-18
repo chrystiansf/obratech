@@ -361,6 +361,9 @@ nav{padding:4px 0;flex:1}
     <div class="ni" data-p="drive" onclick="goPage('drive')"><span class="ic">📁</span>Drive / GED</div>
     <div class="ni" data-p="qualidade" onclick="goPage('qualidade')"><span class="ic">✅</span>Qualidade</div>
     <div class="ni" data-p="contratos" onclick="goPage('contratos')"><span class="ic">📑</span>Contratos</div>
+    <div class="nsec">Gestão</div>
+    <div class="ni" data-p="demandas" onclick="goPage('demandas')"><span class="ic">📋</span>Demandas</div>
+    <div class="ni" data-p="fornecedores" onclick="goPage('fornecedores')"><span class="ic">🏭</span>Fornecedores</div>
     <div class="nsec">Saídas</div>
     <div class="ni" data-p="relatorios" onclick="goPage('relatorios')"><span class="ic">📈</span>Relatórios</div>
   </nav>
@@ -845,6 +848,63 @@ nav{padding:4px 0;flex:1}
   </div>
 </div>
 
+<!-- DEMANDAS -->
+<div class="page" id="p-demandas">
+  <div class="g g4" style="margin-bottom:13px" id="dem-kpis"></div>
+  <div class="card">
+    <div class="ch">
+      <div>
+        <div class="ct">📋 Demandas</div>
+        <div class="cs">Tarefas e pendências por obra</div>
+      </div>
+      <div class="ca" style="gap:8px">
+        <select class="sel" id="dem-obra-filter" style="height:28px;font-size:11px;width:170px" onchange="renderDemandas()">
+          <option value="">Todas as obras</option>
+        </select>
+        <select class="sel" id="dem-status-filter" style="height:28px;font-size:11px;width:130px" onchange="renderDemandas()">
+          <option value="">Todos status</option>
+          <option value="pendente">Pendente</option>
+          <option value="andamento">Em andamento</option>
+          <option value="concluida">Concluída</option>
+        </select>
+        <select class="sel" id="dem-prior-filter" style="height:28px;font-size:11px;width:120px" onchange="renderDemandas()">
+          <option value="">Todas prioridades</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <button class="btn sm pri" onclick="openModal('demanda')">＋ Demanda</button>
+      </div>
+    </div>
+    <div id="dem-tbl"></div>
+  </div>
+</div>
+
+<!-- FORNECEDORES -->
+<div class="page" id="p-fornecedores">
+  <div class="g g4" style="margin-bottom:13px" id="forn-kpis"></div>
+  <div class="card">
+    <div class="ch">
+      <div>
+        <div class="ct">🏭 Fornecedores</div>
+        <div class="cs">Cadastro completo de fornecedores</div>
+      </div>
+      <div class="ca" style="gap:8px">
+        <input class="inp" id="forn-search" placeholder="🔍 Buscar fornecedor..." style="height:28px;font-size:11px;width:200px" oninput="renderFornecedores()">
+        <select class="sel" id="forn-tipo-filter" style="height:28px;font-size:11px;width:130px" onchange="renderFornecedores()">
+          <option value="">Todos os tipos</option>
+          <option value="Material">Material</option>
+          <option value="Serviço">Serviço</option>
+          <option value="Equipamento">Equipamento</option>
+          <option value="Outro">Outro</option>
+        </select>
+        <button class="btn sm pri" onclick="openModal('fornecedor')">＋ Fornecedor</button>
+      </div>
+    </div>
+    <div id="forn-tbl"></div>
+  </div>
+</div>
+
 <!-- RELATÓRIOS -->
 <div class="page" id="p-relatorios">
   <!-- Barra de controle exportação -->
@@ -1173,7 +1233,7 @@ async function carregarDadosSupabase(){
     const safe = async (query) => { try { const r = await query; return r; } catch(e) { return {data:null}; }};
     // Filtrar EXPLICITAMENTE por empresa_id — não depender só do RLS
     const eid = _empresaId;
-    const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns] = await Promise.all([
+    const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns, dems] = await Promise.all([
       safe(supa.from('obras').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('etapas').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('colaboradores').select('*').eq('empresa_id',eid).order('nome')),
@@ -1187,6 +1247,7 @@ async function carregarDadosSupabase(){
       safe(supa.from('categorias').select('nome').eq('empresa_id',eid).order('nome')),
       safe(supa.from('centros_custo').select('nome').eq('empresa_id',eid).order('nome')),
       safe(supa.from('fornecedores').select('nome').eq('empresa_id',eid).order('nome')),
+      safe(supa.from('demandas').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
     ]);
 
     // Mapear para o formato interno do ObraTech
@@ -1359,6 +1420,7 @@ function iniciarRealtime(){
         contratos:r=>{DB.contratos=r.map(mapContrato);renderContratos();},
         pagamentos:r=>{DB.pgtos=r.map(mapPgto);renderContratos();},
         nao_conformidades:r=>{DB.ncs=r.map(mapNc);renderQual&&renderQual();},
+        demandas:r=>{DB.demandas=r.map(x=>({id:x.id,titulo:x.titulo,desc:x.descricao,obraId:x.obra_id,categoria:x.categoria,responsavel:x.responsavel,prazo:x.prazo,prioridade:x.prioridade,status:x.status,obs:x.obs,_supa:true}));if(document.getElementById('p-demandas')?.style.display!=='none')renderDemandas();},
         pontos:r=>{DB.pontos=r.map(row=>({id:row.id,colabId:row.colaborador_id,obraId:row.obra_id,data:row.data,presente:row.presente,tipo:row.tipo,_supa:true}));},
       };
       if(m[tabela]) m[tabela](data);
@@ -1367,7 +1429,7 @@ function iniciarRealtime(){
   }
 
   const tabelas=['obras','etapas','colaboradores','lancamentos','rdos','estoque',
-    'movimentacoes','contratos','pagamentos','nao_conformidades','pontos'];
+    'movimentacoes','contratos','pagamentos','nao_conformidades','pontos','demandas'];
 
   const ch=supa.channel('obratech-realtime-'+eid);
   tabelas.forEach(t=>{
@@ -1401,7 +1463,7 @@ function adicionarBotaoLogout(){
 // BANCO DE DADOS — localStorage
 // ═══════════════════════════════════════════
 const KEY='obratech_v1';
-let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],sel:null,nid:1};
+let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],sel:null,nid:1};
 function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},DB,JSON.parse(s));if(!DB.centros)DB.centros=[];if(!Array.isArray(DB.categorias)||!DB.categorias.length)DB.categorias=['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'];if(!DB.fornecedores)DB.fornecedores=[];if(!DB.contratos)DB.contratos=[];
   if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];if(!DB.pgtos)DB.pgtos=[];}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
@@ -3500,6 +3562,168 @@ document.addEventListener('drop',e=>{e.preventDefault();document.getElementById(
 // ═══════════════════════════════════════════
 // QUALIDADE
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// DEMANDAS
+// ═══════════════════════════════════════════════════════════════
+function renderDemandas(){
+  // Popular filtro de obras
+  const of=document.getElementById('dem-obra-filter');
+  if(of){
+    const cv=of.value;
+    of.innerHTML='<option value="">Todas as obras</option>'+DB.obras.map(o=>`<option value="${o.id}"${cv===String(o.id)?' selected':''}>${o.nome}</option>`).join('');
+  }
+  const obraF=document.getElementById('dem-obra-filter')?.value||'';
+  const statusF=document.getElementById('dem-status-filter')?.value||'';
+  const priorF=document.getElementById('dem-prior-filter')?.value||'';
+
+  let demandas=DB.demandas||[];
+  if(obraF) demandas=demandas.filter(d=>String(d.obraId)===String(obraF));
+  if(statusF) demandas=demandas.filter(d=>d.status===statusF);
+  if(priorF) demandas=demandas.filter(d=>d.prioridade===priorF);
+
+  // KPIs
+  const total=DB.demandas?.length||0;
+  const pendentes=(DB.demandas||[]).filter(d=>d.status==='pendente').length;
+  const andamento=(DB.demandas||[]).filter(d=>d.status==='andamento').length;
+  const concluidas=(DB.demandas||[]).filter(d=>d.status==='concluida').length;
+  document.getElementById('dem-kpis').innerHTML=`
+    <div class="kpi"><div class="kl">📋 Total</div><div class="kv">${total}</div><div class="kd neu">demandas</div></div>
+    <div class="kpi"><div class="kl">⏳ Pendentes</div><div class="kv" style="color:var(--yellow)">${pendentes}</div><div class="kd ${pendentes?'dn':'neu'}">aguardando</div></div>
+    <div class="kpi"><div class="kl">🔄 Em andamento</div><div class="kv" style="color:var(--primary)">${andamento}</div><div class="kd neu">em execução</div></div>
+    <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv" style="color:var(--green)">${concluidas}</div><div class="kd up">finalizadas</div></div>`;
+
+  const el=document.getElementById('dem-tbl');
+  if(!demandas.length){
+    el.innerHTML='<div class="t-empty">Nenhuma demanda encontrada. <button class="btn pri sm" onclick="openModal(\'demanda\')" style="margin-left:8px">＋ Criar demanda</button></div>';
+    return;
+  }
+
+  const PRIOR_COR={alta:'br',media:'by',baixa:'bn'};
+  const PRIOR_LABEL={alta:'Alta',media:'Média',baixa:'Baixa'};
+  const STATUS_COR={pendente:'by',andamento:'bb',concluida:'bg'};
+  const STATUS_LABEL={pendente:'Pendente',andamento:'Em andamento',concluida:'Concluída'};
+
+  el.innerHTML=`<table class="tbl">
+    <tr>
+      <th>Tarefa</th><th>Obra</th><th>Categoria</th>
+      <th>Responsável</th><th>Prazo</th><th>Prioridade</th>
+      <th>Status</th><th></th>
+    </tr>`+
+    demandas.sort((a,b)=>{
+      const po={alta:0,media:1,baixa:2};
+      return (po[a.prioridade]||1)-(po[b.prioridade]||1);
+    }).map(d=>{
+      const obra=DB.obras.find(o=>String(o.id)===String(d.obraId));
+      const venc=d.prazo&&new Date(d.prazo)<new Date()&&d.status!=='concluida';
+      return`<tr style="${d.status==='concluida'?'opacity:.6':''}">
+        <td>
+          <div style="font-weight:600;color:var(--txt)">${d.titulo}</div>
+          ${d.desc?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">${d.desc}</div>`:''}
+        </td>
+        <td style="font-size:11px;color:var(--txt2)">${obra?.nome||'—'}</td>
+        <td style="font-size:11px;color:var(--txt3)">${d.categoria||'—'}</td>
+        <td style="font-size:11px">${d.responsavel||'—'}</td>
+        <td style="font-size:11px;color:${venc?'var(--red)':'inherit'}">${d.prazo?fmtDt(d.prazo):'—'}${venc?' ⚠':''}</td>
+        <td><span class="b ${PRIOR_COR[d.prioridade]||'bn'}">${PRIOR_LABEL[d.prioridade]||'—'}</span></td>
+        <td>
+          <select class="sel" style="height:24px;font-size:11px;padding:0 4px;width:130px" onchange="demMudarStatus('${d.id}',this.value)">
+            <option value="pendente"${d.status==='pendente'?' selected':''}>⏳ Pendente</option>
+            <option value="andamento"${d.status==='andamento'?' selected':''}>🔄 Em andamento</option>
+            <option value="concluida"${d.status==='concluida'?' selected':''}>✅ Concluída</option>
+          </select>
+        </td>
+        <td>
+          <div class="ta-actions">
+            <button class="btn sm ico" onclick="openModal('demanda','${d.id}')" title="Editar">✏️</button>
+            <button class="btn sm ico" onclick="delDemanda('${d.id}')" title="Excluir">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')+'</table>';
+}
+
+function demMudarStatus(id,status){
+  const d=DB.demandas.find(x=>String(x.id)===String(id));
+  if(!d) return;
+  d.status=status;
+  supaUpdate('demandas',d.id,{status});
+  renderDemandas();
+  toast('✅','Status atualizado!');
+}
+
+function delDemanda(id){
+  if(!confirm('Excluir demanda?')) return;
+  const d=DB.demandas.find(x=>String(x.id)===String(id));
+  if(d&&typeof d.id==='string'&&d.id.includes('-')) supaDelete('demandas',d.id);
+  DB.demandas=DB.demandas.filter(x=>String(x.id)!==String(id));
+  save();renderDemandas();toast('🗑️','Demanda excluída.');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FORNECEDORES
+// ═══════════════════════════════════════════════════════════════
+function renderFornecedores(){
+  const q=(document.getElementById('forn-search')?.value||'').toLowerCase();
+  const tipoF=document.getElementById('forn-tipo-filter')?.value||'';
+
+  let forns=DB.fornecedores||[];
+  // Se fornecedores são strings (legado), converter para objetos
+  forns=forns.map(f=>typeof f==='string'?{id:uuidv4(),nome:f,tipo:'',cnpj:'',telefone:'',email:'',contato:'',endereco:'',cidade:'',obs:'',_legado:true}:f);
+
+  if(q) forns=forns.filter(f=>f.nome?.toLowerCase().includes(q)||f.contato?.toLowerCase().includes(q)||f.cnpj?.includes(q));
+  if(tipoF) forns=forns.filter(f=>f.tipo===tipoF);
+
+  // KPIs
+  const total=(DB.fornecedores||[]).length;
+  const comEmail=(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.email).length;
+  const tipos=['Material','Serviço','Equipamento','Outro'];
+  document.getElementById('forn-kpis').innerHTML=`
+    <div class="kpi"><div class="kl">🏭 Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>
+    <div class="kpi"><div class="kl">📧 Com email</div><div class="kv">${comEmail}</div><div class="kd neu">contatos</div></div>
+    <div class="kpi"><div class="kl">🔧 Serviços</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Serviço').length}</div><div class="kd neu">fornecedores</div></div>
+    <div class="kpi"><div class="kl">📦 Materiais</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Material').length}</div><div class="kd neu">fornecedores</div></div>`;
+
+  const el=document.getElementById('forn-tbl');
+  if(!forns.length){
+    el.innerHTML='<div class="t-empty">Nenhum fornecedor encontrado. <button class="btn pri sm" onclick="openModal(\'fornecedor\')" style="margin-left:8px">＋ Cadastrar</button></div>';
+    return;
+  }
+
+  el.innerHTML=`<table class="tbl">
+    <tr>
+      <th>Nome / Empresa</th><th>Tipo</th><th>CNPJ/CPF</th>
+      <th>Contato</th><th>Telefone</th><th>Email</th>
+      <th>Cidade</th><th></th>
+    </tr>`+
+    forns.sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<tr>
+      <td>
+        <div style="font-weight:600">${f.nome||'—'}</div>
+        ${f.obs?`<div style="font-size:10px;color:var(--txt3)">${f.obs}</div>`:''}
+      </td>
+      <td><span class="b bn" style="font-size:10px">${f.tipo||'—'}</span></td>
+      <td style="font-size:11px;color:var(--txt3)">${f.cnpj||'—'}</td>
+      <td style="font-size:11px">${f.contato||'—'}</td>
+      <td style="font-size:11px">${f.telefone?`<a href="tel:${f.telefone}" style="color:var(--primary)">${f.telefone}</a>`:'—'}</td>
+      <td style="font-size:11px">${f.email?`<a href="mailto:${f.email}" style="color:var(--primary)">${f.email}</a>`:'—'}</td>
+      <td style="font-size:11px;color:var(--txt3)">${f.cidade||'—'}</td>
+      <td>
+        <div class="ta-actions">
+          <button class="btn sm ico" onclick="openModal('fornecedor','${f.id}')" title="Editar">✏️</button>
+          <button class="btn sm ico" onclick="delFornecedor('${f.id}')" title="Excluir">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('')+'</table>';
+}
+
+function delFornecedor(id){
+  if(!confirm('Excluir fornecedor?')) return;
+  const f=DB.fornecedores.find(x=>typeof x==='object'&&String(x.id)===String(id));
+  if(f&&typeof f.id==='string'&&f.id.includes('-')) supaDelete('fornecedores_cadastro',f.id);
+  DB.fornecedores=DB.fornecedores.filter(x=>typeof x==='string'?true:String(x.id)!==String(id));
+  save();renderFornecedores();toast('🗑️','Fornecedor excluído.');
+}
+
+
 function renderQual(){
   // Popular filtro de obras
   const qof=document.getElementById('qual-obra-filter');
@@ -4017,6 +4241,94 @@ function openModal(type,editId=null){
       <div class="fg"><label class="lbl">Iniciais (avatar)</label><input class="inp" id="u-ini" value="${DB.user.ini||''}" maxlength="3" placeholder="CF"></div>
     </div>`;
     onSave=()=>{DB.user={nome:document.getElementById('u-nome').value.trim(),cargo:document.getElementById('u-cargo').value.trim(),ini:document.getElementById('u-ini').value.trim().toUpperCase()};save();updateSbObra();toast('✅','Configurações salvas!');return true;};
+  }
+
+  else if(type==='demanda'){
+    const d=editId?DB.demandas.find(x=>String(x.id)===String(editId)):null;
+    title=d?'Editar Demanda':'📋 Nova Demanda';
+    body=`<div class="g g2">
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Tarefa / Título *</label><input class="inp" id="dem-titulo" value="${d?.titulo||''}" placeholder="Ex: Comprar revestimento do piso geral"></div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Descrição</label><textarea class="ta" id="dem-desc" style="min-height:50px" placeholder="Detalhes adicionais...">${d?.desc||''}</textarea></div>
+      <div class="fg"><label class="lbl">Obra</label>
+        <select class="sel" id="dem-obra">${DB.obras.map(o=>`<option value="${o.id}"${String(d?.obraId)===String(o.id)?' selected':''}>${o.nome}</option>`).join('')}</select>
+      </div>
+      <div class="fg"><label class="lbl">Categoria</label>
+        <input class="inp" id="dem-cat" value="${d?.categoria||''}" placeholder="Ex: Materiais, Serviços, Elétrica..."></div>
+      <div class="fg"><label class="lbl">Responsável</label><input class="inp" id="dem-resp" value="${d?.responsavel||''}" placeholder="Nome do responsável"></div>
+      <div class="fg"><label class="lbl">Prazo</label><input type="date" class="inp" id="dem-prazo" value="${d?.prazo||''}"></div>
+      <div class="fg"><label class="lbl">Prioridade</label>
+        <select class="sel" id="dem-prior">
+          <option value="baixa"${d?.prioridade==='baixa'?' selected':''}>🟢 Baixa</option>
+          <option value="media"${(!d||d?.prioridade==='media')?' selected':''}>🟡 Média</option>
+          <option value="alta"${d?.prioridade==='alta'?' selected':''}>🔴 Alta</option>
+        </select>
+      </div>
+      <div class="fg"><label class="lbl">Status</label>
+        <select class="sel" id="dem-status">
+          <option value="pendente"${(!d||d?.status==='pendente')?' selected':''}>⏳ Pendente</option>
+          <option value="andamento"${d?.status==='andamento'?' selected':''}>🔄 Em andamento</option>
+          <option value="concluida"${d?.status==='concluida'?' selected':''}>✅ Concluída</option>
+        </select>
+      </div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label><textarea class="ta" id="dem-obs" style="min-height:40px">${d?.obs||''}</textarea></div>
+    </div>`;
+    onSave=()=>{
+      const titulo=document.getElementById('dem-titulo').value.trim();
+      if(!titulo){toast('⚠️','Título obrigatório!');return false;}
+      const dados={titulo,desc:document.getElementById('dem-desc').value.trim(),obraId:document.getElementById('dem-obra').value||null,categoria:document.getElementById('dem-cat').value.trim(),responsavel:document.getElementById('dem-resp').value.trim(),prazo:document.getElementById('dem-prazo').value||null,prioridade:document.getElementById('dem-prior').value,status:document.getElementById('dem-status').value,obs:document.getElementById('dem-obs').value.trim()};
+      if(d){
+        Object.assign(d,dados);
+        supaUpdate('demandas',d.id,dados);
+      } else {
+        const novoId=uuidv4();
+        const nd={id:novoId,...dados,_supa:true};
+        if(!DB.demandas) DB.demandas=[];
+        DB.demandas.push(nd);
+        supaInsert('demandas',{id:novoId,...dados});
+      }
+      save();renderDemandas();toast('✅',d?'Demanda atualizada!':'Demanda criada!');return true;
+    };
+  }
+  else if(type==='fornecedor'){
+    const f=editId?DB.fornecedores.find(x=>typeof x==='object'&&String(x.id)===String(editId)):null;
+    title=f?'Editar Fornecedor':'🏭 Novo Fornecedor';
+    body=`<div class="g g2">
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Nome / Razão Social *</label><input class="inp" id="forn-nome" value="${f?.nome||''}" placeholder="Nome da empresa ou pessoa"></div>
+      <div class="fg"><label class="lbl">Tipo</label>
+        <select class="sel" id="forn-tipo">
+          <option value="">— Selecione —</option>
+          <option value="Material"${f?.tipo==='Material'?' selected':''}>📦 Material</option>
+          <option value="Serviço"${f?.tipo==='Serviço'?' selected':''}>🔧 Serviço</option>
+          <option value="Equipamento"${f?.tipo==='Equipamento'?' selected':''}>🚜 Equipamento</option>
+          <option value="Outro"${f?.tipo==='Outro'?' selected':''}>📌 Outro</option>
+        </select>
+      </div>
+      <div class="fg"><label class="lbl">CNPJ / CPF</label><input class="inp" id="forn-cnpj" value="${f?.cnpj||''}" placeholder="00.000.000/0000-00"></div>
+      <div class="fg"><label class="lbl">Nome do Contato</label><input class="inp" id="forn-contato" value="${f?.contato||''}" placeholder="Nome do responsável"></div>
+      <div class="fg"><label class="lbl">Telefone / WhatsApp</label><input class="inp" id="forn-tel" value="${f?.telefone||''}" placeholder="(00) 00000-0000"></div>
+      <div class="fg"><label class="lbl">Email</label><input type="email" class="inp" id="forn-email" value="${f?.email||''}" placeholder="email@empresa.com"></div>
+      <div class="fg"><label class="lbl">Endereço</label><input class="inp" id="forn-end" value="${f?.endereco||''}" placeholder="Rua, número, bairro"></div>
+      <div class="fg"><label class="lbl">Cidade / Estado</label><input class="inp" id="forn-cidade" value="${f?.cidade||''}" placeholder="Cidade - UF"></div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label><textarea class="ta" id="forn-obs" style="min-height:50px">${f?.obs||''}</textarea></div>
+    </div>`;
+    onSave=()=>{
+      const nome=document.getElementById('forn-nome').value.trim();
+      if(!nome){toast('⚠️','Nome obrigatório!');return false;}
+      const dados={nome,tipo:document.getElementById('forn-tipo').value,cnpj:document.getElementById('forn-cnpj').value.trim(),contato:document.getElementById('forn-contato').value.trim(),telefone:document.getElementById('forn-tel').value.trim(),email:document.getElementById('forn-email').value.trim(),endereco:document.getElementById('forn-end').value.trim(),cidade:document.getElementById('forn-cidade').value.trim(),obs:document.getElementById('forn-obs').value.trim()};
+      if(f){
+        Object.assign(f,dados);
+        supaUpdate('fornecedores_cadastro',f.id,dados);
+      } else {
+        const novoId=uuidv4();
+        const nf={id:novoId,...dados,_supa:true};
+        // Substituir string duplicada se existir
+        const idxStr=DB.fornecedores.findIndex(x=>typeof x==='string'&&x===nome);
+        if(idxStr>-1) DB.fornecedores[idxStr]=nf;
+        else DB.fornecedores.push(nf);
+        supaInsert('fornecedores_cadastro',{id:novoId,...dados});
+      }
+      save();renderFornecedores();fillSelects();toast('✅',f?'Fornecedor atualizado!':'Fornecedor cadastrado!');return true;
+    };
   }
 
   if(!title)return;
