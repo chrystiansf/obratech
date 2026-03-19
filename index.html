@@ -1424,7 +1424,9 @@ async function supaUpdate(tabela, id, dados){
     console.warn('supaUpdate: id não é UUID, ignorando',tabela,id); return;
   }
   try{
-    const {error}=await supa.from(tabela).update({...dados,atualizado_em:new Date().toISOString()}).eq('id',id).eq('empresa_id',_empresaId);
+    const semAtualizado=['drive_arquivos','pontos','rdo_fotos'];
+    const payload=semAtualizado.includes(tabela)?{...dados}:{...dados,atualizado_em:new Date().toISOString()};
+    const {error}=await supa.from(tabela).update(payload).eq('id',id).eq('empresa_id',_empresaId);
     if(error){
       console.error('supaUpdate ERRO',tabela,id,error.message,error.code);
       toast('❌','Erro ao atualizar ('+tabela+'): '+error.message.substring(0,60));
@@ -3485,25 +3487,29 @@ function renderDrive(){
     `<span class="lk" onclick="drvPath='/';renderDrive()">🏠 ${obra?.nome||'Drive'}</span>`+
     parts.map((p,i)=>{const subPath='/'+parts.slice(0,i+1).join('/');return`<span> › </span><span class="lk" onclick="drvPath='${subPath}';renderDrive()">${p}</span>`;}).join('');
 
-  // Pastas únicas no nível atual
+  // Pastas únicas no nível atual (inclui sentinelas .pasta_xxx)
   const pastasFilhas=new Set();
   _driveArqs.forEach(a=>{
     const ap=a.pasta||'';
     if(!pasta){
-      // raiz: pegar primeiro segmento
+      // raiz: pegar primeiro segmento de qualquer arquivo nesta obra
       if(ap&&ap.startsWith('/')&&ap.split('/').filter(Boolean).length>0){
         pastasFilhas.add(ap.split('/').filter(Boolean)[0]);
       }
     } else {
-      const rel=ap.startsWith(pasta+'/')?ap.slice(pasta.length+1):null;
-      if(rel&&rel.includes('/')){pastasFilhas.add(rel.split('/')[0]);}
+      // subpasta: pegar próximo segmento de arquivos dentro desta pasta
+      const prefix=pasta+'/';
+      if(ap.startsWith(prefix)){
+        const rel=ap.slice(prefix.length);
+        if(rel) pastasFilhas.add(rel.split('/')[0]);
+      }
     }
   });
 
-  // Arquivos no nível atual
+  // Arquivos no nível atual (excluir sentinelas ocultos que começam com .)
   const arqsAtuais=_driveArqs.filter(a=>{
     const ap=a.pasta||'';
-    return ap===pasta;
+    return ap===pasta && !a.nome.startsWith('.');
   });
 
   const el=document.getElementById('drive-contents');
@@ -3538,10 +3544,11 @@ function driveNewFolder(){
   const nm=prompt('Nome da pasta:');if(!nm?.trim())return;
   const pasta=_drvPasta();
   const novaPasta=pasta?pasta+'/'+nm.trim():'/'+nm.trim();
-  // Inserir arquivo sentinela para criar a pasta
+  // Sentinela oculto (.pasta_nome) mantém a pasta mesmo sem arquivos visíveis
   const novoId=uuidv4();
-  const payload={id:novoId,obra_id:_drvObraId,nome:'.keep',pasta:novaPasta||'',tipo:'text/plain',tamanho:0,dados:''};
-  supaInsert('drive_arquivos',{id:novoId,obra_id:_drvObraId,nome:'.keep',pasta:novaPasta||'',tipo:'text/plain',tamanho:0,dados:'',storage_path:novaPasta+'/.keep'}).then(()=>{
+  const sentinelaName='.pasta_'+nm.trim().replace(/[^a-zA-Z0-9_-]/g,'_');
+  const payload={id:novoId,obra_id:_drvObraId,nome:sentinelaName,pasta:novaPasta,tipo:'text/plain',tamanho:0,dados:'',storage_path:novaPasta+'/'+sentinelaName};
+  supaInsert('drive_arquivos',payload).then(()=>{
     _driveArqs.push({...payload,empresa_id:_empresaId});
     renderDrive();
   });
@@ -3614,15 +3621,19 @@ function driveOpen(id){
       for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
       const blob=new Blob([arr],{type:'application/pdf'});
       window._pdfBlobUrl=URL.createObjectURL(blob);
-      root.innerHTML=`<div class="ov" onclick="if(event.target===this){if(window._pdfBlobUrl)URL.revokeObjectURL(window._pdfBlobUrl);document.getElementById('modal-root').innerHTML=''}">
+      window.fechaDrivePdf=function(){
+        try{if(window._pdfBlobUrl){URL.revokeObjectURL(window._pdfBlobUrl);window._pdfBlobUrl=null;}}catch(e){}
+        document.getElementById('modal-root').innerHTML='';
+      };
+      root.innerHTML=`<div class="ov" onclick="if(event.target===this)window.fechaDrivePdf()">
         <div class="mo" style="max-width:95vw;width:95vw;max-height:95vh;height:95vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
           <div class="moh" style="padding:12px 16px;flex-shrink:0">
             <div class="mot">📄 ${a.nome}</div>
-            <div class="mox" onclick="if(window._pdfBlobUrl)URL.revokeObjectURL(window._pdfBlobUrl);document.getElementById('modal-root').innerHTML=''">✕</div>
+            <div class="mox" onclick="window.fechaDrivePdf()">✕</div>
           </div>
           <iframe src="${window._pdfBlobUrl}" style="flex:1;border:none;width:100%;height:100%"></iframe>
           <div class="mof" style="flex-shrink:0">
-            ${btnBaixar}${btnEnviar}${btnFechar}
+            ${btnBaixar}${btnEnviar}<button class="btn" onclick="window.fechaDrivePdf()">✕ Fechar</button>
           </div>
         </div></div>`;
     }catch(err){
@@ -3686,8 +3697,9 @@ function driveMoverArquivo(id,nome){
           const arq=_driveArqs.find(x=>x.id==='${id}');
           if(!arq)return;
           arq.pasta=dest;
-          arq.storage_path=dest?dest+'/${nome}':'${nome}';
-          supaUpdate('drive_arquivos','${id}',{pasta:dest,storage_path:arq.storage_path});
+          arq.storage_path=dest?(dest+'/'+window._driveCtxNm):window._driveCtxNm;
+          // Update direto sem atualizado_em (drive_arquivos não tem essa coluna)
+          if(supa&&_empresaId) supa.from('drive_arquivos').update({pasta:dest,storage_path:arq.storage_path}).eq('id',arq.id).eq('empresa_id',_empresaId).then(r=>{if(r.error)console.error('drive move',r.error.message);});
           document.getElementById('modal-root').innerHTML='';
           renderDrive();
           toast('✅','Arquivo movido para '+(dest||'raiz')+'!');
