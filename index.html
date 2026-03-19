@@ -1546,7 +1546,7 @@ document.addEventListener("DOMContentLoaded", initObraTech);
 // ═══════════════════════════════════════════
 // NAV
 // ═══════════════════════════════════════════
-const TITLES={dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe & Ponto',estoque:'Estoque',financeiro:'Financeiro',drive:'Drive / GED',qualidade:'Qualidade',relatorios:'Relatórios'};
+const TITLES={dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe & Ponto',estoque:'Estoque',financeiro:'Financeiro',drive:'Drive / GED',qualidade:'Qualidade',relatorios:'Relatórios',demandas:'Demandas',fornecedores:'Fornecedores',contratos:'Contratos'};
 const NEW_ACTIONS={obras:()=>openMocModal(),cronograma:()=>openModal('etapa'),rdo:null,equipe:()=>openModal('colab'),estoque:()=>{estSwTab('catalogo');openModal('material');},financeiro:()=>openModal('lanc'),qualidade:()=>openModal('nc'),contratos:()=>openModal('contrato')};
 
 function goPage(id){
@@ -1556,7 +1556,7 @@ function goPage(id){
   document.querySelector(`[data-p="${id}"]`)?.classList.add('on');
   document.getElementById('ptitle').textContent=TITLES[id]||id;
   updateSbObra();fillSelects();
-  ({dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,drive:()=>{if(_drvObraId)carregarDriveArqs();else renderDrive();},qualidade:renderQual,contratos:renderContratos,relatorios:()=>{}})[id]?.();
+  ({dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,drive:()=>{if(_drvObraId)carregarDriveArqs();else renderDrive();},qualidade:renderQual,contratos:renderContratos,relatorios:()=>{},demandas:renderDemandas,fornecedores:renderFornecedores})[id]?.();
 }
 function mainNew(){const p=document.querySelector('.ni.on')?.dataset.p;NEW_ACTIONS[p]?.();}
 
@@ -3536,7 +3536,7 @@ function driveNewFolder(){
   // Inserir arquivo sentinela para criar a pasta
   const novoId=uuidv4();
   const payload={id:novoId,obra_id:_drvObraId,nome:'.keep',pasta:novaPasta||'',tipo:'text/plain',tamanho:0,dados:''};
-  supaInsert('drive_arquivos',{id:novoId,obra_id:_drvObraId,nome:'.keep',pasta:novaPasta||'',tipo:'text/plain',tamanho:0,dados:''}).then(()=>{
+  supaInsert('drive_arquivos',{id:novoId,obra_id:_drvObraId,nome:'.keep',pasta:novaPasta||'',tipo:'text/plain',tamanho:0,dados:'',storage_path:novaPasta+'/.keep'}).then(()=>{
     _driveArqs.push({...payload,empresa_id:_empresaId});
     renderDrive();
   });
@@ -3556,7 +3556,7 @@ function driveUpload(e){
     r.onload=ev=>{
       const novoId=uuidv4();
       const payload={id:novoId,obra_id:_drvObraId,nome:f.name,pasta:pasta||'',tipo:f.type||'application/octet-stream',tamanho:f.size,dados:ev.target.result};
-      supaInsert('drive_arquivos',{id:novoId,obra_id:_drvObraId,nome:f.name,pasta:pasta||'',tipo:f.type||'application/octet-stream',tamanho:f.size,dados:ev.target.result}).then(()=>{
+      supaInsert('drive_arquivos',{id:novoId,obra_id:_drvObraId,nome:f.name,pasta:pasta||'',tipo:f.type||'application/octet-stream',tamanho:f.size,dados:ev.target.result,storage_path:pasta?pasta+'/'+f.name:f.name}).then(()=>{
         _driveArqs.push({...payload,empresa_id:_empresaId});
         uploaded++;
         if(uploaded===files.filter(x=>x.size<=MAX).length) renderDrive();
@@ -3762,12 +3762,11 @@ function renderFornecedores(){
   const q=(document.getElementById('forn-search')?.value||'').toLowerCase();
   const tipoF=document.getElementById('forn-tipo-filter')?.value||'';
 
-  let forns=DB.fornecedores||[];
-  // Se fornecedores são strings (legado), converter para objetos
-  forns=forns.map(f=>typeof f==='string'?{id:uuidv4(),nome:f,tipo:'',cnpj:'',telefone:'',email:'',contato:'',endereco:'',cidade:'',obs:'',_legado:true}:f);
+  let forns=(DB.fornecedores||[]).map(f=>typeof f==='string'?{id:f,nome:f,tipo:'',cnpj:'',telefone:'',email:'',contato:'',obs:'',_legado:true}:f);
 
-  if(q) forns=forns.filter(f=>f.nome?.toLowerCase().includes(q)||f.contato?.toLowerCase().includes(q)||f.cnpj?.includes(q));
-  if(tipoF) forns=forns.filter(f=>f.tipo===tipoF);
+  if(q) forns=forns.filter(f=>(f.nome||'').toLowerCase().includes(q)||(f.contato||'').toLowerCase().includes(q)||(f.cnpj||'').includes(q));
+  if(tipoF) forns=forns.filter(f=>(f.tipo||'')===(tipoF));
+  // "Todos os tipos" = tipoF vazio = sem filtro = mostra todos
 
   // KPIs
   const total=(DB.fornecedores||[]).length;
