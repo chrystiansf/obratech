@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
 <title>ObraTech — Gestão de Obras</title>
 
 <!-- PWA Meta Tags -->
@@ -292,6 +292,14 @@ nav{padding:4px 0;flex:1}
   .tbl th,.tbl td{padding:7px 8px;font-size:11px}
 }
 
+/* ── LANDSCAPE MOBILE ──────────────────────────────────────── */
+@media(max-width:900px) and (orientation:landscape){
+  :root{--sw:0px}
+  #sb{display:none !important}
+  #mobile-nav{display:block}
+  .page{padding-bottom:70px}
+}
+
 /* ── MOBILE (< 768px) ──────────────────────────────────────── */
 @media(max-width:768px){
   :root{--sw:0px}
@@ -346,6 +354,23 @@ nav{padding:4px 0;flex:1}
 
   /* Charts menores */
   .ch-wrap{height:180px !important}
+
+  /* Financeiro mobile */
+  #fin-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl-filter-hdr th{white-space:nowrap;font-size:10px;padding:6px 5px}
+  .tbl-filter-hdr td{white-space:nowrap;font-size:11px;padding:6px 5px}
+  .cf-wrap{position:static}
+  .cf-drop{position:fixed;left:8px !important;right:8px !important;width:auto !important;z-index:9999}
+  #fin-topbar{flex-wrap:wrap;gap:6px}
+  #fin-topbar .sel,#fin-topbar .inp{width:100%;max-width:100%}
+  .fin-fchip{font-size:10px}
+
+  /* RDO mobile — garantir scroll */
+  #p-rdo{overflow-y:auto !important}
+  #rdo-hist{margin-top:12px}
+
+  /* Tabelas em cards no mobile */
+  .tbl th,.tbl td{padding:6px 5px;font-size:11px}
 }
 
 /* ── BARRA NAV MOBILE ──────────────────────────────────────── */
@@ -628,7 +653,7 @@ nav{padding:4px 0;flex:1}
 </div>
 
 <!-- RDO -->
-<div class="page" id="p-rdo">
+<div class="page" id="p-rdo" style="overflow-y:auto">
   <div id="rdo-no-obra" class="al i" style="display:none">ℹ️ Cadastre uma obra para registrar RDOs.</div>
   <div class="g g2">
     <div class="card">
@@ -886,7 +911,7 @@ nav{padding:4px 0;flex:1}
           </div>
         </div>
         <div id="fin-chips" class="fin-active-filters"></div>
-        <div id="lanc-tbl"></div>
+        <div id="fin-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="lanc-tbl"></div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:11px">
         <div class="card"><div class="ct" style="margin-bottom:9px">Receitas vs Despesas</div><div class="cw" style="height:150px"><canvas id="ch-rv"></canvas></div></div>
@@ -1765,21 +1790,49 @@ async function renderClientes(){
       permMap[p.cliente_id].push(p.obra_id);
     });
 
-    el.innerHTML=`<table class="tbl">
-      <tr><th>Cliente</th><th>Email</th><th>Obras Liberadas</th><th></th></tr>
+    // Buscar emails dos usuários via auth metadata
+    const emailMap={};
+    for(const c of _clientes){
+      try{
+        const {data:ud}=await supa.from('perfis').select('id,nome,papel').eq('id',c.id).maybeSingle();
+        // email vem do user_metadata ou do próprio registro auth
+        emailMap[c.id]=c.email||'—';
+      }catch(e){}
+    }
+
+    el.innerHTML=`
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">
+        ${_clientes.length} cliente(s) com acesso ao portal
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
       ${_clientes.map(c=>{
-        const obras=(permMap[c.id]||[]).map(oid=>DB.obras.find(o=>o.id===oid)?.nome||'—').join(', ')||'Nenhuma obra';
-        return`<tr>
-          <td class="n">${c.nome}</td>
-          <td style="font-size:11px;color:var(--txt2)">${c.email||'—'}</td>
-          <td style="font-size:11px">${obras}</td>
-          <td><div class="ta-actions">
-            <button class="btn sm" onclick="openModal('permissoes-cliente','${c.id}')" title="Gerenciar obras">🏗️</button>
-            <button class="btn sm ico" onclick="revogarCliente('${c.id}')" title="Remover acesso">🗑️</button>
-          </div></td>
-        </tr>`;
+        const obras=(permMap[c.id]||[]).map(oid=>DB.obras.find(o=>o.id===oid)?.nome||'—');
+        const qtdObras=obras.length;
+        return`<div class="card" style="padding:14px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:38px;height:38px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;flex-shrink:0">
+                ${c.nome.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:13px">${c.nome}</div>
+                <div style="font-size:11px;color:var(--txt3);margin-top:2px">
+                  ${qtdObras>0
+                    ?'🏗️ '+obras.join(' · ')
+                    :'<span style="color:var(--yellow)">⚠️ Nenhuma obra liberada</span>'}
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn sm" onclick="openModal('permissoes-cliente','${c.id}')" title="Gerenciar obras">🏗️ Obras</button>
+              <button class="btn sm ico" onclick="revogarCliente('${c.id}')" title="Remover acesso" style="color:var(--red)">🗑️</button>
+            </div>
+          </div>
+        </div>`;
       }).join('')}
-    </table>`;
+    </div>`;
   }catch(e){
     el.innerHTML='<div class="al e">Erro ao carregar clientes: '+e.message+'</div>';
   }
