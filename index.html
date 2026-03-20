@@ -1106,6 +1106,7 @@ nav{padding:4px 0;flex:1}
             <option value="ok">Conforme</option>
             <option value="nok">Não Conforme</option>
           </select>
+          <button class="btn sm" onclick="gerarChecklistPDF()">📄 PDF</button>
           <button class="btn sm pri" onclick="openModal('checklist')">＋ Item</button>
         </div>
       </div>
@@ -4571,93 +4572,290 @@ function gerarBoletimPDF(medicaoId){
   const o=DB.obras.find(x=>String(x.id)===String(m.obraId));
   if(!window.jspdf?.jsPDF){toast('⚠️','PDF não disponível.');return;}
   const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'mm',format:'a4'});
-  const W=doc.internal.pageSize.getWidth();
-  const MAR=16;
-  const PRI=[91,143,249],DARK=[30,36,58],GRY=[100,110,140],LIGHT=[240,243,255];
-  let y=MAR;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=doc.internal.pageSize.getWidth(); // 297mm
+  const H=doc.internal.pageSize.getHeight(); // 210mm
+  const M=10; // margem
+  const AZUL=[0,70,127];
+  const AZUL_L=[220,235,248];
+  const CINZA=[80,80,80];
+  const CINZA_L=[240,240,240];
+  const VERDE=[0,128,0];
+  const BRANCO=[255,255,255];
+  const PRETO=[0,0,0];
+  let y=M;
 
-  // Cabeçalho
-  doc.setFillColor(...PRI);doc.rect(0,0,W,32,'F');
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);
-  doc.text('Boletim de Medição',MAR,13);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.text(`Medição #${m.numero||'—'} · ${o?.nome||'—'}`,MAR,20);
-  doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`,W-MAR,20,{align:'right'});
-  doc.text(`Status: ${m.status?.toUpperCase()||'—'}`,W-MAR,27,{align:'right'});
-  y=42;
+  // ── CABEÇALHO INSTITUCIONAL ─────────────────────────────────
+  // Faixa azul superior
+  doc.setFillColor(...AZUL);
+  doc.rect(0,0,W,18,'F');
 
-  // Dados do contrato
-  doc.setFillColor(...LIGHT);doc.rect(MAR-2,y-4,W-MAR*2+4,8,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
-  doc.text('DADOS DO CONTRATO',MAR,y+1);y+=10;
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...DARK);
-  const info=[
-    ['Número do Contrato',ct?.numero||'—'],
-    ['Objeto',ct?.descricao||'—'],
-    ['Fornecedor/Empreiteiro',ct?.forn||'—'],
-    ['Valor Total do Contrato',fmtR(Number(ct?.valor||0))],
-    ['Valor Total Pago Anterior',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0))],
+  // Logo/nome empresa
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(...BRANCO);
+  doc.text('ObraTech',M,11);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.text('Sistema de Gestão de Obras',M,15.5);
+
+  // Título do documento
+  doc.setFont('helvetica','bold');doc.setFontSize(13);
+  doc.text('BOLETIM DE MEDIÇÃO DE SERVIÇOS',W/2,10,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.text(`FORMULÁRIO BM-${String(m.numero||'01').padStart(3,'0')}`,W/2,15,{align:'center'});
+
+  // Data e número no canto direito
+  doc.setFontSize(8);
+  doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`,W-M,10,{align:'right'});
+  doc.text(`Medição Nº: ${String(m.numero||'1').padStart(3,'0')}`,W-M,15,{align:'right'});
+
+  y=22;
+
+  // ── DADOS GERAIS (2 colunas) ────────────────────────────────
+  const boxH=42;
+  // Box esquerdo — Contrato
+  doc.setFillColor(...AZUL_L);doc.rect(M,y,130,boxH,'F');
+  doc.setDrawColor(...AZUL);doc.setLineWidth(0.3);doc.rect(M,y,130,boxH,'S');
+  doc.setFillColor(...AZUL);doc.rect(M,y,130,5,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BRANCO);
+  doc.text('DADOS DO CONTRATO',M+2,y+3.5);
+
+  const contRows=[
+    ['CONTRATANTE',o?.nome||'—'],
+    ['CONTRATADA / EMPREITEIRO',ct?.forn||'—'],
+    ['OBJETO DO CONTRATO',ct?.descricao||'—'],
+    ['Nº DO CONTRATO',ct?.numero||'—'],
+    ['DATA DE ASSINATURA',ct?.assinatura?fmtDt(ct.assinatura):'—'],
+    ['PRAZO CONTRATUAL',ct?.prazo?fmtDt(ct.prazo):'—'],
   ];
-  info.forEach(([k,v])=>{
-    doc.setFont('helvetica','bold');doc.setTextColor(...GRY);doc.text(k+':',MAR,y);
-    doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v),MAR+60,y);y+=7;
+  let ry=y+8;
+  doc.setTextColor(...PRETO);
+  contRows.forEach(([k,v])=>{
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...CINZA);
+    doc.text(k,M+2,ry);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...PRETO);
+    const vv=String(v||'—');
+    doc.text(vv.length>40?vv.substring(0,40)+'...':vv,M+2,ry+3.5);
+    ry+=8;
   });
-  y+=4;
 
-  // Medição atual
-  doc.setFillColor(...LIGHT);doc.rect(MAR-2,y-4,W-MAR*2+4,8,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
-  doc.text('MEDIÇÃO ATUAL',MAR,y+1);y+=10;
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...DARK);
+  // Box direito — Medição
+  const bx2=M+133;
+  doc.setFillColor(...AZUL_L);doc.rect(bx2,y,W-bx2-M,boxH,'F');
+  doc.setDrawColor(...AZUL);doc.rect(bx2,y,W-bx2-M,boxH,'S');
+  doc.setFillColor(...AZUL);doc.rect(bx2,y,W-bx2-M,5,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BRANCO);
+  doc.text('DADOS DA MEDIÇÃO',bx2+2,y+3.5);
+
+  const periodoStr=m.periodo?fmtDt(m.periodo).substring(3):'—';
   const pctAcum=ct?.valor?Math.round(Number(m.valorAcumulado)/Number(ct.valor)*100):0;
-  const med=[
-    ['Período de Referência',m.periodo?fmtDt(m.periodo).substring(3):'—'],
-    ['Valor desta Medição',fmtR(m.valorMedido)],
-    ['Valor Acumulado',fmtR(m.valorAcumulado)],
-    ['% do Contrato Executado',pctAcum+'%'],
-    ['Saldo Remanescente',fmtR(Math.max(0,Number(ct?.valor||0)-Number(m.valorAcumulado||0)))],
+  const saldo=Math.max(0,Number(ct?.valor||0)-Number(m.valorAcumulado||0));
+  const medRows=[
+    ['PERÍODO DE REFERÊNCIA',periodoStr],
+    ['VALOR TOTAL DO CONTRATO',fmtR(Number(ct?.valor||0))],
+    ['VALOR ANTERIOR ACUMULADO',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0))],
+    ['VALOR DESTA MEDIÇÃO',fmtR(Number(m.valorMedido||0))],
+    ['TOTAL ACUMULADO',fmtR(Number(m.valorAcumulado||0))],
+    ['SALDO A EXECUTAR',fmtR(saldo)],
   ];
-  med.forEach(([k,v])=>{
-    doc.setFont('helvetica','bold');doc.setTextColor(...GRY);doc.text(k+':',MAR,y);
-    doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v),MAR+60,y);y+=7;
+  let ry2=y+8;
+  const bw2=W-bx2-M;
+  medRows.forEach(([k,v],i)=>{
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...CINZA);
+    doc.text(k,bx2+2,ry2);
+    doc.setFont('helvetica','bold');doc.setFontSize(8);
+    doc.setTextColor(i>=3?[0,100,0]:PRETO);
+    doc.text(String(v),bx2+bw2-2,ry2+3.5,{align:'right'});
+    ry2+=8;
   });
-  y+=4;
 
-  // Barra de progresso
-  doc.setFillColor(220,224,240);doc.rect(MAR,y,W-MAR*2,8,'F');
-  doc.setFillColor(...PRI);doc.rect(MAR,y,(W-MAR*2)*pctAcum/100,8,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
-  if(pctAcum>5) doc.text(pctAcum+'%',MAR+4,y+5.5);
-  y+=14;
+  y+=boxH+4;
 
-  // Observações
-  if(m.obs){
-    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
-    doc.text('OBSERVAÇÕES',MAR,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...DARK);
-    const lines=doc.splitTextToSize(m.obs,W-MAR*2);
-    doc.text(lines,MAR,y);y+=lines.length*5+8;
+  // ── TABELA DE ITENS / PLANILHA DE MEDIÇÃO ───────────────────
+  // Cabeçalho da tabela padrão mercado
+  const cols=[
+    {label:'ITEM',w:10,align:'center'},
+    {label:'DESCRICAO DOS SERVICOS',w:65,align:'left'},
+    {label:'UN.',w:10,align:'center'},
+    {label:'QTD CONTRAT.',w:18,align:'right'},
+    {label:'VL UNITARIO',w:22,align:'right'},
+    {label:'QTD ANTERIOR',w:18,align:'right'},
+    {label:'QTD PERIODO',w:18,align:'right'},
+    {label:'QTD ACUMUL.',w:18,align:'right'},
+    {label:'% EXEC.',w:16,align:'right'},
+    {label:'VL PERIODO',w:22,align:'right'},
+    {label:'VL ACUMUL.',w:22,align:'right'},
+    {label:'SALDO CONTRAT.',w:22,align:'right'},
+  ];
+
+  // Cabeçalho das colunas
+  let x=M;
+  doc.setFillColor(...AZUL);
+  const tHdr=12;
+  doc.rect(M,y,W-M*2,tHdr,'F');
+  doc.setDrawColor(...AZUL);doc.setLineWidth(0.2);
+  cols.forEach(col=>{
+    doc.setFont('helvetica','bold');doc.setFontSize(5.5);doc.setTextColor(...BRANCO);
+    const tx=col.align==='right'?x+col.w-1:col.align==='center'?x+col.w/2:x+1;
+    doc.text(col.label,tx,y+4,{align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+    doc.setDrawColor(...BRANCO);doc.setLineWidth(0.2);
+    doc.line(x,y,x,y+tHdr);
+    x+=col.w;
+  });
+  y+=tHdr;
+
+  // Uma linha por etapa do contrato (usando etapas da obra como itens)
+  const etapasObra=DB.etapas.filter(e=>String(e.obraId)===String(m.obraId));
+  const linhaH=8;
+  const totalItens=etapasObra.length||1;
+
+  if(etapasObra.length===0){
+    // Linha única com os dados gerais da medição
+    const linhaItems=[
+      ['01','Serviços Conforme Contrato','vb',
+       '1,00',fmtR(ct?.valor||0),
+       '—',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0)),
+       fmtR(Number(m.valorAcumulado||0)),pctAcum+'%',
+       fmtR(Number(m.valorMedido||0)),fmtR(Number(m.valorAcumulado||0)),fmtR(saldo)
+      ]
+    ];
+    let xr=M;let isOdd=true;
+    doc.setFillColor(isOdd?248:255,isOdd?250:255,isOdd?255:255);
+    doc.rect(M,y,W-M*2,linhaH,'F');
+    doc.setDrawColor(200,210,230);doc.rect(M,y,W-M*2,linhaH,'S');
+    linhaItems[0].forEach((v,ci)=>{
+      const col=cols[ci];
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...PRETO);
+      const tx=col.align==='right'?xr+col.w-1:col.align==='center'?xr+col.w/2:xr+1;
+      const vv=String(v||'—').substring(0,ci===1?28:15);
+      doc.text(vv,tx,y+5,{align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+      doc.setDrawColor(200,210,230);doc.line(xr,y,xr,y+linhaH);
+      xr+=col.w;
+    });
+    y+=linhaH;
+  } else {
+    // Uma linha por etapa
+    etapasObra.forEach((e,idx)=>{
+      if(y>H-35){doc.addPage();y=M;}
+      const pctE=Number(e.pct||0)/100;
+      const vlEtapa=Number(e.orc||0)||Number(ct?.valor||0)/totalItens;
+      const vlAnterior=vlEtapa*Math.max(0,pctE-0.1);
+      const vlPeriodo=vlEtapa*Math.min(0.1,pctE);
+      const vlAcum=vlEtapa*pctE;
+      const saldoE=vlEtapa-vlAcum;
+      const isOdd=idx%2===0;
+      doc.setFillColor(isOdd?248:255,isOdd?250:255,255);
+      doc.rect(M,y,W-M*2,linhaH,'F');
+      doc.setDrawColor(200,210,230);doc.rect(M,y,W-M*2,linhaH,'S');
+      const cells=[
+        String(idx+1).padStart(2,'0'),
+        e.nome,
+        'vb',
+        '1,00',
+        fmtR(vlEtapa),
+        '—',
+        '1,00',
+        '1,00',
+        e.pct+'%',
+        fmtR(vlPeriodo||vlAcum),
+        fmtR(vlAcum),
+        fmtR(saldoE)
+      ];
+      let xr=M;
+      cells.forEach((v,ci)=>{
+        const col=cols[ci];
+        doc.setFont('helvetica',ci===1?'normal':'normal');
+        doc.setFontSize(ci===1?6:6.5);doc.setTextColor(...PRETO);
+        const tx=col.align==='right'?xr+col.w-1:col.align==='center'?xr+col.w/2:xr+1;
+        const maxLen=ci===1?30:12;
+        const vv=String(v||'—').substring(0,maxLen);
+        doc.text(vv,tx,y+5,{align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+        doc.setDrawColor(200,210,230);doc.line(xr,y,xr,y+linhaH);
+        xr+=col.w;
+      });
+      y+=linhaH;
+    });
   }
 
-  // Aprovação
+  // Linha de TOTAL
+  doc.setFillColor(...AZUL_L);doc.rect(M,y,W-M*2,8,'F');
+  doc.setDrawColor(...AZUL);doc.rect(M,y,W-M*2,8,'S');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...AZUL);
+  doc.text('TOTAL GERAL',M+2,y+5.5);
+  const totW=cols.slice(0,cols.length-3).reduce((a,c)=>a+c.w,M);
+  doc.text(fmtR(Number(m.valorMedido)),totW+cols[9].w-1,y+5.5,{align:'right'});
+  doc.text(fmtR(Number(m.valorAcumulado)),totW+cols[9].w+cols[10].w-1,y+5.5,{align:'right'});
+  doc.text(fmtR(saldo),totW+cols[9].w+cols[10].w+cols[11].w-1,y+5.5,{align:'right'});
+  y+=12;
+
+  // ── BARRA DE PROGRESSO FINANCEIRO ──────────────────────────
+  if(y<H-40){
+    doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...CINZA);
+    doc.text('AVANÇO FINANCEIRO ACUMULADO:',M,y+4);
+    doc.setFillColor(210,220,235);doc.rect(M+65,y,W-M*2-65,7,'F');
+    doc.setFillColor(...AZUL);doc.rect(M+65,y,(W-M*2-65)*pctAcum/100,7,'F');
+    doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...BRANCO);
+    if(pctAcum>8) doc.text(pctAcum+'% executado',M+67,y+5);
+    else{doc.setTextColor(...AZUL);doc.text(pctAcum+'%',M+65+(W-M*2-65)*pctAcum/100+2,y+5);}
+    y+=12;
+  }
+
+  // ── OBSERVAÇÕES ─────────────────────────────────────────────
+  if(m.obs&&y<H-30){
+    doc.setFillColor(...CINZA_L);doc.rect(M,y,W-M*2,Math.min(20,H-y-30),'F');
+    doc.setDrawColor(180,180,180);doc.rect(M,y,W-M*2,Math.min(20,H-y-30),'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...CINZA);
+    doc.text('OBSERVAÇÕES:',M+2,y+4);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...PRETO);
+    const obsLines=doc.splitTextToSize(m.obs,W-M*2-4);
+    doc.text(obsLines.slice(0,3),M+2,y+9);
+    y+=Math.min(20,H-y-30)+3;
+  }
+
+  // ── ÁREA DE ASSINATURAS ─────────────────────────────────────
+  const assinY=H-28;
+  const assinW=(W-M*2)/3;
+  const assinBoxes=[
+    {label:'ELABORADO POR', nome:'Técnico Responsável', cargo:'Empreiteiro/Contratado'},
+    {label:'FISCALIZADO POR', nome:DB.user.nome||'—', cargo:DB.user.cargo||'Engenheiro Fiscal'},
+    {label:'APROVADO POR', nome:m.status==='aprovado'?(m.aprovadoPor||DB.user.nome):'—', cargo:'Gestor do Contrato'},
+  ];
+
+  assinBoxes.forEach((a,i)=>{
+    const ax=M+i*assinW;
+    doc.setFillColor(...CINZA_L);doc.rect(ax,assinY,assinW-2,20,'F');
+    doc.setDrawColor(150,150,150);doc.rect(ax,assinY,assinW-2,20,'S');
+    doc.setFillColor(...AZUL);doc.rect(ax,assinY,assinW-2,5,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...BRANCO);
+    doc.text(a.label,ax+(assinW-2)/2,assinY+3.5,{align:'center'});
+    // Linha de assinatura
+    doc.setDrawColor(100,100,100);doc.setLineWidth(0.3);
+    doc.line(ax+4,assinY+13,ax+assinW-6,assinY+13);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...PRETO);
+    doc.text(a.nome,ax+(assinW-2)/2,assinY+16,{align:'center'});
+    doc.setFontSize(6);doc.setTextColor(...CINZA);
+    doc.text(a.cargo,ax+(assinW-2)/2,assinY+19,{align:'center'});
+  });
+
+  // Status aprovação (se aprovado, marca em verde)
   if(m.status==='aprovado'){
-    y+=6;
-    doc.setFillColor(240,255,245);doc.rect(MAR-2,y-4,W-MAR*2+4,20,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(18,168,77);
-    doc.text('✓ MEDIÇÃO APROVADA',MAR,y+2);
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GRY);
-    doc.text(`Por: ${m.aprovadoPor||'—'} · Em: ${m.aprovadoEm?fmtDt(m.aprovadoEm):'—'}`,MAR,y+9);
+    doc.setFillColor(220,255,220);
+    doc.rect(M+assinW*1.8,assinY-8,assinW*0.8,10,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(0,120,0);
+    doc.text('APROVADO',M+assinW*2.2,assinY-1,{align:'center',angle:0});
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(...CINZA);
+    doc.text(`Em: ${m.aprovadoEm?fmtDt(m.aprovadoEm):'—'}`,M+assinW*2.2,assinY+3,{align:'center'});
   }
 
-  // Rodapé
-  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRY);
-  doc.text(`ObraTech · ${o?.nome||''} · Medição #${m.numero||''}`,MAR,290);
-  doc.text(new Date().toLocaleDateString('pt-BR'),W-MAR,290,{align:'right'});
+  // ── RODAPÉ ──────────────────────────────────────────────────
+  doc.setDrawColor(...AZUL);doc.setLineWidth(0.5);doc.line(M,H-6,W-M,H-6);
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...CINZA);
+  doc.text(`ObraTech · Boletim de Medição Nº ${String(m.numero||'1').padStart(3,'0')} · ${o?.nome||'—'} · ${ct?.numero||'—'}`,M,H-3);
+  doc.text(`Página 1 de ${doc.internal.getNumberOfPages()}`,W-M,H-3,{align:'right'});
 
-  doc.save(`Boletim_Medicao_${m.numero||'0'}_${(ct?.numero||'CT').replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
-  toast('📄','Boletim gerado!');
+  const arq=`BM_${String(m.numero||'01').padStart(3,'0')}_${(ct?.numero||'CT').replace(/[^a-zA-Z0-9]/g,'_')}_${(o?.nome||'obra').replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)}.pdf`;
+  doc.save(arq);
+  toast('📄',`Boletim gerado: ${arq}`);
 }
+
 
 function delContrato(id){
   if(!confirm('Excluir contrato? Os pagamentos associados também serão removidos.'))return;
@@ -5169,6 +5367,281 @@ function delFornecedor(id){
 }
 
 
+function gerarChecklistPDF(){
+  const obraFiltro=document.getElementById('chk-obra-filter')?.value||'';
+  const statusFiltro=document.getElementById('chk-status-filter')?.value||'';
+  let items=[...(DB.checklists||[])];
+  if(obraFiltro) items=items.filter(c=>String(c.obraId)===String(obraFiltro));
+  if(statusFiltro) items=items.filter(c=>c.status===statusFiltro);
+
+  if(!items.length){toast('⚠️','Nenhum item para gerar o relatório.');return;}
+  if(!window.jspdf?.jsPDF){toast('⚠️','PDF não disponível.');return;}
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=doc.internal.pageSize.getWidth();
+  const H=doc.internal.pageSize.getHeight();
+  const M=12;
+  const AZUL=[0,70,127];
+  const AZUL_L=[220,235,248];
+  const VERDE=[0,128,0];
+  const VERDE_L=[220,245,220];
+  const VERM=[180,0,0];
+  const VERM_L=[255,220,220];
+  const AMAR=[180,120,0];
+  const AMAR_L=[255,245,210];
+  const CINZA=[80,80,80];
+  const CINZA_L=[240,240,240];
+  const PRETO=[0,0,0];
+  const BRANCO=[255,255,255];
+
+  const obra=DB.obras.find(x=>String(x.id)===String(obraFiltro))||DB.obras[0];
+  const obraNome=obra?.nome||'Todas as Obras';
+  let y=M;
+  let pag=1;
+
+  const novaPage=()=>{
+    doc.addPage();y=M;pag++;
+    rodape();cabecalho(false);
+  };
+
+  const cabecalho=(principal=true)=>{
+    // Faixa azul
+    doc.setFillColor(...AZUL);doc.rect(0,0,W,18,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...BRANCO);
+    doc.text('RELATÓRIO DE INSPEÇÃO E QUALIDADE',W/2,8,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8);
+    doc.text('Checklist de Verificação de Etapas — PBQP-H',W/2,13,{align:'center'});
+    doc.setFontSize(7.5);
+    doc.text(`ObraTech`,M,8);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`,W-M,8,{align:'right'});
+    doc.text(`Página ${pag}`,W-M,13,{align:'right'});
+    y=22;
+
+    if(principal){
+      // Sub-cabeçalho com obra e filtros
+      doc.setFillColor(...AZUL_L);doc.rect(M,y,W-M*2,14,'F');
+      doc.setDrawColor(...AZUL);doc.rect(M,y,W-M*2,14,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...AZUL);
+      doc.text(`Obra: ${obraNome}`,M+3,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...CINZA);
+      const tot=items.length;
+      const ok=items.filter(i=>i.status==='ok').length;
+      const nok=items.filter(i=>i.status==='nok').length;
+      const pend=items.filter(i=>i.status==='pendente').length;
+      const pct=tot?Math.round(ok/tot*100):0;
+      doc.text(`Total: ${tot} itens  |  ✓ Conformes: ${ok}  |  ✕ Não Conformes: ${nok}  |  ⏳ Pendentes: ${pend}  |  Conformidade: ${pct}%`,M+3,y+11);
+      y+=18;
+    }
+  };
+
+  const rodape=()=>{
+    doc.setDrawColor(...AZUL);doc.setLineWidth(0.4);doc.line(M,H-8,W-M,H-8);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...CINZA);
+    doc.text(`ObraTech · Relatório de Inspeção · ${obraNome} · ${new Date().toLocaleDateString('pt-BR')}`,M,H-4);
+    doc.text(`Página ${pag}`,W-M,H-4,{align:'right'});
+  };
+
+  cabecalho(true);
+  rodape();
+
+  // Agrupar por etapa
+  const grupos={};
+  items.forEach(c=>{
+    const key=(c.obraId||'')+'||'+(c.etapaNome||'Geral');
+    if(!grupos[key]) grupos[key]={obraId:c.obraId,etapa:c.etapaNome||'Geral',items:[]};
+    grupos[key].items.push(c);
+  });
+
+  Object.values(grupos).forEach(g=>{
+    if(y>H-40) novaPage();
+
+    // Cabeçalho do grupo/etapa
+    const ok=g.items.filter(i=>i.status==='ok').length;
+    const tot=g.items.length;
+    const pct=tot?Math.round(ok/tot*100):0;
+    const corGrupo=pct>=100?VERDE:pct>=50?AMAR:VERM;
+    const corGrupoL=pct>=100?VERDE_L:pct>=50?AMAR_L:VERM_L;
+
+    doc.setFillColor(...corGrupoL);doc.rect(M,y,W-M*2,9,'F');
+    doc.setFillColor(...corGrupo);doc.rect(M,y,3,9,'F');
+    doc.setDrawColor(...corGrupo);doc.rect(M,y,W-M*2,9,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...corGrupo);
+    doc.text(`ETAPA: ${g.etapa.toUpperCase()}`,M+6,y+6);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...CINZA);
+    doc.text(`${ok}/${tot} conformes · ${pct}% de conformidade`,W-M-2,y+6,{align:'right'});
+
+    // Barra de progresso da etapa
+    doc.setFillColor(210,210,210);doc.rect(M,y+9,W-M*2,3,'F');
+    doc.setFillColor(...corGrupo);doc.rect(M,y+9,(W-M*2)*pct/100,3,'F');
+    y+=14;
+
+    // Cabeçalho das colunas
+    const colunas=[
+      {l:'Nº',w:8,a:'center'},
+      {l:'ITEM DE VERIFICAÇÃO',w:90,a:'left'},
+      {l:'RESPONSÁVEL',w:32,a:'left'},
+      {l:'DATA',w:20,a:'center'},
+      {l:'STATUS',w:24,a:'center'},
+      {l:'OBSERVAÇÕES',w:W-M*2-8-90-32-20-24,a:'left'},
+    ];
+    if(y>H-20) novaPage();
+    doc.setFillColor(...AZUL);doc.rect(M,y,W-M*2,6,'F');
+    let cx=M;
+    colunas.forEach(col=>{
+      doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...BRANCO);
+      const tx=col.a==='right'?cx+col.w-1:col.a==='center'?cx+col.w/2:cx+1;
+      doc.text(col.l,tx,y+4,{align:col.a==='right'?'right':col.a==='center'?'center':'left'});
+      doc.setDrawColor(...BRANCO);doc.line(cx,y,cx,y+6);
+      cx+=col.w;
+    });
+    y+=6;
+
+    // Linhas de itens
+    g.items.forEach((item,idx)=>{
+      if(y>H-16) novaPage();
+      const rowH=10;
+      const isOdd=idx%2===0;
+
+      // Background por status
+      const bgCor=item.status==='ok'?[240,255,240]:item.status==='nok'?[255,240,240]:(isOdd?[248,250,255]:[255,255,255]);
+      doc.setFillColor(...bgCor);doc.rect(M,y,W-M*2,rowH,'F');
+      doc.setDrawColor(200,210,230);doc.rect(M,y,W-M*2,rowH,'S');
+
+      // Indicador lateral colorido
+      const icor=item.status==='ok'?VERDE:item.status==='nok'?VERM:AMAR;
+      doc.setFillColor(...icor);doc.rect(M,y,1.5,rowH,'F');
+
+      let cx2=M;
+      const cells=[
+        String(idx+1).padStart(2,'0'),
+        item.item,
+        item.resp||'—',
+        item.data?fmtDt(item.data):'—',
+        item.status==='ok'?'✓ CONFORME':item.status==='nok'?'✕ NÃO CONF.':'⏳ PENDENTE',
+        item.obs||'—',
+      ];
+      colunas.forEach((col,ci)=>{
+        doc.setFont('helvetica',ci===4?'bold':'normal');
+        doc.setFontSize(ci===0?7:6.5);
+        const cor=ci===4?(item.status==='ok'?VERDE:item.status==='nok'?VERM:AMAR):PRETO;
+        doc.setTextColor(...cor);
+        const tx=col.a==='right'?cx2+col.w-1:col.a==='center'?cx2+col.w/2:cx2+1.5;
+        const maxLen=ci===1?42:ci===5?22:ci===2?16:12;
+        const vv=String(cells[ci]||'—').substring(0,maxLen);
+        doc.text(vv,tx,y+4,{align:col.a==='right'?'right':col.a==='center'?'center':'left'});
+        if(cells[ci].length>maxLen&&(ci===1||ci===5)){
+          doc.setFontSize(5.5);doc.setTextColor(...CINZA);
+          doc.text(String(cells[ci]).substring(maxLen,maxLen+45),tx,y+7.5,{align:'left'});
+        }
+        doc.setDrawColor(200,210,230);doc.line(cx2,y,cx2,y+rowH);
+        cx2+=col.w;
+      });
+
+      // Fotos em miniatura (se tiver)
+      if(item.fotos?.length&&y+rowH+12<H-10){
+        y+=rowH;
+        doc.setFillColor(250,250,255);doc.rect(M,y,W-M*2,12,'F');
+        doc.setFont('helvetica','italic');doc.setFontSize(6);doc.setTextColor(...CINZA);
+        doc.text(`📷 ${item.fotos.length} foto(s) de evidência registrada(s)`,M+3,y+7);
+        // Tentar adicionar imagens base64
+        item.fotos.slice(0,4).forEach((f,fi)=>{
+          try{
+            const imgX=M+50+fi*26;
+            doc.addImage(f.src,'JPEG',imgX,y+1,24,10);
+          }catch(e){}
+        });
+      } else {
+        y+=rowH;
+      }
+    });
+    y+=4;
+  });
+
+  // ── PÁGINA FINAL: RESUMO GERAL ──────────────────────────────
+  doc.addPage();pag++;y=M;
+  rodape();
+  // Cabeçalho simples
+  doc.setFillColor(...AZUL);doc.rect(0,0,W,14,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...BRANCO);
+  doc.text('RESUMO GERAL DE CONFORMIDADE',W/2,9,{align:'center'});
+  y=18;
+
+  // Sumário por etapa
+  doc.setFillColor(...AZUL_L);doc.rect(M,y,W-M*2,8,'F');
+  doc.setDrawColor(...AZUL);doc.rect(M,y,W-M*2,8,'S');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...AZUL);
+  ['ETAPA','TOTAL','CONFORMES','NÃO CONFORMES','PENDENTES','% CONFORMIDADE','SITUAÇÃO'].forEach((h,hi)=>{
+    const ws=[65,16,22,28,18,28,20];
+    // Calcular posições x das colunas
+    const xs=[];let _xx=M;ws.forEach((w,i)=>{xs.push(_xx);_xx+=w;});
+    let px=M;ws.slice(0,hi).forEach(w=>px+=w);
+    doc.text(h,px+(hi>0?ws[hi]/2:2),y+5,{align:hi>0?'center':'left'});
+  });
+  y+=8;
+
+  const ws=[65,16,22,28,18,28,20];
+  Object.values(grupos).forEach((g,gi)=>{
+    if(y>H-20){doc.addPage();pag++;y=M;rodape();}
+    const ok=g.items.filter(i=>i.status==='ok').length;
+    const nok=g.items.filter(i=>i.status==='nok').length;
+    const pend=g.items.filter(i=>i.status==='pendente').length;
+    const tot=g.items.length;
+    const pct=tot?Math.round(ok/tot*100):0;
+    const sit=pct>=100?'✓ LIBERADO':pct>=70?'⚠ PARCIAL':'✕ PENDENTE';
+    const sitCor=pct>=100?VERDE:pct>=70?AMAR:VERM;
+    const bg=gi%2===0?[248,250,255]:[255,255,255];
+    doc.setFillColor(...bg);doc.rect(M,y,W-M*2,7,'F');
+    doc.setDrawColor(200,210,230);doc.rect(M,y,W-M*2,7,'S');
+    const vals=[g.etapa,String(tot),String(ok),String(nok),String(pend),pct+'%',sit];
+    let px=M;
+    vals.forEach((v,vi)=>{
+      doc.setFont('helvetica',vi===6?'bold':'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(vi===6?sitCor:PRETO);
+      doc.text(v.substring(0,vi===0?36:12),px+(vi>0?ws[vi]/2:2),y+5,{align:vi>0?'center':'left'});
+      px+=ws[vi];
+    });
+    y+=7;
+  });
+
+  // Totalizadores finais
+  y+=4;
+  const totAll=items.length;
+  const okAll=items.filter(i=>i.status==='ok').length;
+  const nokAll=items.filter(i=>i.status==='nok').length;
+  const pendAll=items.filter(i=>i.status==='pendente').length;
+  const pctAll=totAll?Math.round(okAll/totAll*100):0;
+  doc.setFillColor(pctAll>=100?VERDE:pctAll>=70?AMAR:VERM);
+  doc.rect(M,y,W-M*2,12,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...BRANCO);
+  doc.text(`CONFORMIDADE GERAL DA OBRA: ${pctAll}%  (${okAll} de ${totAll} itens conformes)`,W/2,y+8,{align:'center'});
+  y+=16;
+
+  // Área de assinatura do responsável pela inspeção
+  const assinY2=H-35;
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...CINZA);
+  doc.text('DECLARAÇÃO',M,assinY2);
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...PRETO);
+  const decl=`Declaro que os itens acima foram verificados in loco e refletem a situação real encontrada na obra ${obraNome} na data de ${new Date().toLocaleDateString('pt-BR')}, conforme requisitos do contrato e normas técnicas aplicáveis.`;
+  const declLines=doc.splitTextToSize(decl,W-M*2);
+  doc.text(declLines,M,assinY2+6);
+
+  // Assinaturas finais
+  const assFim=H-18;
+  [[M,'RESPONSÁVEL PELA INSPEÇÃO',DB.user.nome||'—'],[W/2,'APROVAÇÃO / VISTO','Gerente de Obras']].forEach(([ax,titulo,nome])=>{
+    doc.setDrawColor(100,100,100);doc.line(ax,assFim,ax+75,assFim);
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...CINZA);
+    doc.text(titulo,ax+37,assFim+4,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...PRETO);
+    doc.text(nome,ax+37,assFim+8,{align:'center'});
+  });
+
+  const arq=`Checklist_Inspecao_${(obraNome).replace(/[^a-zA-Z0-9]/g,'_').substring(0,25)}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(arq);
+  toast('📄',`Relatório de Inspeção gerado!`);
+}
+
 function qualTab(tab){
   document.querySelectorAll('.qual-tab').forEach(t=>{
     const isOn=t.dataset.qt===tab;
@@ -5257,6 +5730,47 @@ function renderChecklist(){
   }).join('');
 }
 
+function chkFiltrarEtapas(obraId){
+  const ets=DB.etapas.filter(e=>String(e.obraId)===String(obraId));
+  const dl=document.getElementById('chk-etapa-list');
+  if(dl) dl.innerHTML=ets.map(e=>'<option value="'+e.nome+'">'+e.nome+'</option>').join('');
+}
+
+function chkRemoveFoto(idx){
+  if(!window._chkFotos) return;
+  window._chkFotos.splice(idx,1);
+  const g=document.getElementById('chk-foto-grid');
+  if(g&&g._renderFn) g._renderFn();
+}
+
+function chkAddFotos(e){
+  const files=[...e.target.files];
+  let done=0;
+  if(!files.length) return;
+  files.forEach(f=>{
+    if(f.size>3*1024*1024){
+      toast('⚠️','Foto muito grande. Máx 3MB.');
+      done++;
+      if(done===files.length){
+        const g=document.getElementById('chk-foto-grid');
+        if(g&&g._renderFn) g._renderFn();
+      }
+      return;
+    }
+    const r=new FileReader();
+    r.onload=ev=>{
+      if(!window._chkFotos) window._chkFotos=[];
+      window._chkFotos.push({src:ev.target.result});
+      done++;
+      if(done===files.length){
+        const g=document.getElementById('chk-foto-grid');
+        if(g&&g._renderFn) g._renderFn();
+      }
+    };
+    r.readAsDataURL(f);
+  });
+}
+
 function chkVerFoto(chkId, fotoIdx){
   const chk=DB.checklists.find(x=>x.id===chkId);
   if(!chk||!chk.fotos?.length) return;
@@ -5286,7 +5800,7 @@ function chkAprovar(id, status){
   item.status=status;
   item.data=new Date().toISOString().split('T')[0];
   item.resp=item.resp||DB.user.nome;
-  supaUpdate('checklists',id,{status,data:item.data,responsavel:item.resp});
+  supaUpdate('checklists',id,{status,data:item.data||null,responsavel:item.resp||null});
   save();renderChecklist();
   toast(status==='ok'?'✅':'⚠️',status==='ok'?'Item conforme!':'Item não conforme registrado.');
 }
@@ -5829,37 +6343,25 @@ function openModal(type,editId=null,editId2=null){
     const renderFotosChk=()=>{
       const grid=document.getElementById('chk-foto-grid');
       if(!grid) return;
-      grid.innerHTML=(window._chkFotos||[]).map((f,i)=>`
-        <div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
-          <img src="${f.src}" style="width:100%;height:100%;object-fit:cover">
-          <button onclick="window._chkFotos.splice(${i},1);${''};document.getElementById('chk-foto-grid').dispatchEvent(new Event('change'))"
-            style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center">×</button>
-        </div>`).join('')+
-        `<label style="width:80px;height:80px;border-radius:8px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;flex-shrink:0">
-          <span style="font-size:20px">📷</span>
-          <span style="font-size:9px;color:var(--txt3)">Adicionar</span>
-          <input type="file" accept="image/*" multiple style="display:none" onchange="(e=>{
-            const files=[...e.target.files];
-            let done=0;
-            files.forEach(f=>{
-              if(f.size>3*1024*1024){toast('⚠️','Foto muito grande. Máx 3MB.');done++;if(done===files.length)document.getElementById('chk-foto-grid').dispatchEvent(new Event('change'));return;}
-              const r=new FileReader();
-              r.onload=ev=>{window._chkFotos.push({src:ev.target.result});done++;if(done===files.length)document.getElementById('chk-foto-grid').dispatchEvent(new Event('change'));};
-              r.readAsDataURL(f);
-            });
-          })(event)">
-        </label>`;
+      let html='';
+      (window._chkFotos||[]).forEach((f,i)=>{
+        const btn='<button onclick="chkRemoveFoto('+i+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px">x</button>';
+        html+='<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
+          '<img src="'+f.src+'" style="width:100%;height:100%;object-fit:cover">'+btn+
+          '</div>';
+      });
+      html+='<label style="width:80px;height:80px;border-radius:8px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;flex-shrink:0">'+
+        '<span style="font-size:20px">📷</span>'+
+        '<span style="font-size:9px;color:var(--txt3)">Adicionar</span>'+
+        '<input type="file" accept="image/*" multiple style="display:none" onchange="chkAddFotos(event)">'+
+        '</label>';
+      grid.innerHTML=html;
     };
 
     body=`<div style="display:flex;flex-direction:column;gap:14px">
       <div class="g g2">
         <div class="fg"><label class="lbl">Obra *</label>
-          <select class="sel" id="chk-obra" onchange="(()=>{
-            const eid=this.value;
-            const ets=DB.etapas.filter(e=>String(e.obraId)===String(eid));
-            const dl=document.getElementById('chk-etapa-list');
-            if(dl) dl.innerHTML=ets.map(e=>'<option value='+JSON.stringify(e.nome)+'>'+e.nome+'</option>').join('');
-          })()">${DB.obras.map(o=>`<option value="${o.id}" ${String(chk?.obraId||obraAtual)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
+          <select class="sel" id="chk-obra" onchange="chkFiltrarEtapas(this.value)">${DB.obras.map(o=>'<option value="'+o.id+'"'+(String(chk?.obraId||obraAtual)===String(o.id)?' selected':'')+'>'+o.nome+'</option>').join('')}</select></div>
         <div class="fg"><label class="lbl">Etapa *</label>
           <input class="inp" id="chk-etapa" value="${chk?.etapaNome||''}" list="chk-etapa-list" placeholder="Selecione ou digite a etapa">
           <datalist id="chk-etapa-list">${etapaNomes.map(n=>`<option value="${n}">${n}</option>`).join('')}</datalist></div>
@@ -5895,12 +6397,16 @@ function openModal(type,editId=null,editId2=null){
       const fotosJson=JSON.stringify(fotos);
       if(chk){
         Object.assign(chk,dados);
-        supaUpdate('checklists',chk.id,{obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,fotos:fotosJson});
+        supaUpdate('checklists',chk.id,{obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs});
+        // Salvar fotos localmente (coluna fotos precisa de: ALTER TABLE checklists ADD COLUMN IF NOT EXISTS fotos TEXT DEFAULT '[]')
+        try{ supaUpdate('checklists',chk.id,{fotos:fotosJson}); }catch(e){ console.warn('fotos col missing'); }
       } else {
         const newId=uuidv4();
         const newChk={id:newId,...dados,status:'pendente',_supa:true};
         DB.checklists.push(newChk);
-        supaInsert('checklists',{id:newId,empresa_id:_empresaId,obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,fotos:fotosJson,status:'pendente'});
+        supaInsert('checklists',{id:newId,empresa_id:_empresaId,obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,status:'pendente'});
+        // Salvar fotos após inserção (requer coluna fotos na tabela)
+        if(fotos.length>0){ setTimeout(()=>{ try{ supaUpdate('checklists',newId,{fotos:fotosJson}); }catch(e){ console.warn('fotos col missing - execute: ALTER TABLE checklists ADD COLUMN IF NOT EXISTS fotos TEXT'); } },500); }
       }
       window._chkFotos=[];
       save();renderChecklist();toast('✅',chk?'Item atualizado!':'Item criado!');return true;
