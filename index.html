@@ -688,7 +688,20 @@ nav{padding:4px 0;flex:1}
     <div id="gantt-empty" class="empty" style="display:none;padding:20px"><div class="eic" style="font-size:24px">📅</div><div class="etit">Nenhuma etapa</div><div class="edesc">Adicione etapas ao cronograma</div></div>
 
   </div>
-  <div class="card"><div class="ct" style="margin-bottom:9px">📈 Curva S</div><div class="cw" style="height:190px"><canvas id="ch-curvas"></canvas></div></div>
+  <div class="card">
+    <div class="ch" style="margin-bottom:9px">
+      <div class="ct">📈 Curva S — Financeiro</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#5b8ff9;border-radius:2px"></span>Orçado</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#18a84d;border-radius:2px"></span>Realizado</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#f4a623;border-radius:2px;border-top:2px dashed #f4a623"></span>Medido</span>
+      </div>
+    </div>
+    <div class="cw" style="height:200px"><canvas id="ch-curvas"></canvas></div>
+    <div id="ch-curvas-empty" style="display:none;text-align:center;padding:20px;font-size:11px;color:var(--txt3)">
+      Adicione orçamento nas etapas e lançamentos financeiros para ver a Curva S
+    </div>
+  </div>
 </div>
 
 <!-- RDO -->
@@ -1810,7 +1823,7 @@ function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,pre
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
-function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,_supa:true};}
+function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,fotos:r.fotos?JSON.parse(r.fotos):([]),_supa:true};}
 function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',obs:r.obs,aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
@@ -2023,7 +2036,7 @@ function adicionarBotaoLogout(){
 // BANCO DE DADOS — localStorage
 // ═══════════════════════════════════════════
 const KEY='obratech_v1';
-let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],sel:null,nid:1};
+let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],medicoes:[],checklists:[],sel:null,nid:1};
 function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},DB,JSON.parse(s));if(!DB.centros)DB.centros=[];if(!Array.isArray(DB.categorias)||!DB.categorias.length)DB.categorias=['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'];if(!DB.fornecedores)DB.fornecedores=[];if(!DB.contratos)DB.contratos=[];if(!DB.medicoes)DB.medicoes=[];if(!DB.checklists)DB.checklists=[];
   if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];if(!DB.pgtos)DB.pgtos=[];}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
@@ -3070,15 +3083,112 @@ function renderCron(){
       <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt3)"><span style="display:inline-block;width:2px;height:10px;background:rgba(255,255,255,.7);border-radius:1px"></span>Esperado hoje</span>
     </div>`;
 
+  // ── CURVA S FINANCEIRA ─────────────────────────────────────
   setTimeout(()=>{
-    if(!ets.length){mkChart('ch-curvas',{type:'line',data:{labels:['—'],datasets:[{label:'Esperado',data:[0],borderColor:CP.yel},{label:'Realizado',data:[0],borderColor:CP.grn}]},options:BO});return;}
-    const labels=ets.map(e=>e.nome.split(' ').slice(0,2).join(' '));
-    const plan=ets.map(e=>pctEsperadoHoje(obra,e)??0);
-    const real=ets.map(e=>Number(e.pct));
-    mkChart('ch-curvas',{type:'bar',data:{labels,datasets:[
-      {label:'Esperado hoje',data:plan,backgroundColor:'rgba(244,166,35,.25)',borderColor:CP.yel,borderWidth:2,borderRadius:3},
-      {label:'Realizado',data:real,backgroundColor:real.map((v,i)=>v>=plan[i]?(v>=100?'rgba(24,168,77,.5)':'rgba(91,143,249,.4)'):'rgba(200,40,40,.45)'),borderColor:real.map((v,i)=>v>=plan[i]?(v>=100?CP.grn:CP.pri):'#c82828'),borderWidth:2,borderRadius:3}
-    ]},options:{...BO,scales:{...BO.scales,y:{...BO.scales.y,min:0,max:100,ticks:{...BO.scales.y.ticks,callback:v=>v+'%'}}}}});
+    const emptyEl=document.getElementById('ch-curvas-empty');
+    const canvasEl=document.getElementById('ch-curvas');
+
+    // Verificar se tem dados financeiros ou orçamento
+    const orcTotal=ets.reduce((a,e)=>a+Number(e.orc||0),0);
+    const lancObra=DB.lancs.filter(l=>String(l.obraId)===String(obra.id)&&l.tipo==='Despesa'&&l.data);
+    const medObra=(DB.medicoes||[]).filter(m=>String(m.obraId)===String(obra.id)&&m.status==='aprovado'&&m.periodo);
+
+    if(!orcTotal&&!lancObra.length&&!medObra.length){
+      if(emptyEl) emptyEl.style.display='block';
+      if(canvasEl) canvasEl.style.display='none';
+      return;
+    }
+    if(emptyEl) emptyEl.style.display='none';
+    if(canvasEl) canvasEl.style.display='block';
+
+    // Determinar período da obra (meses)
+    let dIni,dFim;
+    if(obra.dataIni) dIni=new Date(obra.dataIni);
+    else if(lancObra.length) dIni=new Date(lancObra.reduce((a,l)=>l.data<a?l.data:a,lancObra[0].data));
+    else dIni=new Date();
+    if(obra.dataFim) dFim=new Date(obra.dataFim);
+    else { dFim=new Date(); dFim.setMonth(dFim.getMonth()+3); }
+
+    // Gerar array de meses do período
+    const meses=[];
+    const cur=new Date(dIni.getFullYear(),dIni.getMonth(),1);
+    const fim=new Date(dFim.getFullYear(),dFim.getMonth(),1);
+    while(cur<=fim){ meses.push(new Date(cur)); cur.setMonth(cur.getMonth()+1); }
+    if(!meses.length){meses.push(new Date());}
+
+    const labels=meses.map(m=>m.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
+    const nMeses=meses.length;
+
+    // CURVA ORÇADA: distribuição linear do orçamento total ao longo dos meses
+    // (idealmente viria das datas das etapas ponderadas pelo orçamento)
+    const orcPorMes=[];
+    const orcAcum=[];
+    let orcAcc=0;
+    ets.forEach(e=>{
+      if(!e.orc||!e.inicio||!e.fim) return;
+      const eIni=new Date(e.inicio);
+      const eFim=new Date(e.fim);
+      const eDur=Math.max(1,(eFim.getFullYear()-eIni.getFullYear())*12+(eFim.getMonth()-eIni.getMonth())+1);
+      const orcMensal=Number(e.orc)/eDur;
+      meses.forEach((m,i)=>{
+        if(m>=new Date(eIni.getFullYear(),eIni.getMonth(),1)&&m<=new Date(eFim.getFullYear(),eFim.getMonth(),1)){
+          orcPorMes[i]=(orcPorMes[i]||0)+orcMensal;
+        }
+      });
+    });
+    // Se não tem datas nas etapas, distribuir uniformemente
+    if(orcPorMes.filter(Boolean).length===0&&orcTotal>0){
+      const mensal=orcTotal/nMeses;
+      meses.forEach((_,i)=>orcPorMes[i]=mensal);
+    }
+    for(let i=0;i<nMeses;i++){ orcAcc+=(orcPorMes[i]||0); orcAcum.push(orcAcc); }
+
+    // CURVA REALIZADA: lançamentos de despesa acumulados por mês
+    const realAcum=[];
+    let realAcc=0;
+    meses.forEach(m=>{
+      const mesStr=`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+      const soma=lancObra.filter(l=>l.data&&l.data.substring(0,7)===mesStr).reduce((a,l)=>a+Number(l.valor||0),0);
+      realAcc+=soma;
+      realAcum.push(realAcc);
+    });
+
+    // CURVA MEDIDA: medições aprovadas acumuladas por mês
+    const medAcum=[];
+    let medAcc=0;
+    const temMedicoes=medObra.length>0;
+    if(temMedicoes){
+      meses.forEach(m=>{
+        const mesStr=`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+        const soma=medObra.filter(med=>med.periodo&&med.periodo.substring(0,7)===mesStr).reduce((a,med)=>a+Number(med.valorMedido||0),0);
+        medAcc+=soma;
+        medAcum.push(medAcc);
+      });
+    }
+
+    // Formatar valores em R$ para tooltips
+    const fmtK=v=>v>=1000000?'R$'+(v/1000000).toFixed(1)+'M':v>=1000?'R$'+(v/1000).toFixed(0)+'K':'R$'+Math.round(v);
+
+    const datasets=[
+      {label:'Orçado Acumulado',data:orcAcum,borderColor:'#5b8ff9',backgroundColor:'rgba(91,143,249,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#5b8ff9',fill:true,tension:0.3},
+      {label:'Realizado Acumulado',data:realAcum,borderColor:'#18a84d',backgroundColor:'rgba(24,168,77,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#18a84d',fill:false,tension:0.3},
+    ];
+    if(temMedicoes){
+      datasets.push({label:'Medido Acumulado',data:medAcum,borderColor:'#f4a623',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,pointBackgroundColor:'#f4a623',fill:false,tension:0.3});
+    }
+
+    mkChart('ch-curvas',{
+      type:'line',
+      data:{labels,datasets},
+      options:{
+        ...BO,
+        plugins:{...BO.plugins,tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtK(ctx.parsed.y)}`}}},
+        scales:{
+          x:{ticks:{color:'rgba(180,190,220,.8)',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+          y:{ticks:{color:'rgba(180,190,220,.8)',font:{size:9},callback:v=>fmtK(v)},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}
+        }
+      }
+    });
   },50);
 }
 function editarEspEtapa(id){
@@ -4356,6 +4466,7 @@ function renderMedicoes(){
     DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;mObraFilter.appendChild(opt);});
   }
 
+  if(!DB.medicoes) DB.medicoes=[];
   let meds=[...DB.medicoes];
   if(obraFiltro) meds=meds.filter(m=>String(m.obraId)===String(obraFiltro));
   if(statusFiltro) meds=meds.filter(m=>m.status===statusFiltro);
@@ -5079,6 +5190,7 @@ function renderChecklist(){
     DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;chkObraFilter.appendChild(opt);});
   }
 
+  if(!DB.checklists) DB.checklists=[];
   let items=[...DB.checklists];
   if(obraFiltro) items=items.filter(c=>String(c.obraId)===String(obraFiltro));
   if(statusFiltro) items=items.filter(c=>c.status===statusFiltro);
@@ -5122,11 +5234,17 @@ function renderChecklist(){
       <table class="tbl">
         <tr><th>Item de Verificação</th><th>Responsável</th><th>Data</th><th>Status</th><th>Obs</th><th></th></tr>
         ${g.items.map(i=>`<tr>
-          <td class="n">${i.item}</td>
+          <td class="n">
+            <div style="font-weight:600">${i.item}</div>
+            ${i.obs?`<div style="font-size:10px;color:var(--txt3);margin-top:2px">${i.obs}</div>`:''}
+            ${i.fotos?.length?`<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+              ${i.fotos.slice(0,4).map((f,fi)=>`<img src="${f.src}" onclick="chkVerFoto('${i.id}',${fi})" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--border)" title="Ver foto">`).join('')}
+              ${i.fotos.length>4?`<div style="width:36px;height:36px;background:var(--bg3);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--txt3)">+${i.fotos.length-4}</div>`:''}
+            </div>`:''}
+          </td>
           <td style="font-size:11px">${i.resp||'—'}</td>
           <td style="font-size:11px">${i.data?fmtDt(i.data):'—'}</td>
           <td>${statusBadge(i.status)}</td>
-          <td style="font-size:11px;color:var(--txt3)">${i.obs||'—'}</td>
           <td><div class="ta-actions">
             ${i.status==='pendente'?`<button class="btn sm" onclick="chkAprovar('${i.id}','ok')" title="Conforme" style="color:var(--green)">✓</button>
             <button class="btn sm" onclick="chkAprovar('${i.id}','nok')" title="Não conforme" style="color:var(--red)">✕</button>`:''}
@@ -5137,6 +5255,29 @@ function renderChecklist(){
       </table>
     </div>`;
   }).join('');
+}
+
+function chkVerFoto(chkId, fotoIdx){
+  const chk=DB.checklists.find(x=>x.id===chkId);
+  if(!chk||!chk.fotos?.length) return;
+  let idx=fotoIdx;
+  const root=document.getElementById('modal-root');
+  const render=()=>{
+    const f=chk.fotos[idx];
+    root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()" style="background:rgba(0,0,0,.85)">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:92vw">
+        <div style="color:#fff;font-size:12px;font-weight:600">${chk.item} — Foto ${idx+1}/${chk.fotos.length}</div>
+        <img src="${f.src}" style="max-width:88vw;max-height:78vh;border-radius:10px;object-fit:contain;display:block">
+        <div style="display:flex;gap:12px">
+          ${idx>0?`<button class="btn" onclick="window._chkFotoIdx=${idx-1};window._chkVerFotoRender()" style="background:rgba(255,255,255,.15);color:#fff">‹ Anterior</button>`:''}
+          <button class="btn" onclick="closeModal()" style="background:rgba(255,255,255,.15);color:#fff">✕ Fechar</button>
+          ${idx<chk.fotos.length-1?`<button class="btn" onclick="window._chkFotoIdx=${idx+1};window._chkVerFotoRender()" style="background:rgba(255,255,255,.15);color:#fff">Próxima ›</button>`:''}
+        </div>
+      </div>
+    </div>`;
+    window._chkVerFotoRender=render;
+  };
+  render();
 }
 
 function chkAprovar(id, status){
@@ -5677,24 +5818,69 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='checklist'){
     const chk=editId?DB.checklists.find(x=>x.id===editId):null;
-    title=chk?'Editar Item':'✅ Novo Item de Checklist';
-    const etapaNomes=[...new Set(DB.etapas.map(e=>e.nome))];
-    const etapaOpts=etapaNomes.map(n=>`<option value="${n}" ${chk?.etapaNome===n?'selected':''}>${n}</option>`).join('');
-    body=`<div class="g g2">
-      <div class="fg"><label class="lbl">Obra *</label>
-        <select class="sel" id="chk-obra">${DB.obras.map(o=>`<option value="${o.id}" ${String(chk?.obraId)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
-      <div class="fg"><label class="lbl">Etapa / Fase</label>
-        <input class="inp" id="chk-etapa" value="${chk?.etapaNome||''}" list="chk-etapa-list" placeholder="Ex: Fundação, Estrutura...">
-        <datalist id="chk-etapa-list">${etapaOpts}</datalist></div>
-      <div class="fg" style="grid-column:span 2"><label class="lbl">Item de Verificação *</label>
-        <input class="inp" id="chk-item" value="${chk?.item||''}" placeholder="Ex: Verificar espaçamento das armaduras conforme projeto"></div>
-      <div class="fg"><label class="lbl">Responsável</label>
-        <input class="inp" id="chk-resp" value="${chk?.resp||''}" placeholder="Nome do responsável pela verificação"></div>
-      <div class="fg"><label class="lbl">Data Prevista</label>
-        <input type="date" class="inp" id="chk-data" value="${chk?.data||''}"></div>
-      <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label>
-        <textarea class="ta" id="chk-obs" style="min-height:50px" placeholder="Critérios de aceitação, normas aplicáveis...">${chk?.obs||''}</textarea></div>
+    title=chk?'Editar Item de Checklist':'✅ Novo Item de Checklist';
+    window._chkFotos=chk?.fotos?[...chk.fotos]:[];
+
+    // Opções de etapa filtradas pela obra selecionada
+    const obraAtual=chk?.obraId||DB.obras[0]?.id||'';
+    const etapasObraAtual=DB.etapas.filter(e=>String(e.obraId)===String(obraAtual));
+    const etapaNomes=[...new Set(etapasObraAtual.map(e=>e.nome))];
+
+    const renderFotosChk=()=>{
+      const grid=document.getElementById('chk-foto-grid');
+      if(!grid) return;
+      grid.innerHTML=(window._chkFotos||[]).map((f,i)=>`
+        <div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+          <img src="${f.src}" style="width:100%;height:100%;object-fit:cover">
+          <button onclick="window._chkFotos.splice(${i},1);${''};document.getElementById('chk-foto-grid').dispatchEvent(new Event('change'))"
+            style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center">×</button>
+        </div>`).join('')+
+        `<label style="width:80px;height:80px;border-radius:8px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;flex-shrink:0">
+          <span style="font-size:20px">📷</span>
+          <span style="font-size:9px;color:var(--txt3)">Adicionar</span>
+          <input type="file" accept="image/*" multiple style="display:none" onchange="(e=>{
+            const files=[...e.target.files];
+            let done=0;
+            files.forEach(f=>{
+              if(f.size>3*1024*1024){toast('⚠️','Foto muito grande. Máx 3MB.');done++;if(done===files.length)document.getElementById('chk-foto-grid').dispatchEvent(new Event('change'));return;}
+              const r=new FileReader();
+              r.onload=ev=>{window._chkFotos.push({src:ev.target.result});done++;if(done===files.length)document.getElementById('chk-foto-grid').dispatchEvent(new Event('change'));};
+              r.readAsDataURL(f);
+            });
+          })(event)">
+        </label>`;
+    };
+
+    body=`<div style="display:flex;flex-direction:column;gap:14px">
+      <div class="g g2">
+        <div class="fg"><label class="lbl">Obra *</label>
+          <select class="sel" id="chk-obra" onchange="(()=>{
+            const eid=this.value;
+            const ets=DB.etapas.filter(e=>String(e.obraId)===String(eid));
+            const dl=document.getElementById('chk-etapa-list');
+            if(dl) dl.innerHTML=ets.map(e=>'<option value='+JSON.stringify(e.nome)+'>'+e.nome+'</option>').join('');
+          })()">${DB.obras.map(o=>`<option value="${o.id}" ${String(chk?.obraId||obraAtual)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
+        <div class="fg"><label class="lbl">Etapa *</label>
+          <input class="inp" id="chk-etapa" value="${chk?.etapaNome||''}" list="chk-etapa-list" placeholder="Selecione ou digite a etapa">
+          <datalist id="chk-etapa-list">${etapaNomes.map(n=>`<option value="${n}">${n}</option>`).join('')}</datalist></div>
+        <div class="fg" style="grid-column:span 2"><label class="lbl">Item de Verificação *</label>
+          <input class="inp" id="chk-item" value="${chk?.item||''}" placeholder="Ex: Verificar espaçamento das armaduras conforme projeto"></div>
+        <div class="fg"><label class="lbl">Responsável</label>
+          <input class="inp" id="chk-resp" value="${chk?.resp||''}" placeholder="Nome do responsável"></div>
+        <div class="fg"><label class="lbl">Data</label>
+          <input type="date" class="inp" id="chk-data" value="${chk?.data||''}"></div>
+        <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label>
+          <textarea class="ta" id="chk-obs" style="min-height:60px" placeholder="Critérios de aceitação, normas aplicáveis, condições observadas...">${chk?.obs||''}</textarea></div>
+      </div>
+      <!-- Fotos -->
+      <div>
+        <label class="lbl" style="margin-bottom:8px;display:block">📷 Fotos de Evidência</label>
+        <div id="chk-foto-grid" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start"
+          onchange="(()=>{const g=document.getElementById('chk-foto-grid');if(g){const fn=g._renderFn;if(fn)fn();}})()">
+        </div>
+      </div>
     </div>`;
+
     onSave=()=>{
       const obraId=document.getElementById('chk-obra').value;
       const etapaNome=document.getElementById('chk-etapa').value.trim();
@@ -5702,19 +5888,33 @@ function openModal(type,editId=null,editId2=null){
       const resp=document.getElementById('chk-resp').value.trim();
       const data=document.getElementById('chk-data').value;
       const obs=document.getElementById('chk-obs').value.trim();
+      const fotos=window._chkFotos||[];
+      if(!etapaNome){toast('⚠️','Selecione a etapa!');return false;}
       if(!item){toast('⚠️','Informe o item de verificação!');return false;}
-      const dados={obraId,etapaNome,item,resp,data,obs};
+      const dados={obraId,etapaNome,item,resp,data,obs,fotos};
+      const fotosJson=JSON.stringify(fotos);
       if(chk){
         Object.assign(chk,dados);
-        supaUpdate('checklists',chk.id,{obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs});
+        supaUpdate('checklists',chk.id,{obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,fotos:fotosJson});
       } else {
         const newId=uuidv4();
         const newChk={id:newId,...dados,status:'pendente',_supa:true};
         DB.checklists.push(newChk);
-        supaInsert('checklists',{id:newId,empresa_id:_empresaId,obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,status:'pendente'});
+        supaInsert('checklists',{id:newId,empresa_id:_empresaId,obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,fotos:fotosJson,status:'pendente'});
       }
-      save();renderChecklist();toast('✅',chk?'Item atualizado!':'Item de checklist criado!');return true;
+      window._chkFotos=[];
+      save();renderChecklist();toast('✅',chk?'Item atualizado!':'Item criado!');return true;
     };
+
+    // Renderizar fotos após o modal abrir
+    setTimeout(()=>{
+      const grid=document.getElementById('chk-foto-grid');
+      if(grid){
+        grid._renderFn=renderFotosChk;
+        renderFotosChk();
+        grid.addEventListener('change',renderFotosChk);
+      }
+    },50);
   }
   else if(type==='medicao'){
     const contratoIdPre=editId2||null; // editId2 = contrato pré-selecionado
@@ -5722,7 +5922,7 @@ function openModal(type,editId=null,editId2=null){
     title=med?'Editar Medição':'📐 Nova Medição';
     const ctOpts=DB.contratos.map(c=>`<option value="${c.id}" ${(med?.contratoId||contratoIdPre)===c.id?'selected':''}>${c.numero||c.descricao?.substring(0,30)} — ${c.forn||'—'}</option>`).join('');
     // Calcular próximo número de medição
-    const proxNum=med?.numero||(DB.medicoes.length+1);
+    const proxNum=med?.numero||((DB.medicoes||[]).length+1);
     body=`<div class="g g2">
       <div class="fg"><label class="lbl">Contrato *</label>
         <select class="sel" id="med-ct" onchange="medCalcAcum()">${ctOpts}</select></div>
