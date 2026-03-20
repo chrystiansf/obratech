@@ -1824,7 +1824,7 @@ function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
 function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,fotos:r.fotos?JSON.parse(r.fotos):([]),_supa:true};}
-function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',obs:r.obs,aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
+function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',exec:r.exec||'',obs:r.obs,fotos:r.fotos?JSON.parse(r.fotos):[],aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 
@@ -4583,6 +4583,22 @@ function reprovarMedicao(id){
   save();renderContratos();toast('⚠️','Medição reprovada.');
 }
 
+function medAddFotos(e){
+  const files=[...e.target.files];
+  if(!files.length)return;
+  files.forEach(f=>{
+    if(f.size>5*1024*1024){toast('⚠️','Foto muito grande. Max 5MB.');return;}
+    const r=new FileReader();
+    r.onload=ev=>{
+      if(!window._medFotos)window._medFotos=[];
+      window._medFotos.push({src:ev.target.result});
+      const g=document.getElementById('med-foto-grid');
+      if(g&&g._rf)g._rf();
+    };
+    r.readAsDataURL(f);
+  });
+}
+
 function medCalcAcum(){
   const ctId=document.getElementById('med-ct')?.value;
   const valor=parseFloat(document.getElementById('med-valor')?.value)||0;
@@ -4607,124 +4623,145 @@ function gerarBoletimPDF(medicaoId){
   if(!m){toast('⚠️','Medição não encontrada.');return;}
   const ct=DB.contratos.find(c=>c.id===m.contratoId);
   const o=DB.obras.find(x=>String(x.id)===String(m.obraId));
-  if(!window.jspdf?.jsPDF){toast('⚠️','PDF não disponível. Aguarde o carregamento da página.');return;}
   let doc;
-  try{ doc=new jsPDF(); } catch(e){toast('⚠️','PDF não disponível.');return;}
+  try{doc=new jsPDF();}catch(e){toast('⚠️','PDF não disponível.');return;}
   const W=doc.internal.pageSize.getWidth();
+  const H=doc.internal.pageSize.getHeight();
   const pctAcum=ct?.valor?Math.round(Number(m.valorAcumulado)/Number(ct.valor)*100):0;
+  const pctEsta=ct?.valor?Math.round(Number(m.valorMedido)/Number(ct.valor)*100):0;
   const saldo=Math.max(0,Number(ct?.valor||0)-Number(m.valorAcumulado||0));
   const periodoStr=m.periodo?fmtDt(m.periodo).substring(3):'—';
 
-  // Cabeçalho padrão do sistema
-  let y=pHdr(doc,'Boletim de Medicao',(o?.nome||'—')+'   —   Medicao No '+String(m.numero||'1').padStart(3,'0'));
-  y+=2;
+  let y=pHdr(doc,'Boletim de Medicao No '+String(m.numero||'1').padStart(3,'0'),
+    (o?.nome||'—')+'  —  '+(ct?.forn||'—')+'  —  Periodo: '+periodoStr);
+  y+=4;
 
-  // KPIs principais
-  const cw=43,ch=24,gap=2;
-  pKpi(doc,9,y,cw,ch,'Contrato',ct?.numero||'—',ct?.forn||'—');
-  pKpi(doc,9+(cw+gap),y,cw,ch,'Periodo',periodoStr,'Referência');
-  pKpi(doc,9+2*(cw+gap),y,cw,ch,'Esta Medicao',fmtR(m.valorMedido),'Valor medido');
-  pKpi(doc,9+3*(cw+gap),y,cw,ch,'Acumulado',fmtR(m.valorAcumulado),pctAcum+'% do contrato');
-  y+=ch+6;
-
-  // Tabela de dados do contrato
-  y=pSec(doc,y,'Dados do Contrato e Medicao');
+  // ── BLOCO 1: DADOS FINANCEIROS
+  y=pSec(doc,y,'1. Valor da Medicao em Relacao ao Contrato');
   doc.autoTable({
     startY:y,
-    head:[['Campo','Contrato','Medicao Atual']],
+    head:[['','Descricao','Valor','%']],
     body:[
-      ['Objeto/Descricao',ct?.descricao||'—',''],
-      ['Fornecedor/Empreiteiro',ct?.forn||'—',''],
-      ['Valor Total Contrato',fmtR(Number(ct?.valor||0)),''],
-      ['Valor Anterior Acumulado',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0)),periodoStr],
-      ['Valor desta Medicao','',fmtR(Number(m.valorMedido||0))],
-      ['Total Acumulado','',fmtR(Number(m.valorAcumulado||0))],
-      ['Saldo Remanescente','',fmtR(saldo)],
-      ['Execucao Acumulada','',pctAcum+'%'],
+      ['CT',ct?.descricao||ct?.numero||'—',fmtR(Number(ct?.valor||0)),'100%'],
+      ['ANT','Medicoes anteriores acumuladas',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0)),(pctAcum-pctEsta)+'%'],
+      ['ESTA','Esta medicao — Periodo: '+periodoStr,fmtR(Number(m.valorMedido||0)),pctEsta+'%'],
+      ['ACUM','Total acumulado incluindo esta medicao',fmtR(Number(m.valorAcumulado||0)),pctAcum+'%'],
+      ['SALDO','Saldo remanescente do contrato',fmtR(saldo),(100-pctAcum)+'%'],
     ],
-    headStyles:{...hStyle(),fontSize:8},
+    foot:[[{colSpan:2,content:'Fornecedor: '+(ct?.forn||'—')+'  |  Contrato: '+(ct?.numero||'—')},{content:fmtR(Number(ct?.valor||0))},{content:'100%'}]],
+    headStyles:{...hStyle(),fontSize:7.5},
     bodyStyles:{...bStyle(),fontSize:8},
     alternateRowStyles:altRow(),
-    columnStyles:{0:{fontStyle:'bold',fillColor:PX.bg,cellWidth:60},1:{cellWidth:65},2:{fontStyle:'bold',cellWidth:65}},
+    footStyles:{...totRow(),fontSize:7.5},
+    columnStyles:{0:{cellWidth:14,halign:'center',fontStyle:'bold',textColor:PX.blue},1:{cellWidth:90},2:{cellWidth:40,halign:'right',fontStyle:'bold'},3:{cellWidth:22,halign:'center'}},
+    didParseCell(d){
+      if(d.section==='body'&&d.row.index===2){
+        d.cell.styles.fillColor=[235,245,255];
+        if(d.column.index===2||d.column.index===3) d.cell.styles.textColor=PX.blue;
+      }
+    },
     margin:{left:9,right:9},
   });
-  y=doc.lastAutoTable.finalY+6;
+  y=doc.lastAutoTable.finalY+4;
 
-  // Progresso financeiro
-  y=pSec(doc,y,'Progresso Financeiro');
   // Barra de progresso
-  doc.setFillColor(230,232,236);doc.rect(9,y,W-18,8,'F');
-  doc.setFillColor(...PX.blue);doc.rect(9,y,(W-18)*pctAcum/100,8,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
-  if(pctAcum>8) doc.text(pctAcum+'% executado',13,y+5.5);
-  else{doc.setTextColor(...PX.blue);doc.text(pctAcum+'%',12+(W-18)*pctAcum/100,y+5.5);}
-  y+=14;
+  doc.setFillColor(220,225,235);doc.rect(9,y,W-18,7,'F');
+  doc.setFillColor(...PX.blue);doc.rect(9,y,(W-18)*pctAcum/100,7,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
+  if(pctAcum>10) doc.text(pctAcum+'% acumulado',13,y+5);
+  else{doc.setTextColor(...PX.blue);doc.text(pctAcum+'%',13+(W-18)*pctAcum/100,y+5);}
+  y+=12;
 
-  // Etapas da obra como itens medidos
-  const etapas=DB.etapas.filter(e=>String(e.obraId)===String(m.obraId));
+  // ── BLOCO 2: O QUE FOI EXECUTADO
+  y=pSec(doc,y,'2. Servicos Executados nesta Medicao');
+  const execTexto=m.exec&&m.exec.trim()?m.exec:'(Servicos executados nao informados na medicao)';
+  doc.autoTable({startY:y,body:[[execTexto]],bodyStyles:{...bStyle(),fontSize:8,minCellHeight:14,fontStyle:m.exec?'normal':'italic',textColor:m.exec?PX.ink:PX.lgray},margin:{left:9,right:9}});
+  y=doc.lastAutoTable.finalY+4;
+
+  // Etapas da obra
+  const etapas=DB.etapas.filter(e=>String(e.obraId)===String(m.obraId)&&Number(e.pct)>0);
   if(etapas.length){
-    y=pSec(doc,y,'Itens do Contrato / Etapas');
     doc.autoTable({
       startY:y,
-      head:[['No','Descricao da Etapa','Un.','Valor Etapa','% Exec.','Valor Executado','Saldo']],
-      body:etapas.map((e,idx)=>{
-        const vlEtapa=Number(e.orc||0)||(Number(ct?.valor||0)/Math.max(etapas.length,1));
-        const vlExec=vlEtapa*Number(e.pct||0)/100;
-        return[
-          String(idx+1).padStart(2,'0'),
-          e.nome||'—','vb',
-          fmtR(vlEtapa),
-          (e.pct||0)+'%',
-          fmtR(vlExec),
-          fmtR(vlEtapa-vlExec)
-        ];
-      }),
-      foot:[[{colSpan:3,content:'TOTAL',styles:{fontStyle:'bold'}},'',fmtR(Number(ct?.valor||0)),'',fmtR(Number(m.valorAcumulado)),fmtR(saldo)]],
-      headStyles:hStyle(),bodyStyles:{...bStyle(),fontSize:7.5},
-      alternateRowStyles:altRow(),footStyles:totRow(),
-      columnStyles:{0:{cellWidth:12,halign:'center'},1:{cellWidth:60},2:{cellWidth:12,halign:'center'},3:{cellWidth:30,halign:'right'},4:{cellWidth:18,halign:'center'},5:{cellWidth:30,halign:'right'},6:{cellWidth:28,halign:'right'}},
+      head:[['Etapa / Servico','% Concluido','Situacao']],
+      body:etapas.map(e=>[e.nome,(e.pct||0)+'%',Number(e.pct)>=100?'Concluida':Number(e.pct)>0?'Em andamento':'Nao iniciada']),
+      headStyles:{...hStyle(),fontSize:7},bodyStyles:{...bStyle(),fontSize:7.5},alternateRowStyles:altRow(),
+      columnStyles:{0:{cellWidth:110},1:{cellWidth:30,halign:'center'},2:{cellWidth:40,halign:'center'}},
+      didParseCell(d){if(d.section==='body'&&d.column.index===2){if(d.cell.raw==='Concluida')d.cell.styles.textColor=PX.green;else if(d.cell.raw==='Em andamento')d.cell.styles.textColor=PX.blue;}},
       margin:{left:9,right:9},
     });
-    y=doc.lastAutoTable.finalY+6;
+    y=doc.lastAutoTable.finalY+4;
   }
 
   // Observações
-  if(m.obs){
-    y=pSec(doc,y,'Observacoes e Pendencias');
-    doc.autoTable({
-      startY:y,
-      body:[[m.obs]],
-      bodyStyles:{...bStyle(),fontSize:8},
-      margin:{left:9,right:9},
-    });
-    y=doc.lastAutoTable.finalY+6;
+  if(m.obs&&m.obs.trim()){
+    doc.autoTable({startY:y,head:[['Pendencias e Observacoes']],body:[[m.obs]],headStyles:{...hStyle(),fontSize:7.5,fillColor:PX.amber},bodyStyles:{...bStyle(),fontSize:8},margin:{left:9,right:9}});
+    y=doc.lastAutoTable.finalY+4;
   }
 
-  // Área de assinaturas
-  if(y>240) doc.addPage();
-  const assinY=Math.max(y+10,250);
+  // ── BLOCO 3: FOTOS DO EXECUTADO
+  const fotos=(m.fotos||[]).filter(f=>f&&f.src&&f.src.startsWith('data:'));
+  if(fotos.length>0){
+    doc.addPage();
+    let y2=pHdr(doc,'Registro Fotografico — Medicao No '+String(m.numero||'1').padStart(3,'0'),
+      periodoStr+'  —  '+(o?.nome||'—')+'  —  '+(ct?.forn||'—'));
+    y2+=6;
+    const cols=3,imgW=58,imgH=50,gapX=4,gapY=12,startX=9;
+    let col=0,curRow=0;
+    fotos.forEach((foto,fi)=>{
+      const fy=y2+curRow*(imgH+gapY);
+      if(fy+imgH+gapY>H-15){doc.addPage();pHdr(doc,'Registro Fotografico (cont.)','Medicao No '+String(m.numero||'1').padStart(3,'0'));y2=36;curRow=0;col=0;}
+      const fx=startX+col*(imgW+gapX);
+      const fyCur=y2+curRow*(imgH+gapY);
+      try{
+        const fmt=foto.src.includes('data:image/png')?'PNG':'JPEG';
+        doc.addImage(foto.src,fmt,fx,fyCur,imgW,imgH);
+        doc.setFillColor(...PX.navy);doc.rect(fx,fyCur,imgW,5,'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
+        doc.text('Foto '+(fi+1)+'/'+fotos.length,fx+imgW/2,fyCur+3.5,{align:'center'});
+        doc.setDrawColor(...PX.silver);doc.setLineWidth(0.3);doc.rect(fx,fyCur,imgW,imgH,'S');
+      }catch(e){
+        doc.setFillColor(245,245,245);doc.rect(fx,fyCur,imgW,imgH,'F');
+        doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...PX.lgray);
+        doc.text('Foto '+(fi+1),fx+imgW/2,fyCur+imgH/2,{align:'center'});
+      }
+      col++;
+      if(col>=cols){col=0;curRow++;}
+    });
+  }
+
+  // ── ASSINATURAS
+  let assinY=260;
+  if(!fotos.length){
+    const lastY=doc.lastAutoTable?.finalY||y;
+    assinY=Math.max(lastY+12,245);
+    if(assinY>265){doc.addPage();assinY=240;}
+  } else {
+    doc.addPage();assinY=240;
+  }
   const assinW=(W-18)/3;
-  [['Elaborado por','Empreiteiro / Contratado'],['Fiscalizado por',DB.user.nome||'—'],['Aprovado por',m.status==='aprovado'?(m.aprovadoPor||'—'):'—']].forEach((a,i)=>{
+  [['Elaborado por','Empreiteiro / Contratado'],['Fiscalizado por',DB.user.nome||'Engenheiro Responsavel'],['Aprovado por',m.status==='aprovado'?(m.aprovadoPor||'Gestor'):'']].forEach((a,i)=>{
     const ax=9+i*assinW;
     doc.setFillColor(...PX.bg);doc.rect(ax,assinY,assinW-2,22,'F');
     doc.setDrawColor(...PX.silver);doc.rect(ax,assinY,assinW-2,22,'S');
     doc.setFillColor(...PX.navy);doc.rect(ax,assinY,assinW-2,5,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
     doc.text(a[0].toUpperCase(),ax+(assinW-2)/2,assinY+3.5,{align:'center'});
-    doc.setDrawColor(120,120,120);doc.line(ax+4,assinY+14,ax+assinW-6,assinY+14);
+    doc.setDrawColor(150,150,150);doc.line(ax+4,assinY+14,ax+assinW-6,assinY+14);
     doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...PX.ink);
-    doc.text(a[1].substring(0,25),ax+(assinW-2)/2,assinY+17.5,{align:'center'});
-    if(m.status==='aprovado'&&i===2){
-      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...PX.green);
-      doc.text('APROVADO em '+fmtDt(m.aprovadoEm||''),ax+(assinW-2)/2,assinY+21,{align:'center'});
+    doc.text((a[1]||'').substring(0,24),ax+(assinW-2)/2,assinY+18,{align:'center'});
+    if(i===2&&m.status==='aprovado'){
+      doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...PX.green);
+      doc.text('APROVADO'+(m.aprovadoEm?' em '+fmtDt(m.aprovadoEm):''),ax+(assinW-2)/2,assinY+21,{align:'center'});
     }
   });
 
   pFtr(doc);
-  const arq='Boletim_Medicao_'+String(m.numero||'01').padStart(3,'0')+'_'+(ct?.numero||'CT').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf';
+  const arq='BM_'+String(m.numero||'01').padStart(3,'0')+'_'+(ct?.numero||'CT').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf';
   doc.save(arq);
   toast('📄','Boletim gerado!');
 }
+
 
 
 function delContrato(id){
@@ -6259,21 +6296,43 @@ function openModal(type,editId=null,editId2=null){
     const ctOpts=DB.contratos.map(c=>`<option value="${c.id}" ${(med?.contratoId||contratoIdPre)===c.id?'selected':''}>${c.numero||c.descricao?.substring(0,30)} — ${c.forn||'—'}</option>`).join('');
     // Calcular próximo número de medição
     const proxNum=med?.numero||((DB.medicoes||[]).length+1);
-    body=`<div class="g g2">
-      <div class="fg"><label class="lbl">Contrato *</label>
-        <select class="sel" id="med-ct" onchange="medCalcAcum()">${ctOpts}</select></div>
-      <div class="fg"><label class="lbl">Nº da Medição</label>
-        <input type="number" class="inp" id="med-num" value="${proxNum}" min="1"></div>
-      <div class="fg"><label class="lbl">Período de Referência *</label>
-        <input type="month" class="inp" id="med-periodo" value="${med?.periodo?.substring(0,7)||new Date().toISOString().substring(0,7)}"></div>
-      <div class="fg"><label class="lbl">Valor desta Medição (R$) *</label>
-        <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0,00" oninput="medCalcAcum()"></div>
-      <div class="fg"><label class="lbl">Valor Acumulado até esta medição</label>
-        <input type="number" class="inp" id="med-acum" value="${med?.valorAcumulado||''}" min="0" step="0.01" placeholder="Calculado automaticamente" readonly style="background:var(--bg3);color:var(--txt3)"></div>
-      <div class="fg"><label class="lbl">Obra</label>
-        <select class="sel" id="med-obra">${DB.obras.map(o=>`<option value="${o.id}" ${String(med?.obraId||DB.contratos.find(c=>c.id===(med?.contratoId||contratoIdPre))?.obraId)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
-      <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label>
-        <textarea class="ta" id="med-obs" style="min-height:50px" placeholder="Serviços executados, pendências, ressalvas...">${med?.obs||''}</textarea></div>
+    window._medFotos=med?.fotos?[...med.fotos]:[];
+    const renderMedFotos=()=>{
+      const g=document.getElementById('med-foto-grid');if(!g)return;
+      let h='';
+      (window._medFotos||[]).forEach((f,i)=>{
+        h+='<div style="position:relative;width:72px;height:72px;border-radius:6px;overflow:hidden;border:1px solid var(--border)">'+
+          '<img src="'+f.src+'" style="width:100%;height:100%;object-fit:cover">'+
+          '<button onclick="window._medFotos.splice('+i+',1);document.getElementById("med-foto-grid")._rf()" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;font-size:9px">x</button></div>';
+      });
+      h+='<label style="width:72px;height:72px;border-radius:6px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:3px;flex-shrink:0">'+
+        '<span style="font-size:18px">📷</span><span style="font-size:8px;color:var(--txt3)">Adicionar</span>'+
+        '<input type="file" accept="image/*" multiple style="display:none" onchange="medAddFotos(event)"></label>';
+      g.innerHTML=h;
+    };
+    body=`<div style="display:flex;flex-direction:column;gap:12px">
+      <div class="g g2">
+        <div class="fg"><label class="lbl">Contrato *</label>
+          <select class="sel" id="med-ct" onchange="medCalcAcum()">${ctOpts}</select></div>
+        <div class="fg"><label class="lbl">Nº da Medição</label>
+          <input type="number" class="inp" id="med-num" value="${proxNum}" min="1"></div>
+        <div class="fg"><label class="lbl">Período de Referência *</label>
+          <input type="month" class="inp" id="med-periodo" value="${med?.periodo?.substring(0,7)||new Date().toISOString().substring(0,7)}"></div>
+        <div class="fg"><label class="lbl">Valor desta Medição (R$) *</label>
+          <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0,00" oninput="medCalcAcum()"></div>
+        <div class="fg"><label class="lbl">Valor Acumulado até esta medição</label>
+          <input type="number" class="inp" id="med-acum" value="${med?.valorAcumulado||''}" min="0" step="0.01" placeholder="Calculado automaticamente" readonly style="background:var(--bg3);color:var(--txt3)"></div>
+        <div class="fg"><label class="lbl">Obra</label>
+          <select class="sel" id="med-obra">${DB.obras.map(o=>'<option value="'+o.id+'"'+(String(med?.obraId||DB.contratos.find(c=>c.id===(med?.contratoId||contratoIdPre))?.obraId)===String(o.id)?' selected':'')+'>'+o.nome+'</option>').join('')}</select></div>
+        <div class="fg" style="grid-column:span 2"><label class="lbl">Serviços Executados nesta Medição *</label>
+          <textarea class="ta" id="med-exec" style="min-height:70px" placeholder="Descreva detalhadamente o que foi executado: serviços, etapas concluídas, quantidades...">${med?.exec||''}</textarea></div>
+        <div class="fg" style="grid-column:span 2"><label class="lbl">Pendências / Observações</label>
+          <textarea class="ta" id="med-obs" style="min-height:40px" placeholder="Ressalvas, pendências, condições especiais...">${med?.obs||''}</textarea></div>
+      </div>
+      <div>
+        <label class="lbl" style="margin-bottom:8px;display:block">📷 Fotos do Executado</label>
+        <div id="med-foto-grid" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start"></div>
+      </div>
     </div>`;
     onSave=()=>{
       const ctId=document.getElementById('med-ct').value;
@@ -6283,18 +6342,24 @@ function openModal(type,editId=null,editId2=null){
       const obraId=document.getElementById('med-obra').value;
       const num=parseInt(document.getElementById('med-num').value)||proxNum;
       const obs=document.getElementById('med-obs').value.trim();
+      const exec=document.getElementById('med-exec')?.value.trim()||'';
+      const fotos=window._medFotos||[];
+      const fotosJson=JSON.stringify(fotos);
       if(!ctId){toast('⚠️','Selecione um contrato!');return false;}
       if(!valor){toast('⚠️','Informe o valor da medição!');return false;}
-      const dados={contratoId:ctId,obraId,numero:num,periodo,valorMedido:valor,valorAcumulado:acum,status:med?.status||'pendente',obs};
+      const dados={contratoId:ctId,obraId,numero:num,periodo,valorMedido:valor,valorAcumulado:acum,status:med?.status||'pendente',exec,obs,fotos};
       if(med){
         Object.assign(med,dados);
-        supaUpdate('medicoes',med.id,{contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,obs});
+        supaUpdate('medicoes',med.id,{contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,obs,exec});
+        setTimeout(()=>{try{supaUpdate('medicoes',med.id,{fotos:fotosJson});}catch(e){}},300);
       } else {
         const newId=uuidv4();
         const newMed={id:newId,...dados,_supa:true};
         DB.medicoes.push(newMed);
-        supaInsert('medicoes',{id:newId,empresa_id:_empresaId,contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,status:'pendente',obs});
+        supaInsert('medicoes',{id:newId,empresa_id:_empresaId,contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,status:'pendente',exec,obs});
+        setTimeout(()=>{try{supaUpdate('medicoes',newId,{fotos:fotosJson});}catch(e){}},500);
       }
+      window._medFotos=[];
       save();renderContratos();toast('✅',med?'Medição atualizada!':'Medição registrada!');return true;
     };
   }
