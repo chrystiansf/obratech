@@ -5649,7 +5649,7 @@ function renderQual(){
     <div class="kpi"><div class="kl">⏰ Vencidas</div><div class="kv" style="color:${vc?'var(--red)':'var(--green)'}">${vc}</div><div class="kd ${vc?'dn':'up'}">${vc?'Urgente':'Nenhuma'}</div></div>`;
   const el=document.getElementById('nc-tbl');
   if(!ncs.length){el.innerHTML='<div class="t-empty">Nenhuma NC. <button class="btn pri sm" onclick="openModal(&apos;nc&apos;)" style="margin-left:8px">＋ Registrar</button></div>';}
-  else el.innerHTML=`<table class="tbl"><tr><th>Nº</th><th>Obra</th><th>Etapa</th><th>Descrição</th><th>Prazo</th><th>Grau</th><th>Status</th><th></th></tr>`+ncs.sort((a,b)=>String(b.id).localeCompare(String(a.id))).map((n,i)=>{const o=DB.obras.find(x=>String(x.id)===String(n.obraId));const vend=n.prazo&&new Date(n.prazo)<new Date()&&n.status!=='Fechada';return`<tr><td style="font-weight:600;color:var(--primary)">#${n.numero||String(n.id).substring(0,8)}</td><td>${o?.nome||'—'}</td><td>${n.etapa||'—'}</td><td class="n">${n.desc}</td><td style="color:${vend?'var(--red)':'inherit'}">${n.prazo?fmtDt(n.prazo):'—'}${vend?' ⚠':''}</td><td><span class="b ${n.grau==='Alta'?'br':n.grau==='Média'?'by':'bn'}">${n.grau||'Baixa'}</span></td><td><span class="b ${n.status==='Fechada'?'bg':'by'}">${n.status}</span></td><td><div class="ta-actions">${n.status!=='Fechada'?`<button class="btn sm" onclick="fecharNC('${n.id}')" title="Fechar NC">✓</button>`:''}<button class="btn sm ico" onclick="openModal('nc','${n.id}')">✏️</button><button class="btn sm ico" onclick="delNC('${n.id}')">🗑️</button></div></td></tr>`;}).join('')+'</table>';
+  else el.innerHTML=`<table class="tbl"><tr><th>Nº</th><th>Obra</th><th>Etapa</th><th>Descrição</th><th>Prazo</th><th>Grau</th><th>Status</th><th></th></tr>`+ncs.sort((a,b)=>String(b.id).localeCompare(String(a.id))).map((n,i)=>{const o=DB.obras.find(x=>String(x.id)===String(n.obraId));const vend=n.prazo&&new Date(n.prazo)<new Date()&&n.status!=='Fechada';return`<tr><td style="font-weight:600;color:var(--primary)">#${n.numero||String(i+1).padStart(2,'0')}</td><td>${o?.nome||'—'}</td><td>${n.etapa||'—'}</td><td class="n">${n.desc}</td><td style="color:${vend?'var(--red)':'inherit'}">${n.prazo?fmtDt(n.prazo):'—'}${vend?' ⚠':''}</td><td><span class="b ${n.grau==='Alta'?'br':n.grau==='Média'?'by':'bn'}">${n.grau||'Baixa'}</span></td><td><span class="b ${n.status==='Fechada'?'bg':'by'}">${n.status}</span></td><td><div class="ta-actions">${n.status!=='Fechada'?`<button class="btn sm" onclick="fecharNC('${n.id}')" title="Fechar NC">✓</button>`:''}<button class="btn sm ico" onclick="openModal('nc','${n.id}')">✏️</button><button class="btn sm ico" onclick="delNC('${n.id}')">🗑️</button></div></td></tr>`;}).join('')+'</table>';
   setTimeout(()=>{
     const ets=[...new Set(ncs.map(n=>n.etapa).filter(Boolean))];
     const vals=ets.map(et=>{const t=ncs.filter(n=>n.etapa===et).length;const f=ncs.filter(n=>n.etapa===et&&n.status==='Fechada').length;return t?Math.round(f/t*100):100;});
@@ -7103,7 +7103,7 @@ function exportQualPDF() {
       head: [['#','Obra','Etapa','Descricao','Prazo','Responsavel','Status']],
       body: ncsAlta.map(n => {
         const o = DB.obras.find(x => x.id == n.obraId);
-        return [n.id, (o?.nome||'—').substring(0,14), (n.etapa||'—').substring(0,12),
+        return [String(n.numero||'—'), (o?.nome||'—').substring(0,14), (n.etapa||'—').substring(0,12),
           (n.desc||'—').substring(0,40), n.prazo ? fmtDt(n.prazo) : '—',
           (n.resp||'—').substring(0,14), n.status];
       }),
@@ -7138,7 +7138,7 @@ function exportQualPDF() {
     head: [['#','Obra','Etapa','Descricao','Prazo','Grau','Responsavel','Status']],
     body: DB.ncs.map(n => {
       const o = DB.obras.find(x => x.id == n.obraId);
-      return [n.id, (o?.nome||'—').substring(0,13), (n.etapa||'—').substring(0,11),
+      return [String(n.numero||'—'), (o?.nome||'—').substring(0,13), (n.etapa||'—').substring(0,11),
         (n.desc||'—').substring(0,36), n.prazo ? fmtDt(n.prazo) : '—',
         n.grau||'Baixa', (n.resp||'—').substring(0,13), n.status];
     }),
@@ -9274,7 +9274,7 @@ function pcGerarPdf(tab){
   else if(tab==='qualidade'){
     secTitle('Não Conformidades');
     tRow(['Nº','DESCRIÇÃO','GRAU','PRAZO','STATUS'],[14,84,18,24,26],true);
-    d.ncs.forEach(n=>tRow(['#'+(n.numero||n.id?.substring(0,6)),n.desc||n.descricao||'—',n.grau||'—',fmtDt(n.prazo),n.status],[14,84,18,24,26],false));
+    d.ncs.forEach((n,ni)=>tRow(['#'+(n.numero||String(ni+1).padStart(2,'0')),n.desc||n.descricao||'—',n.grau||'—',fmtDt(n.prazo),n.status],[14,84,18,24,26],false));
   }
   else if(tab==='estoque'){
     secTitle('Estoque');
