@@ -1747,7 +1747,7 @@ async function carregarDadosSupabase(){
 
 // ── Mappers Supabase → formato interno ───────────────────────
 function mapObra(r){return{id:r.id,nome:r.nome,tipo:r.tipo,statusManual:r.status_manual,orc:Number(r.orcamento||0),m2:Number(r.area_m2||0),dataIni:r.data_ini,dataFim:r.data_fim,local:r.local,resp:r.responsavel,cli:r.cliente,obs:r.obs,_supa:true};}
-function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
+function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
 function mapColab(r){return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,_supa:true};}
 function mapLanc(r){return{id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:[],_supa:true};}
@@ -2865,30 +2865,9 @@ function engSeq(nome){
 
 // Calcula % esperado hoje para uma etapa com base no prazo da obra
 function pctEsperadoHoje(obra, etapa){
-  // Prioridade 1: usar datas especificas da etapa (inicio/fim)
-  if(etapa.inicio && etapa.fim){
-    const ini=new Date(etapa.inicio+"T00:00:00");
-    const fim=new Date(etapa.fim+"T23:59:59");
-    const hoje=new Date();
-    if(hoje < ini) return 0;
-    if(hoje > fim) return 100;
-    const dur=fim-ini;
-    if(dur<=0) return 0;
-    return Math.round((hoje-ini)/dur*100);
-  }
-  // Fallback: datas da obra com engSeq
-  if(!obra.dataIni||!obra.dataFim)return null;
-  const ini=new Date(obra.dataIni);
-  const fim=new Date(obra.dataFim);
-  const hoje=new Date();
-  const duracaoTotal=fim-ini;
-  if(duracaoTotal<=0)return null;
-  const decorrido=Math.max(0,Math.min(hoje-ini,duracaoTotal));
-  const obraPctAtual=decorrido/duracaoTotal*100;
-  const seq=engSeq(etapa.nome);
-  if(obraPctAtual<=seq.s)return 0;
-  if(obraPctAtual>=seq.e)return 100;
-  return Math.round((obraPctAtual-seq.s)/(seq.e-seq.s)*100);
+  // Somente valor manual definido pelo gestor via botão 🎯
+  if(etapa.pctEsp!=null && etapa.pctEsp!=='') return Number(etapa.pctEsp);
+  return null;
 }
 
 // Saúde da barra: compara pct real vs esperado
@@ -2896,22 +2875,20 @@ function ganttSaude(obra, etapa){
   const pct=Number(etapa.pct);
   if(pct>=100)return'done';
   const esp=pctEsperadoHoje(obra,etapa);
-  if(esp===null||esp===0)return pct>0?'ok':'future';
+  if(esp===null)return pct>0?'ok':'future';
+  if(esp===0) return pct>0?'ahead':'future';
   const diff=pct-esp;
-  if(diff>=10) return'ahead';   // adiantado
-  if(diff>=-5) return'ok';      // no prazo
-  if(diff>=-20)return'warn';    // atenção
-  return'late';                  // atrasado
+  if(diff>=0) return diff>=10?'ahead':'ok';  // igual ou acima = no prazo/adiantado
+  return'late';                               // abaixo = atrasado
 }
 
 // Cores e rótulos por saúde
 const SAUDE_STYLE={
-  done:   {bg:'#18a84d', track:'rgba(24,168,77,.18)',  glow:'rgba(24,168,77,.5)',  ico:'✓', label:'Concluído',  txt:'#18a84d'},
-  ahead:  {bg:'#22d363', track:'rgba(34,211,99,.13)',  glow:'rgba(34,211,99,.35)', ico:'⬆', label:'Adiantado',  txt:'#22d363'},
-  ok:     {bg:'#5b8ff9', track:'rgba(91,143,249,.13)', glow:'rgba(91,143,249,.3)', ico:'▶', label:'No prazo',   txt:'#5b8ff9'},
-  warn:   {bg:'#f4a623', track:'rgba(244,166,35,.15)', glow:'rgba(244,166,35,.4)', ico:'⚠', label:'Atenção',    txt:'#f4a623'},
-  late:   {bg:'#d94040', track:'rgba(217,64,64,.15)',  glow:'rgba(217,64,64,.45)', ico:'✕', label:'Atrasado',   txt:'#d94040'},
-  future: {bg:'#3a4260', track:'rgba(58,66,96,.3)',    glow:'transparent',         ico:'○', label:'Aguardando', txt:'#4a5278'},
+  done:   {bg:'#18a84d', track:'rgba(24,168,77,.15)',  glow:'rgba(24,168,77,.4)',  label:'Concluído',  txt:'#18a84d'},
+  ahead:  {bg:'#5b8ff9', track:'rgba(91,143,249,.15)', glow:'rgba(91,143,249,.4)', label:'Adiantado',  txt:'#5b8ff9'},
+  ok:     {bg:'#f4a623', track:'rgba(244,166,35,.15)', glow:'rgba(244,166,35,.4)', label:'No prazo',   txt:'#f4a623'},
+  late:   {bg:'#d94040', track:'rgba(217,64,64,.15)',  glow:'rgba(217,64,64,.4)',  label:'Atrasado',   txt:'#d94040'},
+  future: {bg:'#3a4260', track:'rgba(58,66,96,.2)',    glow:'transparent',         label:'Aguardando', txt:'#4a5278'},
 };
 
 function renderCron(){
@@ -2954,30 +2931,29 @@ function renderCron(){
     const saude=ganttSaude(obra,e);
     const st=SAUDE_STYLE[saude];
     const esp=pctEsperadoHoje(obra,e);
-    // marca temporal = % esperado hoje, dentro da barra de 0→100
     const marca=(esp!==null&&esp>0&&esp<100)?esp:null;
-    const tip=`${e.nome} | Realizado: ${pct}% | Esperado hoje: ${esp!==null?esp+'%':'—'} | ${st.ico} ${st.label}`;
-    return `<div class="gr" title="${tip}" style="min-height:32px;margin-bottom:7px">
-      <div class="gn" style="font-size:11px;color:var(--txt2)">${e.nome}</div>
-      <div style="flex:1;position:relative;height:20px">
-        <!-- Trilha cinza full-width -->
-        <div style="position:absolute;inset:0;background:${st.track};border:1px solid ${st.bg}33;border-radius:4px"></div>
-        <!-- Preenchimento de progresso 0→pct% -->
-        <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:linear-gradient(90deg,${st.bg}cc,${st.bg});border-radius:${pct>=100?'4px':'4px 0 0 4px'};box-shadow:0 0 10px ${st.glow};transition:width .6s ease;display:flex;align-items:center;padding:0 7px;overflow:hidden;white-space:nowrap;min-width:${pct>0?'26px':'0'}">
-          ${pct>5?`<span style="font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)">${pct>=100?'✓ 100%':pct+'%'}</span>`:''}
+    const espLabel=e.pctEsp!=null?`Manual: ${e.pctEsp}%`:(esp!==null?`Calculado: ${esp}%`:'—');
+    const tip=`${e.nome} | Realizado: ${pct}% | Esperado: ${espLabel} | ${st.label}`;
+    return `<div class="gr" title="${tip}" style="min-height:36px;margin-bottom:8px;align-items:center">
+      <div class="gn" style="font-size:11px;font-weight:600;color:var(--txt)">${e.nome}</div>
+      <div style="flex:1;position:relative;height:22px">
+        <!-- Trilha -->
+        <div style="position:absolute;inset:0;background:${st.track};border-radius:5px;border:1px solid ${st.bg}40"></div>
+        <!-- Barra de progresso -->
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'5px':'5px 0 0 5px'};box-shadow:0 0 8px ${st.glow};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'20px':'0'}">
+          ${pct>8?`<span style="font-size:9px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)">${pct>=100?'✓':pct+'%'}</span>`:''}
         </div>
-        <!-- % label fora quando barra pequena -->
-        ${pct>0&&pct<=5?`<span style="position:absolute;left:${pct+1.5}%;top:50%;transform:translateY(-50%);font-size:9px;font-weight:700;color:${st.bg}">${pct}%</span>`:''}
-        <!-- ▌ MARCA TEMPORAL — linha branca com triângulo e rótulo -->
-        ${marca!==null?`
-        <div style="position:absolute;left:${marca}%;top:-6px;bottom:-6px;width:2px;background:rgba(255,255,255,.85);border-radius:2px;box-shadow:0 0 6px rgba(255,255,255,.5);z-index:3">
-          <div style="position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid rgba(255,255,255,.85)"></div>
-          <div style="position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap">${marca}% esp.</div>
+        ${pct>0&&pct<=8?`<span style="position:absolute;left:${pct+1}%;top:50%;transform:translateY(-50%);font-size:9px;font-weight:700;color:${st.bg}">${pct}%</span>`:''}
+        <!-- Marca do esperado -->
+        ${marca!==null?`<div style="position:absolute;left:${marca}%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.9);z-index:3;border-radius:2px" title="Esperado: ${marca}%">
+          <div style="position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:#fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>
         </div>`:''}
       </div>
-      <div style="width:106px;flex-shrink:0;display:flex;align-items:center;gap:4px;margin-left:8px">
-        <span style="font-size:9px;font-weight:700;color:${st.txt};white-space:nowrap">${st.ico} ${st.label}</span>
-        <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="margin-left:auto">✏️</button>
+      <!-- Status badge + botões -->
+      <div style="width:120px;flex-shrink:0;display:flex;align-items:center;gap:4px;margin-left:8px">
+        <span style="font-size:10px;font-weight:700;color:#fff;background:${st.bg};padding:2px 7px;border-radius:10px;white-space:nowrap">${st.label}</span>
+        <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="font-size:10px;padding:0 5px">🎯</button>
+        <button class="btn sm ico" onclick="openModal('etapa','${e.id}')">✏️</button>
         <button class="btn sm ico" onclick="delEtapa('${e.id}')">🗑️</button>
       </div>
     </div>`;
@@ -2989,8 +2965,8 @@ function renderCron(){
     </div>
     ${ganttRows}
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--txt3);align-items:center">
-      ${Object.entries(SAUDE_STYLE).map(([,v])=>`<span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;background:${v.bg};border-radius:2px;box-shadow:0 0 4px ${v.glow}"></span><span style="color:${v.txt};font-weight:600">${v.ico}</span>${v.label}</span>`).join('')}
-      <span style="margin-left:auto;display:flex;align-items:center;gap:5px"><div style="width:2px;height:12px;background:rgba(255,255,255,.8);border-radius:2px;box-shadow:0 0 5px rgba(255,255,255,.4)"></div>Marca = esperado hoje</span>
+      ${Object.entries(SAUDE_STYLE).map(([,v])=>`<span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:12px;background:${v.bg};border-radius:3px"></span><span style="color:var(--txt2);font-size:11px">${v.label}</span></span>`).join('')}
+      <span style="margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt3)"><span style="display:inline-block;width:2px;height:12px;background:rgba(255,255,255,.8);border-radius:2px"></span>● Esperado hoje</span>
     </div>`;
 
   setTimeout(()=>{
@@ -3004,6 +2980,41 @@ function renderCron(){
     ]},options:{...BO,scales:{...BO.scales,y:{...BO.scales.y,min:0,max:100,ticks:{...BO.scales.y.ticks,callback:v=>v+'%'}}}}});
   },50);
 }
+function editarEspEtapa(id){
+  const e=DB.etapas.find(x=>String(x.id)===String(id));
+  if(!e)return;
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`<div class="ov" onclick="if(event.target===this)closeModal()">
+    <div class="mo" style="max-width:380px">
+      <div class="moh"><div class="mot">🎯 % Esperado — ${e.nome}</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="mob">
+        <p style="font-size:12px;color:var(--txt3);margin-bottom:14px">
+          Define quanto desta etapa deveria estar concluído <strong>hoje</strong>.<br>
+          Isso determina se está: <span style="color:#d94040">Atrasado</span>, <span style="color:#f4a623">No prazo</span>, <span style="color:#5b8ff9">Adiantado</span> ou <span style="color:#18a84d">Concluído</span>.
+        </p>
+        <div class="fg">
+          <label class="lbl">% Esperado hoje (0–100)</label>
+          <input type="number" class="inp" id="esp-val" min="0" max="100" value="${e.pctEsp??''}" placeholder="Ex: 50 (deixe vazio para calcular automaticamente)">
+          <div style="font-size:11px;color:var(--txt3);margin-top:4px">
+            Atual: <strong>${e.pct||0}%</strong> realizado · 
+            ${e.inicio&&e.fim?`Período: ${e.inicio} → ${e.fim}`:'Sem datas definidas'}
+          </div>
+        </div>
+      </div>
+      <div class="mof">
+        <button class="btn" onclick="closeModal()">Cancelar</button>
+        <button class="btn" onclick="(()=>{const e2=DB.etapas.find(x=>String(x.id)==='${id}');if(e2){e2.pctEsp=null;supaUpdate('etapas','${id}',{pct_esperado:null});save();renderCron();closeModal();toast('✅','Cálculo automático restaurado.');}})()">↺ Automático</button>
+        <button class="btn pri" onclick="(()=>{
+          const v=document.getElementById('esp-val').value;
+          const n=v===''?null:Math.min(100,Math.max(0,Number(v)));
+          const e2=DB.etapas.find(x=>String(x.id)==='${id}');
+          if(e2){e2.pctEsp=n;supaUpdate('etapas','${id}',{pct_esperado:n});save();renderCron();closeModal();toast('🎯','% esperado atualizado!');}
+        })()">✅ Salvar</button>
+      </div>
+    </div></div>`;
+  window._mSave=null;
+}
+
 function delEtapa(id){if(!confirm('Excluir etapa?'))return;if(typeof id==='string'&&id.includes('-'))supaDelete('etapas',id);DB.etapas=DB.etapas.filter(e=>String(e.id)!==String(id));save();renderCron();toast('🗑️','Etapa excluída.');}
 function diasR(dt){return Math.max(0,Math.ceil((new Date(dt)-new Date())/86400000));}
 
@@ -4871,7 +4882,7 @@ function openModal(type,editId=null){
       const dados={nome,obraId,status,inicio:document.getElementById('e-ini').value,fim:document.getElementById('e-fim').value,pct,resp:document.getElementById('e-resp').value.trim(),sp,wp};
       if(e){
         Object.assign(e,dados);
-        supaUpdate('etapas',e.id,{obra_id:dados.obraId||null,nome:dados.nome,status:dados.status,pct:dados.pct,responsavel:dados.resp,inicio:dados.inicio||null,fim:dados.fim||null,sp:dados.sp,wp:dados.wp});
+        supaUpdate('etapas',e.id,{obra_id:dados.obraId||null,nome:dados.nome,status:dados.status,pct:dados.pct,pct_esperado:dados.pctEsp??null,responsavel:dados.resp,inicio:dados.inicio||null,fim:dados.fim||null,sp:dados.sp,wp:dados.wp});
       } else {
         const newE={id:uuidv4(),...dados,_supa:true};
         DB.etapas.push(newE);
