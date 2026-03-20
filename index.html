@@ -3056,15 +3056,23 @@ function renderCron(){
   const ahead=ets.filter(e=>ganttSaude(obra,e)==='ahead').length;
   const atrasadas=ets.filter(e=>ganttSaude(obra,e)==='late').length;
 
+  // Financeiro da obra
   const orcTotal=ets.reduce((a,e)=>a+Number(e.orc||0),0);
   const orcRealizado=ets.reduce((a,e)=>a+Number(e.orc||0)*Number(e.pct||0)/100,0);
+  const gastoReal=DB.lancs.filter(l=>String(l.obraId)===String(obra.id)&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor||0),0);
+  const orcObra=orcTotal||Number(obra.orc||0); // soma das etapas (prioridade) ou orc da obra
+  const saldoObra=orcObra-gastoReal;
+  const pctGasto=orcObra>0?Math.round(gastoReal/orcObra*100):0;
+  const corSaldo=saldoObra<0?'var(--red)':saldoObra<orcObra*0.1?'var(--yellow)':'var(--green)';
+
   document.getElementById('cron-kpis').innerHTML=`
     <div class="kpi"><div class="kl">📊 Avanço Geral</div><div class="kv">${pm}%</div><div class="kd ${pm>=50?'up':'neu'}">Média das etapas</div></div>
     <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv">${conc}/${ets.length}</div><div class="kd up">100% executadas</div></div>
     <div class="kpi"><div class="kl">⬆️ Adiantadas</div><div class="kv" style="color:${ahead?'var(--green)':'var(--txt3)'}">${ahead}</div><div class="kd ${ahead?'up':'neu'}">Acima do esperado</div></div>
     <div class="kpi"><div class="kl">🔴 Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>
-    ${orcTotal>0?`<div class="kpi"><div class="kl">💰 Orçado Total</div><div class="kv" style="font-size:15px">${fmtR(orcTotal)}</div><div class="kd neu">nas etapas</div></div>
-    <div class="kpi"><div class="kl">📈 Valor Executado</div><div class="kv" style="font-size:15px;color:var(--primary)">${fmtR(orcRealizado)}</div><div class="kd ${pm>=50?'up':'neu'}">${Math.round(orcRealizado/orcTotal*100)}% do orçado</div></div>`:''}`;
+    <div class="kpi"><div class="kl">💰 Orçado</div><div class="kv" style="font-size:14px">${orcObra>0?fmtR(orcObra):'Não definido'}</div><div class="kd neu">${orcObra>0?'orçamento total':orcTotal>0?'defina em Obras':'cadastre nas etapas'}</div></div>
+    <div class="kpi"><div class="kl">💸 Gasto Real</div><div class="kv" style="font-size:14px;color:${gastoReal>orcObra&&orcObra>0?'var(--red)':'var(--txt)'}">${fmtR(gastoReal)}</div><div class="kd ${pctGasto>100?'dn':pctGasto>80?'neu':'up'}">${orcObra>0?pctGasto+'% do orçado':gastoReal>0?'lançamentos financeiros':'sem lançamentos'}</div></div>
+    ${orcObra>0?`<div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="font-size:14px;color:${corSaldo}">${fmtR(Math.abs(saldoObra))}</div><div class="kd ${saldoObra<0?'dn':'up'}">${saldoObra<0?'⚠ Acima do orçamento':'disponível'}</div></div>`:''}`;
 
   document.getElementById('gantt-empty').style.display=ets.length?'none':'block';
 
