@@ -922,6 +922,22 @@ nav{padding:4px 0;flex:1}
     <div class="ch"><div class="ct">💳 Histórico de Pagamentos</div></div>
     <div id="cont-pgtos-tbl"></div>
   </div>
+  <div class="card" style="margin-top:13px">
+    <div class="ch">
+      <div><div class="ct">📐 Boletins de Medição</div><div class="cs">Medições mensais por contrato — aprovação de empreiteiros</div></div>
+      <div class="ca">
+        <select class="sel" id="med-obra-filter" style="height:28px;font-size:11px;width:160px" onchange="renderMedicoes()"><option value="">Todas as obras</option></select>
+        <select class="sel" id="med-status-filter" style="height:28px;font-size:11px;width:130px" onchange="renderMedicoes()">
+          <option value="">Todos status</option>
+          <option value="pendente">Pendente</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="reprovado">Reprovado</option>
+        </select>
+        <button class="btn sm pri" onclick="openModal('medicao')">＋ Nova Medição</button>
+      </div>
+    </div>
+    <div id="med-tbl"></div>
+  </div>
 </div>
 
 <!-- FINANCEIRO -->
@@ -1044,20 +1060,44 @@ nav{padding:4px 0;flex:1}
 <!-- QUALIDADE -->
 <div class="page" id="p-qualidade">
   <div class="g g3" style="margin-bottom:13px" id="qual-kpis"></div>
-  <div class="g g2">
+  <div style="display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)">
+    <div class="qual-tab on" data-qt="nc" onclick="qualTab('nc')" style="padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">❌ Não Conformidades</div>
+    <div class="qual-tab" data-qt="chk" onclick="qualTab('chk')" style="padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)">✅ Checklists de Inspeção</div>
+  </div>
+  <div id="qual-panel-nc">
+    <div class="g g2">
+      <div class="card">
+        <div class="ch"><div class="ct">❌ Não Conformidades</div>
+          <div class="ca">
+            <select class="sel" id="qual-obra-filter" style="height:28px;font-size:11px;width:160px" onchange="renderQual()">
+              <option value="">Todas as obras</option>
+            </select>
+            <button class="btn sm" onclick="exportQualPDF()">📄 PDF</button>
+            <button class="btn sm pri" onclick="openModal('nc')">＋ NC</button>
+          </div>
+        </div>
+        <div id="nc-tbl"></div>
+      </div>
+      <div class="card"><div class="ct" style="margin-bottom:9px">Conformidade por Etapa</div><div class="cw" style="height:220px"><canvas id="ch-qual"></canvas></div></div>
+    </div>
+  </div>
+  <div id="qual-panel-chk" style="display:none">
     <div class="card">
-      <div class="ch"><div class="ct">❌ Não Conformidades</div>
+      <div class="ch">
+        <div><div class="ct">✅ Checklists de Inspeção</div><div class="cs">Verificação obrigatória antes de liberar cada etapa</div></div>
         <div class="ca">
-          <select class="sel" id="qual-obra-filter" style="height:28px;font-size:11px;width:160px" onchange="renderQual()">
-            <option value="">Todas as obras</option>
+          <select class="sel" id="chk-obra-filter" style="height:28px;font-size:11px;width:160px" onchange="renderChecklist()"><option value="">Todas as obras</option></select>
+          <select class="sel" id="chk-status-filter" style="height:28px;font-size:11px;width:130px" onchange="renderChecklist()">
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="ok">Conforme</option>
+            <option value="nok">Não Conforme</option>
           </select>
-          <button class="btn sm" onclick="exportQualPDF()">📄 PDF</button>
-          <button class="btn sm pri" onclick="openModal(&apos;nc&apos;)">＋ NC</button>
+          <button class="btn sm pri" onclick="openModal('checklist')">＋ Item</button>
         </div>
       </div>
-      <div id="nc-tbl"></div>
+      <div id="chk-tbl"></div>
     </div>
-    <div class="card"><div class="ct" style="margin-bottom:9px">Conformidade por Etapa</div><div class="cw" style="height:220px"><canvas id="ch-qual"></canvas></div></div>
   </div>
 </div>
 
@@ -1763,13 +1803,15 @@ async function carregarDadosSupabase(){
 
 // ── Mappers Supabase → formato interno ───────────────────────
 function mapObra(r){return{id:r.id,nome:r.nome,tipo:r.tipo,statusManual:r.status_manual,orc:Number(r.orcamento||0),m2:Number(r.area_m2||0),dataIni:r.data_ini,dataFim:r.data_fim,local:r.local,resp:r.responsavel,cli:r.cliente,obs:r.obs,_supa:true};}
-function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
+function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,orc:Number(r.orcamento||0),resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
 function mapColab(r){return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,_supa:true};}
 function mapLanc(r){return{id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:[],_supa:true};}
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
+function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,_supa:true};}
+function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',obs:r.obs,aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 
@@ -1931,6 +1973,7 @@ function iniciarRealtime(){
         estoque:r=>{DB.estoque=r.map(mapEstoque);if(document.getElementById('p-estoque')?.style.display!=='none')renderEstoque();},
         movimentacoes:r=>{DB.movs=r.map(mapMov);if(document.getElementById('p-estoque')?.style.display!=='none')renderEstoqueSaldo();},
         contratos:r=>{DB.contratos=r.map(mapContrato);renderContratos();},
+        medicoes:r=>{DB.medicoes=r.map(mapMedicao);renderContratos();},
         pagamentos:r=>{DB.pgtos=r.map(mapPgto);renderContratos();},
         nao_conformidades:r=>{DB.ncs=r.map(mapNc);renderQual&&renderQual();},
         demandas:r=>{DB.demandas=r.map(x=>({id:x.id,numero:x.numero,titulo:x.titulo,desc:x.descricao,obraId:x.obra_id,categoria:x.categoria,responsavel:x.responsavel,prazo:x.prazo,prioridade:x.prioridade,status:x.status,obs:x.obs,_supa:true}));if(document.getElementById('p-demandas')?.style.display!=='none')renderDemandas();},
@@ -1981,7 +2024,7 @@ function adicionarBotaoLogout(){
 // ═══════════════════════════════════════════
 const KEY='obratech_v1';
 let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],sel:null,nid:1};
-function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},DB,JSON.parse(s));if(!DB.centros)DB.centros=[];if(!Array.isArray(DB.categorias)||!DB.categorias.length)DB.categorias=['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'];if(!DB.fornecedores)DB.fornecedores=[];if(!DB.contratos)DB.contratos=[];
+function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},DB,JSON.parse(s));if(!DB.centros)DB.centros=[];if(!Array.isArray(DB.categorias)||!DB.categorias.length)DB.categorias=['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'];if(!DB.fornecedores)DB.fornecedores=[];if(!DB.contratos)DB.contratos=[];if(!DB.medicoes)DB.medicoes=[];if(!DB.checklists)DB.checklists=[];
   if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];if(!DB.pgtos)DB.pgtos=[];}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
 function nid(){const id=DB.nid++;save();return id;}
@@ -2970,11 +3013,15 @@ function renderCron(){
   const ahead=ets.filter(e=>ganttSaude(obra,e)==='ahead').length;
   const atrasadas=ets.filter(e=>ganttSaude(obra,e)==='late').length;
 
+  const orcTotal=ets.reduce((a,e)=>a+Number(e.orc||0),0);
+  const orcRealizado=ets.reduce((a,e)=>a+Number(e.orc||0)*Number(e.pct||0)/100,0);
   document.getElementById('cron-kpis').innerHTML=`
     <div class="kpi"><div class="kl">📊 Avanço Geral</div><div class="kv">${pm}%</div><div class="kd ${pm>=50?'up':'neu'}">Média das etapas</div></div>
     <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv">${conc}/${ets.length}</div><div class="kd up">100% executadas</div></div>
     <div class="kpi"><div class="kl">⬆️ Adiantadas</div><div class="kv" style="color:${ahead?'var(--green)':'var(--txt3)'}">${ahead}</div><div class="kd ${ahead?'up':'neu'}">Acima do esperado</div></div>
-    <div class="kpi"><div class="kl">🔴 Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>`;
+    <div class="kpi"><div class="kl">🔴 Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>
+    ${orcTotal>0?`<div class="kpi"><div class="kl">💰 Orçado Total</div><div class="kv" style="font-size:15px">${fmtR(orcTotal)}</div><div class="kd neu">nas etapas</div></div>
+    <div class="kpi"><div class="kl">📈 Valor Executado</div><div class="kv" style="font-size:15px;color:var(--primary)">${fmtR(orcRealizado)}</div><div class="kd ${pm>=50?'up':'neu'}">${Math.round(orcRealizado/orcTotal*100)}% do orçado</div></div>`:''}`;
 
   document.getElementById('gantt-empty').style.display=ets.length?'none':'block';
 
@@ -2993,7 +3040,7 @@ function renderCron(){
     const espLabel=e.pctEsp!=null?`Manual: ${e.pctEsp}%`:(esp!==null?`Calculado: ${esp}%`:'—');
     const tip=`${e.nome} | Realizado: ${pct}% | Esperado: ${espLabel} | ${st.label}`;
     return `<div class="gr" title="${tip}" style="min-height:28px;margin-bottom:6px;align-items:center">
-      <div class="gn" style="font-size:11px;font-weight:600;color:var(--txt)">${e.nome}</div>
+      <div class="gn" style="font-size:11px;font-weight:600;color:var(--txt)">${e.nome}${e.orc>0?`<div style="font-size:9px;color:var(--txt3);font-weight:400">${fmtR(e.orc)}</div>`:''}</div>
       <div style="flex:1;position:relative;height:16px">
         <div style="position:absolute;inset:0;background:${st.track};border-radius:4px;border:1px solid ${st.bg}30"></div>
         <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'18px':'0'}">
@@ -4256,6 +4303,7 @@ function renderContratos(){
           <td style="text-align:right;color:${dev>0?'var(--red)':'var(--green)'};font-weight:600">${fmtR(dev)}</td>
           <td style="text-align:center">${contStatusBadge(ct)}</td>
           <td><div class="ta-actions">
+            <button class="btn sm" onclick="openModal('medicao',null,'${ct.id}')" title="Nova medição">📐 Medir</button>
             <button class="btn sm" onclick="openModal('pgto','${ct.id}')" title="Registrar pagamento">💳 Pagar</button>
             <button class="btn sm ico" onclick="openModal('contrato','${ct.id}')">✏️</button>
             <button class="btn sm ico" onclick="delContrato('${ct.id}')">🗑️</button>
@@ -4272,6 +4320,7 @@ function renderContratos(){
   const pgtos=DB.pgtos.sort((a,b)=>b.data.localeCompare(a.data));
   const el2=document.getElementById('cont-pgtos-tbl');
   if(!pgtos.length){el2.innerHTML='<div class="t-empty">Nenhum pagamento registrado.</div>';return;}
+  renderMedicoes();
   el2.innerHTML=`<table class="tbl">
     <tr><th>Data</th><th>Contrato</th><th>Fornecedor</th><th>Descrição</th><th>Obra</th><th>Categoria</th><th>C. Custo</th><th style="text-align:right">Valor</th><th></th></tr>`
     +pgtos.map(p=>{
@@ -4292,6 +4341,211 @@ function renderContratos(){
         </div></td>
       </tr>`;
     }).join('')+'</table>';
+}
+
+// ═══════════════════════════════════════════
+// MEDIÇÕES DE CONTRATOS
+// ═══════════════════════════════════════════
+function renderMedicoes(){
+  const obraFiltro=document.getElementById('med-obra-filter')?.value||'';
+  const statusFiltro=document.getElementById('med-status-filter')?.value||'';
+
+  // Popular filtro de obras
+  const mObraFilter=document.getElementById('med-obra-filter');
+  if(mObraFilter&&mObraFilter.options.length<=1){
+    DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;mObraFilter.appendChild(opt);});
+  }
+
+  let meds=[...DB.medicoes];
+  if(obraFiltro) meds=meds.filter(m=>String(m.obraId)===String(obraFiltro));
+  if(statusFiltro) meds=meds.filter(m=>m.status===statusFiltro);
+  meds.sort((a,b)=>(b.periodo||'').localeCompare(a.periodo||''));
+
+  const el=document.getElementById('med-tbl');
+  if(!el) return;
+  if(!meds.length){
+    el.innerHTML='<div class="t-empty">Nenhuma medição registrada. Clique em "＋ Nova Medição" para começar.</div>';
+    return;
+  }
+
+  const statusBadge=s=>({
+    pendente:'<span class="b by">⏳ Pendente</span>',
+    aprovado:'<span class="b bg">✓ Aprovado</span>',
+    reprovado:'<span class="b br">✕ Reprovado</span>'
+  }[s]||'<span class="b bn">—</span>');
+
+  el.innerHTML=`<table class="tbl">
+    <tr><th>Nº</th><th>Contrato</th><th>Fornecedor</th><th>Obra</th><th>Período</th><th style="text-align:right">Valor Medido</th><th style="text-align:right">Acumulado</th><th>Status</th><th></th></tr>
+    ${meds.map(m=>{
+      const ct=DB.contratos.find(c=>c.id===m.contratoId);
+      const o=DB.obras.find(x=>String(x.id)===String(m.obraId));
+      const pctAcum=ct?.valor?Math.round(Number(m.valorAcumulado)/Number(ct.valor)*100):0;
+      return`<tr>
+        <td style="font-weight:600;color:var(--primary)">#${m.numero||'—'}</td>
+        <td class="n">${ct?.numero?`<span style="font-size:10px;color:var(--txt3)">${ct.numero}</span> `:''}${ct?.descricao||'—'}</td>
+        <td style="font-size:11px;color:var(--txt2)">${ct?.forn||'—'}</td>
+        <td style="font-size:11px">${o?.nome||'—'}</td>
+        <td style="font-size:11px">${m.periodo?fmtDt(m.periodo).substring(3):'—'}</td>
+        <td style="text-align:right;font-weight:600">${fmtR(m.valorMedido)}</td>
+        <td style="text-align:right">
+          <span style="font-weight:600">${fmtR(m.valorAcumulado)}</span>
+          ${ct?.valor?`<div style="font-size:9px;color:var(--txt3)">${pctAcum}% do contrato</div>`:''}
+        </td>
+        <td>${statusBadge(m.status)}</td>
+        <td><div class="ta-actions">
+          ${m.status==='pendente'?`<button class="btn sm" onclick="aprovarMedicao('${m.id}')" title="Aprovar">✓</button>`:''}
+          ${m.status==='pendente'?`<button class="btn sm ico" onclick="reprovarMedicao('${m.id}')" title="Reprovar" style="color:var(--red)">✕</button>`:''}
+          <button class="btn sm ico" onclick="openModal('medicao','${m.id}')" title="Editar">✏️</button>
+          <button class="btn sm ico" onclick="delMedicao('${m.id}')" title="Excluir">🗑️</button>
+          ${m.status==='aprovado'?`<button class="btn sm" onclick="gerarBoletimPDF('${m.id}')" title="PDF do boletim">📄</button>`:''}
+        </div></td>
+      </tr>`;
+    }).join('')}
+  </table>`;
+}
+
+async function aprovarMedicao(id){
+  const m=DB.medicoes.find(x=>x.id===id);
+  if(!m||!confirm('Aprovar esta medição? Isso gerará um lançamento financeiro.'))return;
+  m.status='aprovado';
+  m.aprovadoPor=DB.user.nome;
+  m.aprovadoEm=new Date().toISOString().split('T')[0];
+  supaUpdate('medicoes',id,{status:'aprovado',aprovado_por:DB.user.nome,aprovado_em:m.aprovadoEm});
+
+  // Gerar lançamento financeiro automático
+  const ct=DB.contratos.find(c=>c.id===m.contratoId);
+  const lancId=uuidv4();
+  const lanc={id:lancId,obraId:m.obraId,tipo:'Despesa',
+    desc:`[${ct?.numero||'CT'}] Medição #${m.numero} - ${ct?.descricao||''}`,
+    cat:ct?.cat||'Serviços',cc:ct?.cc||'',valor:m.valorMedido,
+    data:m.aprovadoEm,forn:ct?.forn||'',_supa:true,_medicaoId:id};
+  DB.lancs.push(lanc);
+  supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:lanc.desc,categoria:lanc.cat,
+    centro_custo:lanc.cc,valor:lanc.valor,data:lanc.data,fornecedor:lanc.forn,obra_id:lanc.obraId||null});
+  save();renderContratos();
+  toast('✅',`Medição #${m.numero} aprovada! Lançamento de ${fmtR(m.valorMedido)} criado no Financeiro.`);
+}
+
+function reprovarMedicao(id){
+  const m=DB.medicoes.find(x=>x.id===id);
+  if(!m||!confirm('Reprovar esta medição?'))return;
+  m.status='reprovado';
+  supaUpdate('medicoes',id,{status:'reprovado'});
+  save();renderContratos();toast('⚠️','Medição reprovada.');
+}
+
+function medCalcAcum(){
+  const ctId=document.getElementById('med-ct')?.value;
+  const valor=parseFloat(document.getElementById('med-valor')?.value)||0;
+  if(!ctId||!valor) return;
+  // Somar medições aprovadas anteriores deste contrato
+  const pago=DB.medicoes
+    .filter(m=>m.contratoId===ctId&&m.status!=='reprovado')
+    .reduce((a,m)=>a+Number(m.valorMedido||0),0);
+  const acumEl=document.getElementById('med-acum');
+  if(acumEl) acumEl.value=(pago+valor).toFixed(2);
+}
+
+function delMedicao(id){
+  if(!confirm('Excluir medição?'))return;
+  supaDelete('medicoes',id);
+  DB.medicoes=DB.medicoes.filter(m=>m.id!==id);
+  save();renderContratos();toast('🗑️','Medição excluída.');
+}
+
+function gerarBoletimPDF(medicaoId){
+  const m=DB.medicoes.find(x=>x.id===medicaoId);
+  if(!m){toast('⚠️','Medição não encontrada.');return;}
+  const ct=DB.contratos.find(c=>c.id===m.contratoId);
+  const o=DB.obras.find(x=>String(x.id)===String(m.obraId));
+  if(!window.jspdf?.jsPDF){toast('⚠️','PDF não disponível.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=doc.internal.pageSize.getWidth();
+  const MAR=16;
+  const PRI=[91,143,249],DARK=[30,36,58],GRY=[100,110,140],LIGHT=[240,243,255];
+  let y=MAR;
+
+  // Cabeçalho
+  doc.setFillColor(...PRI);doc.rect(0,0,W,32,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);
+  doc.text('Boletim de Medição',MAR,13);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text(`Medição #${m.numero||'—'} · ${o?.nome||'—'}`,MAR,20);
+  doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`,W-MAR,20,{align:'right'});
+  doc.text(`Status: ${m.status?.toUpperCase()||'—'}`,W-MAR,27,{align:'right'});
+  y=42;
+
+  // Dados do contrato
+  doc.setFillColor(...LIGHT);doc.rect(MAR-2,y-4,W-MAR*2+4,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
+  doc.text('DADOS DO CONTRATO',MAR,y+1);y+=10;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...DARK);
+  const info=[
+    ['Número do Contrato',ct?.numero||'—'],
+    ['Objeto',ct?.descricao||'—'],
+    ['Fornecedor/Empreiteiro',ct?.forn||'—'],
+    ['Valor Total do Contrato',fmtR(Number(ct?.valor||0))],
+    ['Valor Total Pago Anterior',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0))],
+  ];
+  info.forEach(([k,v])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(...GRY);doc.text(k+':',MAR,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v),MAR+60,y);y+=7;
+  });
+  y+=4;
+
+  // Medição atual
+  doc.setFillColor(...LIGHT);doc.rect(MAR-2,y-4,W-MAR*2+4,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
+  doc.text('MEDIÇÃO ATUAL',MAR,y+1);y+=10;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...DARK);
+  const pctAcum=ct?.valor?Math.round(Number(m.valorAcumulado)/Number(ct.valor)*100):0;
+  const med=[
+    ['Período de Referência',m.periodo?fmtDt(m.periodo).substring(3):'—'],
+    ['Valor desta Medição',fmtR(m.valorMedido)],
+    ['Valor Acumulado',fmtR(m.valorAcumulado)],
+    ['% do Contrato Executado',pctAcum+'%'],
+    ['Saldo Remanescente',fmtR(Math.max(0,Number(ct?.valor||0)-Number(m.valorAcumulado||0)))],
+  ];
+  med.forEach(([k,v])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(...GRY);doc.text(k+':',MAR,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v),MAR+60,y);y+=7;
+  });
+  y+=4;
+
+  // Barra de progresso
+  doc.setFillColor(220,224,240);doc.rect(MAR,y,W-MAR*2,8,'F');
+  doc.setFillColor(...PRI);doc.rect(MAR,y,(W-MAR*2)*pctAcum/100,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+  if(pctAcum>5) doc.text(pctAcum+'%',MAR+4,y+5.5);
+  y+=14;
+
+  // Observações
+  if(m.obs){
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
+    doc.text('OBSERVAÇÕES',MAR,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...DARK);
+    const lines=doc.splitTextToSize(m.obs,W-MAR*2);
+    doc.text(lines,MAR,y);y+=lines.length*5+8;
+  }
+
+  // Aprovação
+  if(m.status==='aprovado'){
+    y+=6;
+    doc.setFillColor(240,255,245);doc.rect(MAR-2,y-4,W-MAR*2+4,20,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(18,168,77);
+    doc.text('✓ MEDIÇÃO APROVADA',MAR,y+2);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GRY);
+    doc.text(`Por: ${m.aprovadoPor||'—'} · Em: ${m.aprovadoEm?fmtDt(m.aprovadoEm):'—'}`,MAR,y+9);
+  }
+
+  // Rodapé
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRY);
+  doc.text(`ObraTech · ${o?.nome||''} · Medição #${m.numero||''}`,MAR,290);
+  doc.text(new Date().toLocaleDateString('pt-BR'),W-MAR,290,{align:'right'});
+
+  doc.save(`Boletim_Medicao_${m.numero||'0'}_${(ct?.numero||'CT').replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
+  toast('📄','Boletim gerado!');
 }
 
 function delContrato(id){
@@ -4804,6 +5058,105 @@ function delFornecedor(id){
 }
 
 
+function qualTab(tab){
+  document.querySelectorAll('.qual-tab').forEach(t=>{
+    const isOn=t.dataset.qt===tab;
+    t.style.borderBottomColor=isOn?'var(--primary)':'transparent';
+    t.style.color=isOn?'var(--primary)':'var(--txt3)';
+  });
+  document.getElementById('qual-panel-nc').style.display=tab==='nc'?'block':'none';
+  document.getElementById('qual-panel-chk').style.display=tab==='chk'?'block':'none';
+  if(tab==='chk') renderChecklist();
+  else renderQual();
+}
+
+function renderChecklist(){
+  const obraFiltro=document.getElementById('chk-obra-filter')?.value||'';
+  const statusFiltro=document.getElementById('chk-status-filter')?.value||'';
+
+  const chkObraFilter=document.getElementById('chk-obra-filter');
+  if(chkObraFilter&&chkObraFilter.options.length<=1){
+    DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;chkObraFilter.appendChild(opt);});
+  }
+
+  let items=[...DB.checklists];
+  if(obraFiltro) items=items.filter(c=>String(c.obraId)===String(obraFiltro));
+  if(statusFiltro) items=items.filter(c=>c.status===statusFiltro);
+
+  const el=document.getElementById('chk-tbl');
+  if(!el) return;
+
+  if(!items.length){
+    el.innerHTML='<div class="t-empty">Nenhum item de checklist. Clique em "＋ Item" para adicionar.</div>';
+    return;
+  }
+
+  // Agrupar por etapa
+  const grupos={};
+  items.forEach(c=>{
+    const key=(c.obraId||'')+'|'+(c.etapaNome||'Geral');
+    if(!grupos[key]) grupos[key]={obraId:c.obraId,etapa:c.etapaNome||'Geral',items:[]};
+    grupos[key].items.push(c);
+  });
+
+  const statusBadge=s=>({
+    pendente:'<span class="b by">⏳ Pendente</span>',
+    ok:'<span class="b bg">✓ Conforme</span>',
+    nok:'<span class="b br">✕ Não Conforme</span>'
+  }[s]||'<span class="b bn">—</span>');
+
+  el.innerHTML=Object.values(grupos).map(g=>{
+    const o=DB.obras.find(x=>String(x.id)===String(g.obraId));
+    const tot=g.items.length;
+    const ok=g.items.filter(i=>i.status==='ok').length;
+    const pct=tot?Math.round(ok/tot*100):0;
+    return`<div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:13px;color:var(--txt)">${g.etapa}</div>
+        <div style="font-size:11px;color:var(--txt3)">${o?.nome||'—'}</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:600;color:${pct>=100?'var(--green)':pct>=50?'var(--yellow)':'var(--txt3)'}">${ok}/${tot} OK</span>
+          <div style="width:80px;background:var(--bg3);border-radius:3px;height:5px"><div style="width:${pct}%;height:100%;background:${pct>=100?'var(--green)':'var(--primary)'};border-radius:3px"></div></div>
+        </div>
+      </div>
+      <table class="tbl">
+        <tr><th>Item de Verificação</th><th>Responsável</th><th>Data</th><th>Status</th><th>Obs</th><th></th></tr>
+        ${g.items.map(i=>`<tr>
+          <td class="n">${i.item}</td>
+          <td style="font-size:11px">${i.resp||'—'}</td>
+          <td style="font-size:11px">${i.data?fmtDt(i.data):'—'}</td>
+          <td>${statusBadge(i.status)}</td>
+          <td style="font-size:11px;color:var(--txt3)">${i.obs||'—'}</td>
+          <td><div class="ta-actions">
+            ${i.status==='pendente'?`<button class="btn sm" onclick="chkAprovar('${i.id}','ok')" title="Conforme" style="color:var(--green)">✓</button>
+            <button class="btn sm" onclick="chkAprovar('${i.id}','nok')" title="Não conforme" style="color:var(--red)">✕</button>`:''}
+            <button class="btn sm ico" onclick="openModal('checklist','${i.id}')">✏️</button>
+            <button class="btn sm ico" onclick="delChecklist('${i.id}')">🗑️</button>
+          </div></td>
+        </tr>`).join('')}
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function chkAprovar(id, status){
+  const item=DB.checklists.find(x=>x.id===id);
+  if(!item) return;
+  item.status=status;
+  item.data=new Date().toISOString().split('T')[0];
+  item.resp=item.resp||DB.user.nome;
+  supaUpdate('checklists',id,{status,data:item.data,responsavel:item.resp});
+  save();renderChecklist();
+  toast(status==='ok'?'✅':'⚠️',status==='ok'?'Item conforme!':'Item não conforme registrado.');
+}
+
+function delChecklist(id){
+  if(!confirm('Excluir item?'))return;
+  supaDelete('checklists',id);
+  DB.checklists=DB.checklists.filter(x=>x.id!==id);
+  save();renderChecklist();toast('🗑️','Item excluído.');
+}
+
 function renderQual(){
   // Popular filtro de obras
   const qof=document.getElementById('qual-obra-filter');
@@ -4832,7 +5185,7 @@ function delNC(id){if(!confirm('Excluir NC?'))return;if(typeof id==='string'&&id
 // ═══════════════════════════════════════════
 // MODALS — CRUD
 // ═══════════════════════════════════════════
-function openModal(type,editId=null){
+function openModal(type,editId=null,editId2=null){
   const root=document.getElementById('modal-root');
   let title='',body='',onSave=null;
 
@@ -4922,6 +5275,7 @@ function openModal(type,editId=null){
       <div class="fg"><label class="lbl">Início</label><input type="date" class="inp" id="e-ini" value="${e?.inicio||''}"></div>
       <div class="fg"><label class="lbl">Fim Previsto</label><input type="date" class="inp" id="e-fim" value="${e?.fim||''}"></div>
       <div class="fg"><label class="lbl">% Concluído (0-100)</label><input type="number" class="inp" id="e-pct" min="0" max="100" value="${e?.pct||0}"></div>
+      <div class="fg"><label class="lbl">Orçamento da Etapa (R$)</label><input type="number" class="inp" id="e-orc" value="${e?.orc||''}" min="0" step="0.01" placeholder="Valor previsto para esta etapa"></div>
       <div class="fg"><label class="lbl">Responsável</label><input class="inp" id="e-resp" value="${e?.resp||''}" placeholder="Nome do responsável"></div>
     </div>`;
     onSave=()=>{
@@ -4932,16 +5286,16 @@ function openModal(type,editId=null){
       const totalEts=DB.etapas.filter(et=>String(et.obraId)===String(obraId));
       const idx=totalEts.findIndex(et=>et.id===editId);
       const n=totalEts.length+(editId?0:1);const sp=editId?totalEts[idx].sp:Math.round(totalEts.length/n*100)||0;const wp=Math.round(100/Math.max(n,1));
-      const dados={nome,obraId,status,inicio:document.getElementById('e-ini').value,fim:document.getElementById('e-fim').value,pct,resp:document.getElementById('e-resp').value.trim(),sp,wp};
+      const dados={nome,obraId,status,inicio:document.getElementById('e-ini').value,fim:document.getElementById('e-fim').value,pct,orc:parseFloat(document.getElementById('e-orc')?.value)||0,resp:document.getElementById('e-resp').value.trim(),sp,wp};
       if(e){
         Object.assign(e,dados);
-        supaUpdate('etapas',e.id,{obra_id:dados.obraId||null,nome:dados.nome,status:dados.status,pct:dados.pct,pct_esperado:dados.pctEsp??null,responsavel:dados.resp,inicio:dados.inicio||null,fim:dados.fim||null,sp:dados.sp,wp:dados.wp});
+        supaUpdate('etapas',e.id,{obra_id:dados.obraId||null,nome:dados.nome,status:dados.status,pct:dados.pct,pct_esperado:dados.pctEsp??null,orcamento:dados.orc||0,responsavel:dados.resp,inicio:dados.inicio||null,fim:dados.fim||null,sp:dados.sp,wp:dados.wp});
       } else {
         const newE={id:uuidv4(),...dados,_supa:true};
         DB.etapas.push(newE);
         // Inserir no Supabase — obra_id já é UUID válido
         const obraIdSupa = typeof dados.obraId==='string'&&dados.obraId.includes('-')?dados.obraId:null;
-        supaInsert('etapas',{id:newE.id,nome:dados.nome,obra_id:obraIdSupa,status:dados.status,pct:dados.pct,responsavel:dados.resp,inicio:dados.inicio||null,fim:dados.fim||null,sp:dados.sp,wp:dados.wp});
+        supaInsert('etapas',{id:newE.id,nome:dados.nome,obra_id:obraIdSupa,status:dados.status,pct:dados.pct,orcamento:dados.orc||0,responsavel:dados.resp,inicio:dados.inicio||null,fim:dados.fim||null,sp:dados.sp,wp:dados.wp});
         const allEts=DB.etapas.filter(et=>String(et.obraId)===String(obraId));
         allEts.forEach((et,i)=>{et.sp=Math.round(i/allEts.length*100);et.wp=Math.round(100/allEts.length);});
         // Removido: supaSync redundante que causava duplicação via segundo INSERT
@@ -5319,6 +5673,93 @@ function openModal(type,editId=null){
           obra_id:lancData.obraId||null});
       }
       save();renderContratos();toast('✅',isEdit?'Pagamento atualizado!':'Pagamento registrado e conciliado no Financeiro!');return true;
+    };
+  }
+  else if(type==='checklist'){
+    const chk=editId?DB.checklists.find(x=>x.id===editId):null;
+    title=chk?'Editar Item':'✅ Novo Item de Checklist';
+    const etapaNomes=[...new Set(DB.etapas.map(e=>e.nome))];
+    const etapaOpts=etapaNomes.map(n=>`<option value="${n}" ${chk?.etapaNome===n?'selected':''}>${n}</option>`).join('');
+    body=`<div class="g g2">
+      <div class="fg"><label class="lbl">Obra *</label>
+        <select class="sel" id="chk-obra">${DB.obras.map(o=>`<option value="${o.id}" ${String(chk?.obraId)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
+      <div class="fg"><label class="lbl">Etapa / Fase</label>
+        <input class="inp" id="chk-etapa" value="${chk?.etapaNome||''}" list="chk-etapa-list" placeholder="Ex: Fundação, Estrutura...">
+        <datalist id="chk-etapa-list">${etapaOpts}</datalist></div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Item de Verificação *</label>
+        <input class="inp" id="chk-item" value="${chk?.item||''}" placeholder="Ex: Verificar espaçamento das armaduras conforme projeto"></div>
+      <div class="fg"><label class="lbl">Responsável</label>
+        <input class="inp" id="chk-resp" value="${chk?.resp||''}" placeholder="Nome do responsável pela verificação"></div>
+      <div class="fg"><label class="lbl">Data Prevista</label>
+        <input type="date" class="inp" id="chk-data" value="${chk?.data||''}"></div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label>
+        <textarea class="ta" id="chk-obs" style="min-height:50px" placeholder="Critérios de aceitação, normas aplicáveis...">${chk?.obs||''}</textarea></div>
+    </div>`;
+    onSave=()=>{
+      const obraId=document.getElementById('chk-obra').value;
+      const etapaNome=document.getElementById('chk-etapa').value.trim();
+      const item=document.getElementById('chk-item').value.trim();
+      const resp=document.getElementById('chk-resp').value.trim();
+      const data=document.getElementById('chk-data').value;
+      const obs=document.getElementById('chk-obs').value.trim();
+      if(!item){toast('⚠️','Informe o item de verificação!');return false;}
+      const dados={obraId,etapaNome,item,resp,data,obs};
+      if(chk){
+        Object.assign(chk,dados);
+        supaUpdate('checklists',chk.id,{obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs});
+      } else {
+        const newId=uuidv4();
+        const newChk={id:newId,...dados,status:'pendente',_supa:true};
+        DB.checklists.push(newChk);
+        supaInsert('checklists',{id:newId,empresa_id:_empresaId,obra_id:obraId,etapa_nome:etapaNome,item,responsavel:resp,data:data||null,obs,status:'pendente'});
+      }
+      save();renderChecklist();toast('✅',chk?'Item atualizado!':'Item de checklist criado!');return true;
+    };
+  }
+  else if(type==='medicao'){
+    const contratoIdPre=editId2||null; // editId2 = contrato pré-selecionado
+    const med=editId?DB.medicoes.find(x=>x.id===editId):null;
+    title=med?'Editar Medição':'📐 Nova Medição';
+    const ctOpts=DB.contratos.map(c=>`<option value="${c.id}" ${(med?.contratoId||contratoIdPre)===c.id?'selected':''}>${c.numero||c.descricao?.substring(0,30)} — ${c.forn||'—'}</option>`).join('');
+    // Calcular próximo número de medição
+    const proxNum=med?.numero||(DB.medicoes.length+1);
+    body=`<div class="g g2">
+      <div class="fg"><label class="lbl">Contrato *</label>
+        <select class="sel" id="med-ct" onchange="medCalcAcum()">${ctOpts}</select></div>
+      <div class="fg"><label class="lbl">Nº da Medição</label>
+        <input type="number" class="inp" id="med-num" value="${proxNum}" min="1"></div>
+      <div class="fg"><label class="lbl">Período de Referência *</label>
+        <input type="month" class="inp" id="med-periodo" value="${med?.periodo?.substring(0,7)||new Date().toISOString().substring(0,7)}"></div>
+      <div class="fg"><label class="lbl">Valor desta Medição (R$) *</label>
+        <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0,00" oninput="medCalcAcum()"></div>
+      <div class="fg"><label class="lbl">Valor Acumulado até esta medição</label>
+        <input type="number" class="inp" id="med-acum" value="${med?.valorAcumulado||''}" min="0" step="0.01" placeholder="Calculado automaticamente" readonly style="background:var(--bg3);color:var(--txt3)"></div>
+      <div class="fg"><label class="lbl">Obra</label>
+        <select class="sel" id="med-obra">${DB.obras.map(o=>`<option value="${o.id}" ${String(med?.obraId||DB.contratos.find(c=>c.id===(med?.contratoId||contratoIdPre))?.obraId)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label>
+        <textarea class="ta" id="med-obs" style="min-height:50px" placeholder="Serviços executados, pendências, ressalvas...">${med?.obs||''}</textarea></div>
+    </div>`;
+    onSave=()=>{
+      const ctId=document.getElementById('med-ct').value;
+      const valor=parseFloat(document.getElementById('med-valor').value)||0;
+      const acum=parseFloat(document.getElementById('med-acum').value)||valor;
+      const periodo=document.getElementById('med-periodo').value+'-01';
+      const obraId=document.getElementById('med-obra').value;
+      const num=parseInt(document.getElementById('med-num').value)||proxNum;
+      const obs=document.getElementById('med-obs').value.trim();
+      if(!ctId){toast('⚠️','Selecione um contrato!');return false;}
+      if(!valor){toast('⚠️','Informe o valor da medição!');return false;}
+      const dados={contratoId:ctId,obraId,numero:num,periodo,valorMedido:valor,valorAcumulado:acum,status:med?.status||'pendente',obs};
+      if(med){
+        Object.assign(med,dados);
+        supaUpdate('medicoes',med.id,{contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,obs});
+      } else {
+        const newId=uuidv4();
+        const newMed={id:newId,...dados,_supa:true};
+        DB.medicoes.push(newMed);
+        supaInsert('medicoes',{id:newId,empresa_id:_empresaId,contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,status:'pendente',obs});
+      }
+      save();renderContratos();toast('✅',med?'Medição atualizada!':'Medição registrada!');return true;
     };
   }
   else if(type==='nc'){
