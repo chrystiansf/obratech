@@ -611,11 +611,8 @@ nav{padding:4px 0;flex:1}
     <h1 id="ptitle">Dashboard</h1>
     <span id="obra-tag" style="font-size:11px;color:var(--txt3)"></span>
     <div id="mob-menu-btn" onclick="toggleMobileSidebar()" title="Menu">☰</div>
-    <button class="btn" onclick="exportBackup()">💾 Backup</button>
-    <button class="btn" onclick="importBackup()">📂 Restaurar</button>
     <button id="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro"></button>
     <button class="btn pri" id="btn-new" onclick="mainNew()">＋ Novo</button>
-    <input type="file" id="import-file" accept=".json" style="display:none" onchange="doImport(event)">
     <input type="file" id="import-obra-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportObraFile(event)">
   </div>
   <div id="content">
@@ -6994,9 +6991,8 @@ function gerarRelGerencial() {
 }
 // BACKUP / RESTAURAR
 // ═══════════════════════════════════════════
-function exportBackup(){const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`ObraTech_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();toast('💾','Backup exportado!');}
-function importBackup(){document.getElementById('import-file').click();}
-function doImport(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!data.obras&&!data.nid){toast('⚠️','Arquivo inválido!');return;}if(!confirm('Substituir todos os dados atuais pelos dados do backup?'))return;Object.assign(DB,data);save();location.reload();}catch{toast('⚠️','Erro ao importar backup.');}};r.readAsText(f);e.target.value='';}
+
+
 
 // ═══════════════════════════════════════════
 // UTILS
