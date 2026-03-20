@@ -1372,6 +1372,10 @@ async function enviarReset(){
 // ── Auth: logout ──────────────────────────────────────────────
 async function logout(){
   window._sessaoAtiva = false;
+  // Limpar cache de perfil
+  localStorage.removeItem('_ot_empresa_id');
+  localStorage.removeItem('_ot_papel');
+  localStorage.removeItem('_ot_nome');
   await supa.auth.signOut();
   _usuarioAtual = null;
   _empresaId = null;
@@ -1424,13 +1428,48 @@ async function iniciarSessao(session){
   try{
     _usuarioAtual = session.user;
 
-    // Mostrar loading imediatamente enquanto busca perfil
+    // PASSO 1: Tentar usar dados do JWT (instantâneo, sem query)
+    const meta = session.user.user_metadata || {};
+    const appMeta = session.user.app_metadata || {};
+    
+    // Verificar se temos empresa_id no cache local
+    const cachedEmpresa = localStorage.getItem('_ot_empresa_id');
+    const cachedPapel = localStorage.getItem('_ot_papel');
+    const cachedNome = localStorage.getItem('_ot_nome');
+
+    // Se temos cache válido para este usuário, usar imediatamente
+    if(cachedEmpresa && cachedPapel && cachedNome){
+      _empresaId = cachedEmpresa;
+      _papelAtual = cachedPapel;
+      DB.user.nome = cachedNome;
+      DB.user.cargo = cachedPapel;
+      
+      // Mostrar app IMEDIATAMENTE com dados do cache
+      _atualizarSidebar(cachedNome, cachedPapel);
+      if(cachedPapel==='cliente'){
+        mostrarApp();
+        const unEl=document.getElementById('pc-user-nome');
+        if(unEl) unEl.textContent=cachedNome;
+        toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
+        carregarDadosCliente(session.user.id);
+      } else {
+        mostrarApp();
+        renderDash(); fillSelects(); renderObras();
+        toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
+        carregarDadosSupabase().then(()=>{renderDash();fillSelects();renderObras();});
+      }
+      
+      // Atualizar perfil em background (sem bloquear)
+      _atualizarPerfilBackground(session.user.id);
+      return;
+    }
+
+    // PASSO 2: Sem cache — buscar perfil (primeira vez ou cache expirado)
     document.getElementById('loading-screen').style.display='flex';
     document.getElementById('auth-screen').style.display='none';
 
-    // Buscar perfil com timeout de 8 segundos
-    const perfPromise = supa.from('perfis').select('*').eq('id', session.user.id).maybeSingle();
-    const timeoutPromise = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
+    const perfPromise = supa.from('perfis').select('id,nome,papel,cargo,empresa_id').eq('id', session.user.id).maybeSingle();
+    const timeoutPromise = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000));
     const {data:perfil, error:perfErr} = await Promise.race([perfPromise, timeoutPromise]);
 
     if(perfErr) console.warn('Perfil erro:', perfErr?.message);
@@ -1441,40 +1480,28 @@ async function iniciarSessao(session){
       DB.user.nome  = perfil.nome;
       DB.user.cargo = perfil.cargo || perfil.papel;
 
-      const sbUser = document.getElementById('sb-user');
-      const sbNome = document.getElementById('sb-user-nome');
-      const sbPapel = document.getElementById('sb-user-papel');
-      if(sbUser) sbUser.style.display='block';
-      if(sbNome) sbNome.textContent = perfil.nome;
-      if(sbPapel){
-        const pl={admin:'Administrador',gestor:'Gestor',financeiro:'Financeiro',operacional:'Operacional',visualizador:'Visualizador',cliente:'Cliente'};
-        sbPapel.textContent = pl[perfil.papel]||perfil.papel;
-      }
+      // Salvar no cache local para próximos logins serem instantâneos
+      localStorage.setItem('_ot_empresa_id', perfil.empresa_id);
+      localStorage.setItem('_ot_papel', perfil.papel);
+      localStorage.setItem('_ot_nome', perfil.nome);
+
+      _atualizarSidebar(perfil.nome, perfil.papel);
 
       if(perfil.papel==='cliente'){
-        // Portal do cliente: mostrar imediatamente
         mostrarApp();
-        // Mostrar nome imediatamente
         const unEl=document.getElementById('pc-user-nome');
         if(unEl) unEl.textContent=perfil.nome;
         toast('👋','Bem-vindo ao Portal, '+perfil.nome.split(' ')[0]+'!');
-        // Carregar dados em background
         carregarDadosCliente(perfil.id);
       } else {
-        // Mostrar app imediatamente com dados do cache local
         mostrarApp();
         renderDash(); fillSelects(); renderObras();
         toast('👋','Bem-vindo, '+perfil.nome.split(' ')[0]+'!');
-        // Carregar dados do Supabase em background
-        carregarDadosSupabase().then(()=>{
-          renderDash(); fillSelects(); renderObras();
-        });
-        // Diagnóstico desativado para não atrasar carregamento
-        // diagnosticarSupabase();
+        carregarDadosSupabase().then(()=>{renderDash();fillSelects();renderObras();});
       }
 
     } else {
-      console.warn('Perfil não encontrado ou sem empresa_id:', perfErr?.message);
+      console.warn('Perfil não encontrado:', perfErr?.message);
       mostrarLogin();
       authMsg('Perfil não encontrado. Entre em contato com o suporte.','error');
     }
@@ -1494,6 +1521,34 @@ async function iniciarSessao(session){
       authMsg('Erro ao carregar perfil: '+e.message,'error');
     }
   }
+}
+
+function _atualizarSidebar(nome, papel){
+  const sbUser = document.getElementById('sb-user');
+  const sbNome = document.getElementById('sb-user-nome');
+  const sbPapel = document.getElementById('sb-user-papel');
+  if(sbUser) sbUser.style.display='block';
+  if(sbNome) sbNome.textContent = nome;
+  if(sbPapel){
+    const pl={admin:'Administrador',gestor:'Gestor',financeiro:'Financeiro',operacional:'Operacional',visualizador:'Visualizador',cliente:'Cliente'};
+    sbPapel.textContent = pl[papel]||papel;
+  }
+}
+
+async function _atualizarPerfilBackground(userId){
+  try{
+    const {data:perfil}=await supa.from('perfis').select('id,nome,papel,cargo,empresa_id').eq('id',userId).maybeSingle();
+    if(perfil){
+      localStorage.setItem('_ot_empresa_id', perfil.empresa_id);
+      localStorage.setItem('_ot_papel', perfil.papel);
+      localStorage.setItem('_ot_nome', perfil.nome);
+      // Se papel mudou, recarregar
+      if(perfil.papel!==_papelAtual){
+        console.log('Papel mudou, recarregando...');
+        location.reload();
+      }
+    }
+  }catch(e){ console.warn('Atualização perfil background:', e.message); }
 }
 
 // ── Carregar todos os dados da empresa ────────────────────────
@@ -8064,7 +8119,7 @@ if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.s
     name: 'ObraTech — Gestão de Obras',
     short_name: 'ObraTech',
     description: 'Sistema de gestão de obras para construtoras brasileiras',
-    start_url: '/',
+    start_url: window.location.origin+'/',
     display: 'standalone',
     background_color: '#0b0e18',
     theme_color: '#5b8ff9',
