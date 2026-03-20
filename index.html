@@ -1924,7 +1924,7 @@ async function supaUpdate(tabela, id, dados){
     console.warn('supaUpdate: id não é UUID, ignorando',tabela,id); return;
   }
   try{
-    const semAtualizado=['drive_arquivos','pontos','rdo_fotos'];
+    const semAtualizado=['drive_arquivos','pontos','rdo_fotos','checklists','medicoes','cliente_obras'];
     const payload=semAtualizado.includes(tabela)?{...dados}:{...dados,atualizado_em:new Date().toISOString()};
     const {error}=await supa.from(tabela).update(payload).eq('id',id).eq('empresa_id',_empresaId);
     if(error){
@@ -5430,7 +5430,7 @@ function gerarChecklistPDF(){
       const nok=items.filter(i=>i.status==='nok').length;
       const pend=items.filter(i=>i.status==='pendente').length;
       const pct=tot?Math.round(ok/tot*100):0;
-      doc.text(`Total: ${tot} itens  |  ✓ Conformes: ${ok}  |  ✕ Não Conformes: ${nok}  |  ⏳ Pendentes: ${pend}  |  Conformidade: ${pct}%`,M+3,y+11);
+      doc.text(`Total: ${tot} itens  |   Conformes: ${ok}  |   Não Conformes: ${nok}  |  ⏳ Pendentes: ${pend}  |  Conformidade: ${pct}%`,M+3,y+11);
       y+=18;
     }
   };
@@ -5543,13 +5543,15 @@ function gerarChecklistPDF(){
         y+=rowH;
         doc.setFillColor(250,250,255);doc.rect(M,y,W-M*2,12,'F');
         doc.setFont('helvetica','italic');doc.setFontSize(6);doc.setTextColor(...CINZA);
-        doc.text(`📷 ${item.fotos.length} foto(s) de evidência registrada(s)`,M+3,y+7);
+        doc.text('Foto(s): '+item.fotos.length+' evidencia(s) registrada(s)',M+3,y+7);
         // Tentar adicionar imagens base64
         item.fotos.slice(0,4).forEach((f,fi)=>{
           try{
+            if(!f?.src||!f.src.startsWith('data:')) return;
             const imgX=M+50+fi*26;
-            doc.addImage(f.src,'JPEG',imgX,y+1,24,10);
-          }catch(e){}
+            const fmt=f.src.includes('data:image/png')?'PNG':'JPEG';
+            doc.addImage(f.src,fmt,imgX,y+1,24,10);
+          }catch(e){ console.warn('addImage erro:',e.message); }
         });
       } else {
         y+=rowH;
