@@ -2228,12 +2228,8 @@ function abrirModalConviteEquipe(){
               <button class="btn sm" onclick="eqSelecionarObras(false)">Nenhuma</button>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bg3);border-radius:8px;padding:8px">
-            ${DB.obras.map(o=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">
-              <input type="checkbox" class="obra-chk" value="${o.id}" style="width:15px;height:15px" checked>
-              <span style="font-size:12px">🏗️ ${o.nome}</span>
-            </label>`).join("")}
-            ${DB.obras.length===0?'<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada</div>':""}
+          <div id="eq-obras-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bg3);border-radius:8px;padding:8px">
+            <div style="font-size:11px;color:var(--txt3);padding:6px">Carregando obras...</div>
           </div>
         </div>
         <!-- Módulos -->
@@ -2255,6 +2251,22 @@ function abrirModalConviteEquipe(){
     </div></div>`;
   // Aplicar preset inicial
   eqAplicarPreset("operacional");
+
+  // Popular obras após modal abrir
+  window._postModalRender=()=>{
+    const g=document.getElementById("eq-obras-grid");
+    if(!g)return;
+    if(!DB.obras.length){
+      g.innerHTML='<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada ainda.</div>';
+      return;
+    }
+    g.innerHTML=DB.obras.map(o=>
+      '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">'+
+        '<input type="checkbox" class="obra-chk" value="'+o.id+'" style="width:15px;height:15px" checked>'+
+        '<span style="font-size:12px">🏗️ '+o.nome+'</span>'+
+      '</label>'
+    ).join("");
+  };
 }
 
 function eqAplicarPreset(papel){
@@ -2369,12 +2381,13 @@ async function abrirEditarPermissoes(userId){
     </label>`
   ).join("");
 
-  const obrasChks=DB.obras.map(o=>
-    `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">
-      <input type="checkbox" class="obra-edit-chk" value="${o.id}" style="width:15px;height:15px" ${obrasAtivas.includes(o.id)?"checked":""}>
-      <span style="font-size:12px">🏗️ ${o.nome}</span>
-    </label>`
-  ).join("");
+  // obrasChks gerado na hora (DB.obras disponível no editar pois usuario já está na tela)
+  const obrasChks=DB.obras.length?DB.obras.map(o=>
+    '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">'+
+      '<input type="checkbox" class="obra-edit-chk" value="'+o.id+'" style="width:15px;height:15px" '+(obrasAtivas.includes(o.id)?"checked":"")+'>'+
+      '<span style="font-size:12px">🏗️ '+o.nome+'</span>'+
+    '</label>'
+  ).join(""):'<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada</div>';
 
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:520px">
