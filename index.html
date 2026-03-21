@@ -2167,7 +2167,14 @@ function renderEquipeUsuarios(usuarios){
           '</div>'+
           '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--bg3);color:'+( papelCor[u.papel]||"var(--txt2)")+'">'+( papelLabel[u.papel]||u.papel)+'</span>'+
         '</div>'+
-        '<div style="font-size:10px;color:var(--txt3);margin-bottom:8px">Módulos com acesso:</div>'+
+        (()=>{
+          const obIds=u.obras_ids?JSON.parse(u.obras_ids):null;
+          const obrasStr=obIds===null?'Todas as obras':
+            obIds.length===0?'<span style="color:var(--red);font-size:10px">Nenhuma obra liberada</span>':
+            obIds.map(id=>DB.obras.find(o=>o.id===id)?.nome||'—').join(', ');
+          return '<div style="font-size:10px;color:var(--txt3);margin-bottom:4px">🏗️ Obras: <span style="color:var(--txt2)">'+(obrasStr)+'</span></div>';
+        })()+
+        '<div style="font-size:10px;color:var(--txt3);margin-bottom:8px">🔐 Módulos:</div>'+
         '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'+
           modAtivos.map(m=>'<span style="font-size:10px;padding:2px 6px;background:var(--bg3);border-radius:4px;border:1px solid var(--border)">'+m.ic+" "+m.label+'</span>').join("")+
           (modAtivos.length===0?'<span style="font-size:10px;color:var(--txt3);font-style:italic">Sem permissões</span>':'')+
@@ -2212,8 +2219,26 @@ function abrirModalConviteEquipe(){
               <option value="admin">Administrador</option>
             </select></div>
         </div>
+        <!-- Seleção de obras -->
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="lbl" style="margin:0">🏗️ Obras que pode acessar</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn sm" onclick="eqSelecionarObras(true)">Todas</button>
+              <button class="btn sm" onclick="eqSelecionarObras(false)">Nenhuma</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bg3);border-radius:8px;padding:8px">
+            ${DB.obras.map(o=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">
+              <input type="checkbox" class="obra-chk" value="${o.id}" style="width:15px;height:15px" checked>
+              <span style="font-size:12px">🏗️ ${o.nome}</span>
+            </label>`).join("")}
+            ${DB.obras.length===0?'<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada</div>':""}
+          </div>
+        </div>
+        <!-- Módulos -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <label class="lbl" style="margin:0">Módulos com acesso</label>
+          <label class="lbl" style="margin:0">🔐 Módulos com acesso</label>
           <div style="display:flex;gap:6px">
             <button class="btn sm" onclick="eqSelecionarTodos(true)">Todos</button>
             <button class="btn sm" onclick="eqSelecionarTodos(false)">Nenhum</button>
@@ -2242,6 +2267,12 @@ function eqAplicarPreset(papel){
 function eqSelecionarTodos(sel){
   document.querySelectorAll(".perm-chk").forEach(chk=>chk.checked=sel);
 }
+function eqSelecionarObras(sel){
+  document.querySelectorAll(".obra-chk").forEach(chk=>chk.checked=sel);
+}
+function eqSelecionarObrasEdit(sel){
+  document.querySelectorAll(".obra-edit-chk").forEach(chk=>chk.checked=sel);
+}
 
 async function enviarConviteEquipe(){
   const nome=document.getElementById("eq-nome")?.value.trim();
@@ -2249,6 +2280,7 @@ async function enviarConviteEquipe(){
   const cargo=document.getElementById("eq-cargo")?.value.trim();
   const papel=document.getElementById("eq-papel")?.value||"operacional";
   const permissoes=[...document.querySelectorAll(".perm-chk:checked")].map(c=>c.value);
+  const obrasIds=[...document.querySelectorAll(".obra-chk:checked")].map(c=>c.value);
 
   if(!nome){toast("⚠️","Informe o nome.");return;}
   if(!email||!email.includes("@")){toast("⚠️","Email inválido.");return;}
@@ -2282,9 +2314,10 @@ async function enviarConviteEquipe(){
 
     // Criar perfil com permissões
     const permJson=JSON.stringify(permissoes);
+    const obrasJson=JSON.stringify(obrasIds);
     await supa.from("perfis").upsert({
       id:userId,empresa_id:_empresaId,
-      nome,cargo,papel,permissoes:permJson,email
+      nome,cargo,papel,permissoes:permJson,obras_ids:obrasJson,email
     },{onConflict:"id"});
 
     closeModal();
@@ -2326,7 +2359,9 @@ async function abrirEditarPermissoes(userId){
   const u=DB.equipeUsuarios?.find(x=>x.id===userId);
   if(!u)return;
   const permAtivas=u.permissoes?JSON.parse(u.permissoes):(PAPEIS_PRESET[u.papel]||[]);
+  const obrasAtivas=u.obras_ids?JSON.parse(u.obras_ids):DB.obras.map(o=>o.id); // null = todas
   const root=document.getElementById("modal-root");
+
   const chks=MODULOS_SISTEMA.map(m=>
     `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">
       <input type="checkbox" class="perm-edit-chk" value="${m.id}" style="width:15px;height:15px" ${permAtivas.includes(m.id)?"checked":""}>
@@ -2334,33 +2369,64 @@ async function abrirEditarPermissoes(userId){
     </label>`
   ).join("");
 
+  const obrasChks=DB.obras.map(o=>
+    `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">
+      <input type="checkbox" class="obra-edit-chk" value="${o.id}" style="width:15px;height:15px" ${obrasAtivas.includes(o.id)?"checked":""}>
+      <span style="font-size:12px">🏗️ ${o.nome}</span>
+    </label>`
+  ).join("");
+
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
-    <div class="mo" style="max-width:480px">
-      <div class="moh"><div class="mot">⚙️ Permissões — ${u.nome}</div><div class="mox" onclick="closeModal()">✕</div></div>
-      <div class="mob">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div>
-            <select class="sel" id="perm-papel-sel" style="width:180px" onchange="eqAplicarPresetEdit(this.value)">
-              <option value="">— Aplicar preset —</option>
-              <option value="admin">Administrador</option>
-              <option value="gestor">Gestor</option>
-              <option value="financeiro">Financeiro</option>
-              <option value="operacional">Operacional</option>
-              <option value="visualizador">Visualizador</option>
-            </select>
+    <div class="mo" style="max-width:520px">
+      <div class="moh">
+        <div>
+          <div class="mot">⚙️ Editar Acesso — ${u.nome}</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:2px">${u.cargo||u.papel||""} ${u.email?"· "+u.email:""}</div>
+        </div>
+        <div class="mox" onclick="closeModal()">✕</div>
+      </div>
+      <div class="mob" style="max-height:72vh;overflow-y:auto">
+
+        <!-- Obras -->
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label class="lbl" style="margin:0;font-size:12px">🏗️ Obras com acesso</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn sm" onclick="eqSelecionarObrasEdit(true)">Todas</button>
+              <button class="btn sm" onclick="eqSelecionarObrasEdit(false)">Nenhuma</button>
+            </div>
           </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn sm" onclick="document.querySelectorAll('.perm-edit-chk').forEach(c=>c.checked=true)">Todos</button>
-            <button class="btn sm" onclick="document.querySelectorAll('.perm-edit-chk').forEach(c=>c.checked=false)">Nenhum</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bg3);border-radius:8px;padding:8px">
+            ${obrasChks||'<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada</div>'}
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bg3);border-radius:8px;padding:8px">
-          ${chks}
+
+        <!-- Módulos -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label class="lbl" style="margin:0;font-size:12px">🔐 Módulos com acesso</label>
+            <div style="display:flex;gap:6px">
+              <select class="sel" id="perm-papel-sel" style="width:160px;height:28px;font-size:11px" onchange="eqAplicarPresetEdit(this.value)">
+                <option value="">— Preset rápido —</option>
+                <option value="admin">Administrador</option>
+                <option value="gestor">Gestor</option>
+                <option value="financeiro">Financeiro</option>
+                <option value="operacional">Operacional</option>
+                <option value="visualizador">Visualizador</option>
+              </select>
+              <button class="btn sm" onclick="document.querySelectorAll('.perm-edit-chk').forEach(c=>c.checked=true)">Todos</button>
+              <button class="btn sm" onclick="document.querySelectorAll('.perm-edit-chk').forEach(c=>c.checked=false)">Nenhum</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bg3);border-radius:8px;padding:8px">
+            ${chks}
+          </div>
         </div>
       </div>
       <div class="mof">
+        <button class="btn ico" onclick="removerAcessoUsuario('${userId}','${u.nome}')" style="color:var(--red)" title="Remover acesso">🗑️</button>
         <button class="btn" onclick="closeModal()">Cancelar</button>
-        <button class="btn pri" onclick="salvarPermissoes('${userId}')">✅ Salvar Permissões</button>
+        <button class="btn pri" onclick="salvarPermissoes('${userId}')">✅ Salvar</button>
       </div>
     </div></div>`;
 }
@@ -2375,14 +2441,18 @@ function eqAplicarPresetEdit(papel){
 
 async function salvarPermissoes(userId){
   const permissoes=[...document.querySelectorAll(".perm-edit-chk:checked")].map(c=>c.value);
+  const obrasIds=[...document.querySelectorAll(".obra-edit-chk:checked")].map(c=>c.value);
   const permJson=JSON.stringify(permissoes);
-  const {error}=await supa.from("perfis").update({permissoes:permJson}).eq("id",userId).eq("empresa_id",_empresaId);
-  if(error){toast("❌","Erro ao salvar.");return;}
+  const obrasJson=JSON.stringify(obrasIds);
+  const {error}=await supa.from("perfis")
+    .update({permissoes:permJson,obras_ids:obrasJson})
+    .eq("id",userId).eq("empresa_id",_empresaId);
+  if(error){toast("❌","Erro ao salvar: "+error.message?.substring(0,50));return;}
   const u=DB.equipeUsuarios?.find(x=>x.id===userId);
-  if(u) u.permissoes=permJson;
+  if(u){u.permissoes=permJson;u.obras_ids=obrasJson;}
   closeModal();
   renderEquipeUsuarios(DB.equipeUsuarios);
-  toast("✅","Permissões atualizadas!");
+  toast("✅","Acesso de "+u?.nome?.split(" ")[0]+" atualizado!");
 }
 
 async function removerAcessoUsuario(userId,nome){
