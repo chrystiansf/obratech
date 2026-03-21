@@ -4599,6 +4599,31 @@ function medAddFotos(e){
   });
 }
 
+function medModoChange(){
+  const isPct=document.getElementById('med-modo-p')?.checked;
+  const campoReal=document.getElementById('med-campo-real');
+  const campoPct=document.getElementById('med-campo-pct');
+  if(campoReal) campoReal.style.display=isPct?'none':'';
+  if(campoPct) campoPct.style.display=isPct?'':'none';
+  if(isPct) medPctToValor();
+  else medCalcAcum();
+}
+
+function medPctToValor(){
+  const pct=parseFloat(document.getElementById('med-pct')?.value)||0;
+  const ctId=document.getElementById('med-ct')?.value;
+  const ct=DB.contratos.find(c=>c.id===ctId);
+  const ctValor=Number(ct?.valor||0);
+  const valorCalc=ctValor*pct/100;
+  // Atualizar campo de valor oculto
+  const vEl=document.getElementById('med-valor');
+  if(vEl) vEl.value=valorCalc.toFixed(2);
+  // Preview
+  const prev=document.getElementById('med-pct-preview');
+  if(prev) prev.textContent=pct>0?'= '+fmtR(valorCalc)+(ctValor?' de '+fmtR(ctValor):''):'';
+  medCalcAcum();
+}
+
 function medCalcAcum(){
   const ctId=document.getElementById('med-ct')?.value;
   const valor=parseFloat(document.getElementById('med-valor')?.value)||0;
@@ -6310,32 +6335,68 @@ function openModal(type,editId=null,editId2=null){
         '<input type="file" accept="image/*" multiple style="display:none" onchange="medAddFotos(event)"></label>';
       g.innerHTML=h;
     };
-    body=`<div style="display:flex;flex-direction:column;gap:12px">
+    const ctValor=DB.contratos.find(c=>c.id===(med?.contratoId||contratoIdPre||DB.contratos[0]?.id))?.valor||0;
+    body=`<div style="display:flex;flex-direction:column;gap:14px">
       <div class="g g2">
+        <!-- Linha 1: Contrato + Nº -->
         <div class="fg"><label class="lbl">Contrato *</label>
           <select class="sel" id="med-ct" onchange="medCalcAcum()">${ctOpts}</select></div>
         <div class="fg"><label class="lbl">Nº da Medição</label>
           <input type="number" class="inp" id="med-num" value="${proxNum}" min="1"></div>
+        <!-- Linha 2: Período + Obra -->
         <div class="fg"><label class="lbl">Período de Referência *</label>
           <input type="month" class="inp" id="med-periodo" value="${med?.periodo?.substring(0,7)||new Date().toISOString().substring(0,7)}"></div>
-        <div class="fg"><label class="lbl">Valor desta Medição (R$) *</label>
-          <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0,00" oninput="medCalcAcum()"></div>
-        <div class="fg"><label class="lbl">Valor Acumulado até esta medição</label>
-          <input type="number" class="inp" id="med-acum" value="${med?.valorAcumulado||''}" min="0" step="0.01" placeholder="Calculado automaticamente" readonly style="background:var(--bg3);color:var(--txt3)"></div>
         <div class="fg"><label class="lbl">Obra</label>
           <select class="sel" id="med-obra">${DB.obras.map(o=>'<option value="'+o.id+'"'+(String(med?.obraId||DB.contratos.find(c=>c.id===(med?.contratoId||contratoIdPre))?.obraId)===String(o.id)?' selected':'')+'>'+o.nome+'</option>').join('')}</select></div>
+        <!-- Linha 3: Modo de medição -->
+        <div class="fg" style="grid-column:span 2">
+          <label class="lbl">Forma de Medição</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3)" id="med-modo-r-lbl">
+              <input type="radio" name="med-modo" id="med-modo-r" value="real" ${!med||!med.pctMedido?'checked':''} onchange="medModoChange()">
+              <span><strong>Valor em R$</strong><br><span style="font-size:10px;color:var(--txt3)">Digite o valor exato</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3)" id="med-modo-p-lbl">
+              <input type="radio" name="med-modo" id="med-modo-p" value="pct" ${med?.pctMedido?'checked':''} onchange="medModoChange()">
+              <span><strong>Porcentagem do Contrato</strong><br><span style="font-size:10px;color:var(--txt3)">Ex: 30% = calcula o valor</span></span>
+            </label>
+          </div>
+        </div>
+        <!-- Linha 4: Campos de valor (muda conforme modo) -->
+        <div class="fg" id="med-campo-real" style="${med?.pctMedido?'display:none':''}">
+          <label class="lbl">Valor desta Medição (R$) *</label>
+          <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0,00" oninput="medCalcAcum()">
+        </div>
+        <div class="fg" id="med-campo-pct" style="${med?.pctMedido?'':'display:none'}">
+          <label class="lbl">% desta Medição no Contrato *</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="number" class="inp" id="med-pct" value="${med?.pctMedido||''}" min="0.1" max="100" step="0.1" placeholder="Ex: 30" oninput="medPctToValor()" style="flex:1">
+            <span style="font-size:12px;color:var(--txt3);white-space:nowrap">% do contrato</span>
+          </div>
+          <div style="font-size:10px;color:var(--primary);margin-top:4px" id="med-pct-preview"></div>
+        </div>
+        <div class="fg">
+          <label class="lbl">Valor Acumulado até esta medição</label>
+          <input type="number" class="inp" id="med-acum" value="${med?.valorAcumulado||''}" min="0" step="0.01" placeholder="Calculado automaticamente" readonly style="background:var(--bg3);color:var(--txt3)">
+        </div>
+        <!-- Serviços executados -->
         <div class="fg" style="grid-column:span 2"><label class="lbl">Serviços Executados nesta Medição *</label>
-          <textarea class="ta" id="med-exec" style="min-height:70px" placeholder="Descreva detalhadamente o que foi executado: serviços, etapas concluídas, quantidades...">${med?.exec||''}</textarea></div>
+          <textarea class="ta" id="med-exec" style="min-height:70px" placeholder="Descreva o que foi executado: serviços, etapas concluídas, quantidades, locais...">${med?.exec||''}</textarea></div>
         <div class="fg" style="grid-column:span 2"><label class="lbl">Pendências / Observações</label>
-          <textarea class="ta" id="med-obs" style="min-height:40px" placeholder="Ressalvas, pendências, condições especiais...">${med?.obs||''}</textarea></div>
+          <textarea class="ta" id="med-obs" style="min-height:36px" placeholder="Ressalvas, pendências, condições especiais...">${med?.obs||''}</textarea></div>
       </div>
+      <!-- Fotos -->
       <div>
         <label class="lbl" style="margin-bottom:8px;display:block">📷 Fotos do Executado</label>
-        <div id="med-foto-grid" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start"></div>
+        <div id="med-foto-grid" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;min-height:80px;padding:8px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+          <div style="color:var(--txt3);font-size:11px;align-self:center" id="med-foto-empty">Clique em + para adicionar fotos</div>
+        </div>
       </div>
     </div>`;
     onSave=()=>{
       const ctId=document.getElementById('med-ct').value;
+      const isMedPct=document.getElementById('med-modo-p')?.checked;
+      const pctMedido=isMedPct?(parseFloat(document.getElementById('med-pct')?.value)||0):0;
       const valor=parseFloat(document.getElementById('med-valor').value)||0;
       const acum=parseFloat(document.getElementById('med-acum').value)||valor;
       const periodo=document.getElementById('med-periodo').value+'-01';
@@ -6347,7 +6408,7 @@ function openModal(type,editId=null,editId2=null){
       const fotosJson=JSON.stringify(fotos);
       if(!ctId){toast('⚠️','Selecione um contrato!');return false;}
       if(!valor){toast('⚠️','Informe o valor da medição!');return false;}
-      const dados={contratoId:ctId,obraId,numero:num,periodo,valorMedido:valor,valorAcumulado:acum,status:med?.status||'pendente',exec,obs,fotos};
+      const dados={contratoId:ctId,obraId,numero:num,periodo,valorMedido:valor,valorAcumulado:acum,pctMedido,status:med?.status||'pendente',exec,obs,fotos};
       if(med){
         Object.assign(med,dados);
         supaUpdate('medicoes',med.id,{contrato_id:ctId,obra_id:obraId,numero:num,periodo,valor_medido:valor,valor_acumulado:acum,obs,exec});
