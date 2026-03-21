@@ -4555,24 +4555,45 @@ function renderMedicoes(){
 
 async function aprovarMedicao(id){
   const m=DB.medicoes.find(x=>x.id===id);
-  if(!m||!confirm('Aprovar esta medição? Isso gerará um lançamento financeiro.'))return;
+  if(!m||!confirm('Aprovar esta medição? Isso gerará um lançamento financeiro e um pagamento no contrato.'))return;
   m.status='aprovado';
   m.aprovadoPor=DB.user.nome;
   m.aprovadoEm=new Date().toISOString().split('T')[0];
   supaUpdate('medicoes',id,{status:'aprovado',aprovado_por:DB.user.nome,aprovado_em:m.aprovadoEm});
 
-  // Gerar lançamento financeiro automático
   const ct=DB.contratos.find(c=>c.id===m.contratoId);
+  const descricao=`[BM-${String(m.numero||'1').padStart(3,'0')}] ${ct?.descricao||ct?.numero||'Medição'} — ${ct?.forn||''}`.trim();
+
+  // 1. Lançamento financeiro (aparece na aba Financeiro)
   const lancId=uuidv4();
-  const lanc={id:lancId,obraId:m.obraId,tipo:'Despesa',
-    desc:`[${ct?.numero||'CT'}] Medição #${m.numero} - ${ct?.descricao||''}`,
-    cat:ct?.cat||'Serviços',cc:ct?.cc||'',valor:m.valorMedido,
-    data:m.aprovadoEm,forn:ct?.forn||'',_supa:true,_medicaoId:id};
+  const lanc={id:lancId,empresa_id:_empresaId,obraId:m.obraId,tipo:'Despesa',
+    desc:descricao,cat:ct?.cat||'Serviços',cc:ct?.cc||'',
+    valor:m.valorMedido,data:m.aprovadoEm,forn:ct?.forn||'',_supa:true,_medicaoId:id};
   DB.lancs.push(lanc);
-  supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:lanc.desc,categoria:lanc.cat,
-    centro_custo:lanc.cc,valor:lanc.valor,data:lanc.data,fornecedor:lanc.forn,obra_id:lanc.obraId||null});
-  save();renderContratos();
-  toast('✅',`Medição #${m.numero} aprovada! Lançamento de ${fmtR(m.valorMedido)} criado no Financeiro.`);
+  supaInsert('lancamentos',{id:lancId,empresa_id:_empresaId,tipo:'Despesa',
+    descricao:lanc.desc,categoria:lanc.cat,centro_custo:lanc.cc,
+    valor:lanc.valor,data:lanc.data,fornecedor:lanc.forn,obra_id:lanc.obraId||null});
+
+  // 2. Pagamento do contrato (aparece na aba Contratos)
+  const pgtoId=uuidv4();
+  const pgto={id:pgtoId,contratoId:m.contratoId,obraId:m.obraId,
+    data:m.aprovadoEm,valor:m.valorMedido,desc:descricao,
+    forn:ct?.forn||'',cat:ct?.cat||'Serviços',cc:ct?.cc||'',
+    _pgtoId:lancId,_supa:true};
+  DB.pgtos.push(pgto);
+  supaInsert('pagamentos',{id:pgtoId,empresa_id:_empresaId,
+    contrato_id:m.contratoId,obra_id:m.obraId,data:m.aprovadoEm,
+    valor:m.valorMedido,descricao:descricao,fornecedor:ct?.forn||'',
+    categoria:ct?.cat||'Serviços',centro_custo:ct?.cc||''});
+
+  save();
+
+  // Re-renderizar ambas as abas
+  if(document.getElementById('p-contratos')?.classList.contains('on')) renderContratos();
+  if(document.getElementById('p-financeiro')?.classList.contains('on')) renderFin();
+  renderContratos(); // sempre atualiza contratos pois estamos nela
+
+  toast('✅',`Medição #${m.numero} aprovada! Lançamento de ${fmtR(m.valorMedido)} adicionado no Financeiro e Contratos.`);
 }
 
 function reprovarMedicao(id){
