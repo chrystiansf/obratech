@@ -5455,18 +5455,18 @@ function gerarChecklistPDF(){
 
     doc.autoTable({
       startY:y,
-      head:[['No','Item de Verificacao','Responsavel','Data','Status','Observacoes']],
+      head:[['Nº','Item de Verificacao','Responsavel','Data','Status','Obs']],
       body:rows,
-      headStyles:hStyle(),
-      bodyStyles:{...bStyle(),fontSize:7},
+      headStyles:{...hStyle(),fontSize:7,cellPadding:{top:3,bottom:3,left:3,right:3}},
+      bodyStyles:{...bStyle(),fontSize:7,cellPadding:{top:2.5,bottom:2.5,left:3,right:3},minCellHeight:0,overflow:'linebreak'},
       alternateRowStyles:altRow(),
       columnStyles:{
-        0:{cellWidth:10,halign:'center'},
-        1:{cellWidth:68},
-        2:{cellWidth:28},
-        3:{cellWidth:18,halign:'center'},
-        4:{cellWidth:22,halign:'center',fontStyle:'bold'},
-        5:{cellWidth:44},
+        0:{cellWidth:8,halign:'center',overflow:'hidden'},
+        1:{cellWidth:66,overflow:'linebreak'},
+        2:{cellWidth:26,overflow:'linebreak'},
+        3:{cellWidth:18,halign:'center',overflow:'hidden'},
+        4:{cellWidth:25,halign:'center',fontStyle:'bold',overflow:'hidden'},
+        5:{cellWidth:49,overflow:'linebreak'},
       },
       didParseCell(data){
         if(data.column.index===4&&data.section==='body'){
@@ -5518,12 +5518,13 @@ function gerarChecklistPDF(){
   });
   doc.autoTable({
     startY:y,
-    head:[['Etapa','Total','Conformes','Nao Conf.','Pendentes','Conformidade','Situacao']],
+    head:[['Etapa','Total','Conformes','Nao Conf.','Pendentes','Conform.','Situacao']],
     body:resumoRows,
     foot:[[{colSpan:1,content:'TOTAL GERAL'},String(tot),String(ok),String(nok),String(pend),pct+'%',pct>=100?'APROVADO':pct>=70?'PARCIAL':'PENDENTE']],
-    headStyles:hStyle(),bodyStyles:{...bStyle(),fontSize:7.5},
+    headStyles:{...hStyle(),fontSize:7,cellPadding:{top:3,bottom:3,left:3,right:3}},
+    bodyStyles:{...bStyle(),fontSize:7.5,cellPadding:{top:2.5,bottom:2.5,left:3,right:3},overflow:'linebreak'},
     alternateRowStyles:altRow(),footStyles:totRow(),
-    columnStyles:{0:{cellWidth:55},1:{cellWidth:16,halign:'center'},2:{cellWidth:20,halign:'center'},3:{cellWidth:20,halign:'center'},4:{cellWidth:20,halign:'center'},5:{cellWidth:26,halign:'center'},6:{cellWidth:20,halign:'center',fontStyle:'bold'}},
+    columnStyles:{0:{cellWidth:58,overflow:'linebreak'},1:{cellWidth:13,halign:'center',overflow:'hidden'},2:{cellWidth:18,halign:'center',overflow:'hidden'},3:{cellWidth:18,halign:'center',overflow:'hidden'},4:{cellWidth:18,halign:'center',overflow:'hidden'},5:{cellWidth:20,halign:'center',overflow:'hidden'},6:{cellWidth:22,halign:'center',fontStyle:'bold',overflow:'hidden'}},
     didParseCell(data){
       if(data.column.index===6&&data.section==='body'){
         const v=data.cell.raw;
