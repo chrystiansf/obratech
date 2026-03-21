@@ -6393,6 +6393,13 @@ function openModal(type,editId=null,editId2=null){
         </div>
       </div>
     </div>`;
+    window._postModalRender=()=>{
+      const g=document.getElementById('med-foto-grid');
+      if(!g)return;
+      const rf=()=>{ renderMedFotos(); const e=document.getElementById('med-foto-empty'); if(e)e.style.display=(window._medFotos||[]).length?'none':'block'; };
+      g._rf=rf; rf();
+      if(document.getElementById('med-modo-p')?.checked) medPctToValor();
+    };
     onSave=()=>{
       const ctId=document.getElementById('med-ct').value;
       const isMedPct=document.getElementById('med-modo-p')?.checked;
@@ -6604,6 +6611,12 @@ function openModal(type,editId=null,editId2=null){
   if(!title)return;
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()">✕</div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()">✅ Salvar</button></div></div></div>`;
   window._mSave=onSave;
+  // Executar callback pós-render (ex: grids de fotos)
+  if(window._postModalRender){
+    const cb=window._postModalRender;
+    window._postModalRender=null;
+    setTimeout(cb,30);
+  }
 }
 function _refreshCtEtapas(obraVal){
   const sel=document.getElementById('ct-etapa');if(!sel)return;
