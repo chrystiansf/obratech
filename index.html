@@ -2252,21 +2252,31 @@ function abrirModalConviteEquipe(){
   // Aplicar preset inicial
   eqAplicarPreset("operacional");
 
-  // Popular obras diretamente com setTimeout (modal usa root.innerHTML direto)
-  setTimeout(()=>{
-    const g=document.getElementById("eq-obras-grid");
+  // Popular obras — busca direto do Supabase se DB.obras ainda não carregou
+  const _renderObrasGrid=async()=>{
+    const g=document.getElementById('eq-obras-grid');
     if(!g)return;
-    if(!DB.obras.length){
+    let obras=DB.obras;
+    if(!obras.length&&supa&&_empresaId){
+      g.innerHTML='<div style="font-size:11px;color:var(--txt3);padding:6px">Carregando...</div>';
+      const {data}=await supa.from('obras').select('id,nome').eq('empresa_id',_empresaId).order('nome');
+      if(data&&data.length){
+        DB.obras=data.map(mapObra||((r)=>({id:r.id,nome:r.nome})));
+        obras=data;
+      }
+    }
+    if(!obras.length){
       g.innerHTML='<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada.</div>';
       return;
     }
-    g.innerHTML=DB.obras.map(o=>
-      '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">'+
-        '<input type="checkbox" class="obra-chk" value="'+o.id+'" style="width:15px;height:15px" checked>'+
-        '<span style="font-size:12px">🏗️ '+o.nome+'</span>'+
+    g.innerHTML=obras.map(o=>
+      '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px;background:var(--bg2);margin-bottom:2px">'+
+        '<input type="checkbox" class="obra-chk" value="'+(o.id||o)+'" style="width:15px;height:15px" checked>'+
+        '<span style="font-size:12px;font-weight:500">🏗️ '+(o.nome||o)+'</span>'+
       '</label>'
-    ).join("");
-  },30);
+    ).join('');
+  };
+  setTimeout(_renderObrasGrid, 50);
 }
 
 function eqAplicarPreset(papel){
