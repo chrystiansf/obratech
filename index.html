@@ -2252,12 +2252,12 @@ function abrirModalConviteEquipe(){
   // Aplicar preset inicial
   eqAplicarPreset("operacional");
 
-  // Popular obras após modal abrir
-  window._postModalRender=()=>{
+  // Popular obras diretamente com setTimeout (modal usa root.innerHTML direto)
+  setTimeout(()=>{
     const g=document.getElementById("eq-obras-grid");
     if(!g)return;
     if(!DB.obras.length){
-      g.innerHTML='<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada ainda.</div>';
+      g.innerHTML='<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada.</div>';
       return;
     }
     g.innerHTML=DB.obras.map(o=>
@@ -2266,7 +2266,7 @@ function abrirModalConviteEquipe(){
         '<span style="font-size:12px">🏗️ '+o.nome+'</span>'+
       '</label>'
     ).join("");
-  };
+  },30);
 }
 
 function eqAplicarPreset(papel){
