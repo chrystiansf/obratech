@@ -723,8 +723,7 @@ nav{padding:4px 0;flex:1}
         </div>
       </div>
       <div class="g g2" style="margin-bottom:9px">
-        <div class="fg"><label class="lbl">Efetivo Previsto</label><input type="number" class="inp" id="rdo-prev" min="0"></div>
-        <div class="fg"><label class="lbl">Efetivo Realizado</label><input type="number" class="inp" id="rdo-real" min="0"></div>
+
       </div>
       <div class="fg" style="margin-bottom:9px"><label class="lbl">Serviços Executados</label><textarea class="ta" id="rdo-servicos" placeholder="Descreva os serviços do dia..."></textarea></div>
       <div class="fg" style="margin-bottom:9px"><label class="lbl">Ocorrências / Obs.</label><textarea class="ta" id="rdo-obs" placeholder="Registre ocorrências, visitas..."></textarea></div>
@@ -3955,11 +3954,11 @@ function renderRDOHist(){
   const rdos=DB.rdos.filter(r=>!oId||r.obraId===oId).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,8);
   const el=document.getElementById('rdo-hist');
   if(!rdos.length){el.innerHTML='<div class="t-empty">Nenhum RDO registrado.</div>';return;}
-  el.innerHTML=`<table class="tbl"><tr><th>Data</th><th>Clima</th><th>Efetivo</th><th>Fotos</th><th>Status</th><th></th></tr>`
+  el.innerHTML=`<table class="tbl"><tr><th>Data</th><th>Clima</th><th>Fotos</th><th>Status</th><th></th></tr>`
     +rdos.map(r=>`<tr>
       <td class="n">${fmtDt(r.data)}</td>
       <td>${climaIco(r.clima)}</td>
-      <td>${r.real}/${r.prev}</td>
+
       <td style="font-size:11px">${r.fotos?.length?`📸 ${r.fotos.length}`:'—'}</td>
       <td><span class="b ${r.status==='finalizado'?'bg':'by'}">${r.status==='finalizado'?'✓ Final.':'📝 Rascunho'}</span></td>
       <td><div class="ta-actions">
@@ -7932,7 +7931,7 @@ function exportRDOsLote(){
     let y = pHdr(doc, 'Relatorio Diario de Obra', (obra?.nome||'—') + '   —   ' + fmtDt(rdo.data));
     y += 5;
     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...PX.gray);
-    doc.text('Clima: ' + (rdo.clima||'—') + '     Efetivo: ' + (rdo.real||0) + ' / ' + (rdo.prev||0) + '     Responsavel: ' + (obra?.resp||'—'), 9, y+4);
+    doc.text('Clima: ' + (rdo.clima||'—') + '     Responsavel: ' + (obra?.resp||'—'), 9, y+4);
     doc.setDrawColor(...PX.silver); doc.setLineWidth(0.3); doc.line(9, y+7, 201, y+7);
     y += 13;
     doc.autoTable({
@@ -9081,32 +9080,44 @@ async function initObraTech(){
       renderDash(); fillSelects(); renderObras();
     }
 
-    // Validar sessão e carregar dados em background
-    supa.auth.getSession().then(({data:{session}})=>{
-      if(!session){
-        // Sessão expirou — limpar cache e ir para login
-        localStorage.removeItem('_ot_empresa_id');
-        localStorage.removeItem('_ot_papel');
-        localStorage.removeItem('_ot_nome');
-        window._sessaoAtiva = false;
-        mostrarLogin();
-        return;
+    // Validar sessão em background — com retry para mobile
+    const _validarSessao=async(tentativa=1)=>{
+      try{
+        const {data:{session}}=await supa.auth.getSession();
+        if(!session){
+          if(tentativa<3){
+            // Mobile pode demorar para restaurar sessão — tentar novamente
+            await new Promise(r=>setTimeout(r,600*tentativa));
+            return _validarSessao(tentativa+1);
+          }
+          // Sessão expirou após 3 tentativas
+          localStorage.removeItem('_ot_empresa_id');
+          localStorage.removeItem('_ot_papel');
+          localStorage.removeItem('_ot_nome');
+          localStorage.removeItem('_ot_user_id');
+          window._sessaoAtiva=false;
+          mostrarLogin();
+          return;
+        }
+        _usuarioAtual=session.user;
+        toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
+        if(cachedPapel==='cliente'){
+          carregarDadosCliente(session.user.id);
+        } else {
+          carregarDadosSupabase().then(()=>{
+            renderDash();renderObras();
+            renderPaginaAtual();
+          });
+          iniciarRealtime();
+          adicionarBotaoLogout();
+        }
+        _atualizarPerfilBackground(session.user.id);
+      }catch(e){
+        console.warn('getSession:',e.message);
+        if(tentativa<2) setTimeout(()=>_validarSessao(tentativa+1),1000);
       }
-      _usuarioAtual = session.user;
-      toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
-      if(cachedPapel==='cliente'){
-        carregarDadosCliente(session.user.id);
-      } else {
-        carregarDadosSupabase().then(()=>{
-          renderDash();renderObras();
-          renderPaginaAtual();
-        });
-        iniciarRealtime();
-        adicionarBotaoLogout();
-      }
-      // Atualizar perfil em background
-      _atualizarPerfilBackground(session.user.id);
-    }).catch(e=>console.warn('getSession background:', e.message));
+    };
+    _validarSessao();
 
     // Escutar logout e recovery
     supa.auth.onAuthStateChange((event, session)=>{
@@ -9125,20 +9136,18 @@ async function initObraTech(){
     return;
   }
 
-  // Sem cache: fluxo normal com onAuthStateChange
+  // Sem cache: registrar listener para recovery/logout
   supa.auth.onAuthStateChange(async (event, session) => {
     if(event==='TOKEN_REFRESHED'){
       if(session) _usuarioAtual=session.user;
       return;
     }
     if(event==='PASSWORD_RECOVERY'){
-      // Link de reset clicado — mostrar tela de nova senha
       window._sessaoAtiva=false;
       mostrarTelaNovaSenha(session);
       return;
     }
     if(event==='SIGNED_IN'){
-      // Se veio de um link de recovery, não entrar no app
       if(window._aguardandoNovaSenha) return;
       if(window._sessaoAtiva) return;
       window._sessaoAtiva=true;
@@ -9151,16 +9160,24 @@ async function initObraTech(){
     }
   });
 
+  // getSession() é a fonte primária — mais confiável no mobile
   try{
     const {data:{session},error}=await supa.auth.getSession();
     if(error) throw error;
     if(session){
-      window._sessaoAtiva=true;
-      await iniciarSessao(session);
-      iniciarRealtime();
-      adicionarBotaoLogout();
+      if(!window._sessaoAtiva){ // evitar duplo iniciarSessao
+        window._sessaoAtiva=true;
+        await iniciarSessao(session);
+        iniciarRealtime();
+        adicionarBotaoLogout();
+      }
     } else {
-      mostrarLogin();
+      // Sem sessão ativa — aguardar um pouco pelo onAuthStateChange
+      // (mobile às vezes demora para restaurar a sessão do storage)
+      await new Promise(r=>setTimeout(r,800));
+      if(!window._sessaoAtiva){
+        mostrarLogin();
+      }
     }
   }catch(e){
     console.error('Erro ao verificar sessão:', e);
@@ -9911,7 +9928,7 @@ function pcRenderResumo(el, d, o){
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
       <div class="kpi"><div class="kl">☁️ Clima</div><div class="kv" style="font-size:16px">${rdoHoje.clima||'—'}</div></div>
-      <div class="kpi"><div class="kl">👷 Previsto</div><div class="kv" style="font-size:16px">${rdoHoje.prev||rdoHoje.previsto||0}</div></div>
+
       <div class="kpi"><div class="kl">✅ Realizado</div><div class="kv" style="font-size:16px;color:var(--green)">${rdoHoje.real||rdoHoje.realizado||0}</div></div>
     </div>
     ${rdoHoje.serv||rdoHoje.servicos?`<div style="font-size:12px;color:var(--txt2)">${rdoHoje.serv||rdoHoje.servicos}</div>`:''}
@@ -9941,7 +9958,7 @@ function pcExportarRDOPdf(){
         ${rdos.map((r,i)=>`<div class="card" style="margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="closeModal();gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))">
           <div>
             <div style="font-weight:600">${fmtDt(r.data)}</div>
-            <div style="font-size:11px;color:var(--txt3)">${r.clima||'—'} · ${r.real||0} trabalhadores</div>
+            <div style="font-size:11px;color:var(--txt3)">${r.clima||'—'}</div>
           </div>
           <span class="b bg">📄 PDF</span>
         </div>`).join('')}
