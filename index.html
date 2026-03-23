@@ -1636,13 +1636,21 @@ async function iniciarSessao(session){
         // Aplicar permissões do cache imediatamente
         const cachedPerms=localStorage.getItem('_ot_permissoes');
         if(cachedPapel==='admin'){
-          window._permsAtivas=null; // admin: sem restrições
-        } else if(cachedPerms){
-          try{ setTimeout(()=>aplicarRestricoesPerfil(JSON.parse(cachedPerms)),100); }catch(e){}
+          window._permsAtivas=null;
+          window._obrasPermitidas=null;
         } else {
-          // não-admin sem cache de permissões: aplicar preset
-          const preset=PAPEIS_PRESET[cachedPapel]||['dashboard','obras','cronograma','rdo'];
-          setTimeout(()=>aplicarRestricoesPerfil(preset),100);
+          // Carregar obras do cache
+          const cachedObras=localStorage.getItem('_ot_obras_ids');
+          let obrasIds=null;
+          if(cachedObras){
+            try{ obrasIds=JSON.parse(cachedObras); window._obrasPermitidas=obrasIds; }catch(e){}
+          }
+          if(cachedPerms){
+            try{ setTimeout(()=>aplicarRestricoesPerfil(JSON.parse(cachedPerms),obrasIds),100); }catch(e){}
+          } else {
+            const preset=PAPEIS_PRESET[cachedPapel]||['dashboard','obras','cronograma','rdo'];
+            setTimeout(()=>aplicarRestricoesPerfil(preset,obrasIds),100);
+          }
         }
         toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
         carregarDadosSupabase().then(()=>{
@@ -1673,22 +1681,35 @@ async function iniciarSessao(session){
       DB.user.cargo = perfil.cargo || perfil.papel;
       // Aplicar restrições de módulos
       if(perfil.papel==='admin'){
-        // Admin: sem restrições, limpar qualquer cache de permissões
+        // Admin: sem restrições
         window._permsAtivas=null;
+        window._obrasPermitidas=null;
         localStorage.removeItem('_ot_permissoes');
-      } else if(perfil.permissoes){
-        // Usuário com permissões definidas: aplicar
-        try{
-          const perms=JSON.parse(perfil.permissoes);
-          localStorage.setItem('_ot_permissoes', perfil.permissoes);
-          setTimeout(()=>aplicarRestricoesPerfil(perms),200);
-        }catch(e){}
+        localStorage.removeItem('_ot_obras_ids');
       } else {
-        // Usuário sem permissões definidas E não é admin:
-        // Aplicar preset padrão do papel
-        const presetPerms=PAPEIS_PRESET[perfil.papel]||['dashboard','obras','cronograma','rdo'];
-        localStorage.setItem('_ot_permissoes', JSON.stringify(presetPerms));
-        setTimeout(()=>aplicarRestricoesPerfil(presetPerms),200);
+        // Carregar filtro de obras
+        let obrasIds=null;
+        if(perfil.obras_ids){
+          try{
+            obrasIds=JSON.parse(perfil.obras_ids);
+            window._obrasPermitidas=obrasIds;
+            localStorage.setItem('_ot_obras_ids', perfil.obras_ids);
+          }catch(e){}
+        } else {
+          localStorage.removeItem('_ot_obras_ids');
+        }
+
+        if(perfil.permissoes){
+          try{
+            const perms=JSON.parse(perfil.permissoes);
+            localStorage.setItem('_ot_permissoes', perfil.permissoes);
+            setTimeout(()=>aplicarRestricoesPerfil(perms, obrasIds),200);
+          }catch(e){}
+        } else {
+          const presetPerms=PAPEIS_PRESET[perfil.papel]||['dashboard','obras','cronograma','rdo'];
+          localStorage.setItem('_ot_permissoes', JSON.stringify(presetPerms));
+          setTimeout(()=>aplicarRestricoesPerfil(presetPerms, obrasIds),200);
+        }
       }
 
       // Salvar no cache local para próximos logins serem instantâneos
@@ -1803,15 +1824,27 @@ async function _atualizarPerfilBackground(userId){
       // Aplicar restrições imediatamente
       if(perfil.papel==='admin'){
         window._permsAtivas=null;
+        window._obrasPermitidas=null;
         localStorage.removeItem('_ot_permissoes');
-      } else if(perfil.permissoes){
-        try{
-          const perms=JSON.parse(perfil.permissoes);
-          aplicarRestricoesPerfil(perms);
-        }catch(e){}
+        localStorage.removeItem('_ot_obras_ids');
       } else {
-        const preset=PAPEIS_PRESET[perfil.papel]||['dashboard','obras','cronograma','rdo'];
-        aplicarRestricoesPerfil(preset);
+        let obrasIds=null;
+        if(perfil.obras_ids){
+          try{
+            obrasIds=JSON.parse(perfil.obras_ids);
+            window._obrasPermitidas=obrasIds;
+            localStorage.setItem('_ot_obras_ids',perfil.obras_ids);
+          }catch(e){}
+        }
+        if(perfil.permissoes){
+          try{
+            const perms=JSON.parse(perfil.permissoes);
+            aplicarRestricoesPerfil(perms, obrasIds);
+          }catch(e){}
+        } else {
+          const preset=PAPEIS_PRESET[perfil.papel]||['dashboard','obras','cronograma','rdo'];
+          aplicarRestricoesPerfil(preset, obrasIds);
+        }
       }
       // Se papel mudou, recarregar
       if(perfil.papel!==_papelAtual){
@@ -1889,7 +1922,13 @@ async function carregarDadosSupabase(){
     ]);
 
     // Mapear para o formato interno do ObraTech
-    if(obras.data)       DB.obras      = obras.data.map(mapObra);
+    if(obras.data){
+      DB.obras = obras.data.map(mapObra);
+      // Filtrar obras se usuário tiver restrição
+      if(window._obrasPermitidas&&Array.isArray(window._obrasPermitidas)){
+        DB.obras=DB.obras.filter(o=>window._obrasPermitidas.includes(String(o.id)));
+      }
+    }
     if(etapas.data)      DB.etapas     = etapas.data.map(mapEtapa);
     if(colaboradores.data) DB.colabs   = colaboradores.data.map(mapColab);
     if(lancamentos.data) DB.lancs      = lancamentos.data.map(mapLanc);
@@ -2591,10 +2630,13 @@ async function removerAcessoUsuario(userId,nome){
 }
 
 // Aplicar restrições de acesso baseadas nas permissões do usuário logado
-function aplicarRestricoesPerfil(permissoes){
+function aplicarRestricoesPerfil(permissoes, obrasIds){
   if(!permissoes||!Array.isArray(permissoes))return;
-  // Guardar permissões globalmente para bloquear goPage
   window._permsAtivas=permissoes;
+
+  // Aplicar filtro de obras se fornecido
+  const obrasIdsParam=obrasIds||window._obrasPermitidas;
+  if(obrasIdsParam!==undefined) aplicarFiltroObras(obrasIdsParam);
 
   // Esconder sidebar desktop
   document.querySelectorAll(".ni[data-p]").forEach(el=>{
@@ -2612,6 +2654,23 @@ function aplicarRestricoesPerfil(permissoes){
   const atual=window._paginaAtual||"dashboard";
   if(!permissoes.includes(atual)){
     goPage(permissoes[0]||"dashboard");
+  }
+}
+
+function aplicarFiltroObras(obrasIds){
+  // null = todas as obras (admin ou sem restrição)
+  // [] = nenhuma obra
+  // ['id1','id2'] = apenas essas obras
+  window._obrasPermitidas=obrasIds;
+  if(!obrasIds||!Array.isArray(obrasIds)) return; // sem restrição
+
+  // Filtrar DB.obras para mostrar apenas as permitidas
+  if(DB.obras&&DB.obras.length){
+    DB.obras=DB.obras.filter(o=>obrasIds.includes(String(o.id)));
+    fillSelects();
+    renderDash();
+    // Re-renderizar página atual com dados filtrados
+    renderPaginaAtual&&renderPaginaAtual();
   }
 }
 
