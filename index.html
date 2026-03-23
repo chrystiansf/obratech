@@ -2318,20 +2318,37 @@ async function enviarConviteEquipe(){
     const num=Math.floor(100+Math.random()*900);
     const senha=palavra+num+"!";
 
-    // Criar usuário no Auth
-    const {data:authData,error:authError}=await supa.auth.admin
-      ?await supa.auth.admin.createUser({email,password:senha,email_confirm:true,user_metadata:{nome,papel,empresa_id:_empresaId}})
-      :await supa.auth.signUp({email,password:senha,options:{data:{nome,papel,empresa_id:_empresaId}}});
+    // Criar usuário via signUp (única forma segura no browser com chave pública)
+    const {data:authData,error:authError}=await supa.auth.signUp({
+      email,
+      password:senha,
+      options:{data:{nome,papel,empresa_id:_empresaId}}
+    });
 
-    // Se signUp (não admin), pegar o userId
     let userId=authData?.user?.id;
 
-    if(!userId){
-      // Tentar buscar se já existe
-      const {data:existing}=await supa.from("perfis").select("id").eq("empresa_id",_empresaId).ilike("id","*");
-      toast("⚠️","Não foi possível criar o usuário. Tente pelo Supabase Dashboard.");
+    // signUp retorna usuário mesmo se email já existe (por segurança)
+    // mas o id vem null nesse caso — precisamos verificar
+    if(authError){
+      // Erro real de criação
+      toast("❌","Erro ao criar acesso: "+authError.message?.substring(0,60));
       if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
       return;
+    }
+
+    if(!userId){
+      // Supabase retorna user null quando email já está cadastrado
+      // Tentar buscar o perfil existente pelo email
+      const {data:perfExist}=await supa.from("perfis")
+        .select("id").eq("empresa_id",_empresaId).eq("email",email).maybeSingle();
+      if(perfExist?.id){
+        userId=perfExist.id;
+        toast("ℹ️","Usuário já existe — atualizando permissões.");
+      } else {
+        toast("⚠️","Email já cadastrado no sistema. Verifique no Supabase Dashboard → Authentication → Users.");
+        if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
+        return;
+      }
     }
 
     // Criar perfil com permissões
@@ -2351,18 +2368,25 @@ async function enviarConviteEquipe(){
         <div class="moh"><div class="mot">✅ Funcionário Cadastrado!</div><div class="mox" onclick="closeModal()">✕</div></div>
         <div class="mob">
           <p style="font-size:13px;color:var(--txt);margin-bottom:14px">Acesso criado para <strong>${nome}</strong>. Envie as credenciais abaixo:</p>
-          <div style="background:var(--bg3);border-radius:8px;padding:14px;font-size:12px;line-height:1.8;border:1px solid var(--border)">
+          <div style="background:var(--bg3);border-radius:8px;padding:14px;font-size:12px;line-height:2;border:1px solid var(--border)">
             <div>🌐 <strong>Site:</strong> obratech.eng.br</div>
             <div>📧 <strong>Email:</strong> ${email}</div>
-            <div>🔑 <strong>Senha provisória:</strong> <strong style="color:var(--primary);font-size:14px">${senha}</strong></div>
-            <div style="margin-top:6px;font-size:11px;color:var(--txt3)">⚠️ Peça para trocar a senha no primeiro acesso.</div>
+            <div>🔑 <strong>Senha:</strong> <strong style="color:var(--primary);font-size:15px;letter-spacing:1px">${senha}</strong></div>
+          </div>
+          <div style="margin-top:10px;padding:10px 12px;background:rgba(244,166,35,.12);border-radius:8px;border:1px solid rgba(244,166,35,.3)">
+            <div style="font-size:11px;color:var(--yellow);font-weight:600;margin-bottom:4px">⚠️ Importante — Confirmação de email</div>
+            <div style="font-size:11px;color:var(--txt2);line-height:1.6">
+              O funcionário receberá um <strong>email de confirmação</strong> do Supabase antes de conseguir logar.<br>
+              Se quiser que ele acesse sem confirmar o email, vá em:<br>
+              <strong>Supabase → Authentication → Providers → Email → desative "Confirm email"</strong>
+            </div>
           </div>
           <div style="margin-top:10px;font-size:11px;color:var(--txt3)">
-            Módulos liberados: ${permissoes.map(p=>MODULOS_SISTEMA.find(m=>m.id===p)?.label||p).join(", ")}
+            🔐 Módulos: ${permissoes.map(p=>MODULOS_SISTEMA.find(m=>m.id===p)?.label||p).join(" · ")}
           </div>
         </div>
         <div class="mof">
-          <button class="btn pri" onclick="navigator.clipboard.writeText('Site: obratech.eng.br\nEmail: ${email}\nSenha: ${senha}');toast('✅','Copiado!');closeModal()">📋 Copiar Credenciais</button>
+          <button class="btn pri" onclick="navigator.clipboard.writeText('Acesso ObraTech\nSite: obratech.eng.br\nEmail: ${email}\nSenha: ${senha}\n\nObs: Confirme o email antes de logar.').then(()=>toast('✅','Copiado para WhatsApp!'))">📋 Copiar para WhatsApp</button>
           <button class="btn" onclick="closeModal()">Fechar</button>
         </div>
       </div></div>`;
