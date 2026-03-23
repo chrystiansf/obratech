@@ -1500,7 +1500,7 @@ async function confirmarNovaSenha(){
 
     // Fazer logout e login novo com nova senha
     setTimeout(async ()=>{
-      await supa.auth.signOut();
+      try{ await supa.auth.signOut({scope:'local'}); }catch(e){ console.warn('signOut:',e.message); }
       mostrarLogin();
       authMsg('Senha atualizada! Faça login com sua nova senha.','success');
     }, 1500);
@@ -1534,7 +1534,10 @@ async function logout(){
   localStorage.removeItem('_ot_empresa_id');
   localStorage.removeItem('_ot_papel');
   localStorage.removeItem('_ot_nome');
-  await supa.auth.signOut();
+  localStorage.removeItem('_ot_user_id');
+  localStorage.removeItem('_ot_permissoes');
+  localStorage.removeItem('_ot_obras_ids');
+  try{ await supa.auth.signOut({scope:'local'}); }catch(e){ console.warn('signOut:',e.message); }
   _usuarioAtual = null;
   _empresaId = null;
   _papelAtual = null;
@@ -1597,7 +1600,19 @@ async function iniciarSessao(session){
     const cachedNome = localStorage.getItem('_ot_nome');
 
     // Se temos cache válido para este usuário, usar imediatamente
-    if(cachedEmpresa && cachedPapel && cachedNome){
+    const cachedUserId = localStorage.getItem('_ot_user_id');
+    const cacheValido = cachedEmpresa && cachedPapel && cachedNome && 
+      (!cachedUserId || cachedUserId === session.user.id);
+    // Se cache não pertence a este user, limpar e forçar novo load
+    if(cachedUserId && cachedUserId !== session.user.id){
+      localStorage.removeItem('_ot_empresa_id');
+      localStorage.removeItem('_ot_papel');
+      localStorage.removeItem('_ot_nome');
+      localStorage.removeItem('_ot_user_id');
+      localStorage.removeItem('_ot_permissoes');
+      console.log('Cache de outro usuário detectado — limpando e recarregando perfil');
+    }
+    if(cacheValido){
       _empresaId = cachedEmpresa;
       _papelAtual = cachedPapel;
       DB.user.nome = cachedNome;
@@ -1621,8 +1636,14 @@ async function iniciarSessao(session){
         renderDash(); fillSelects(); renderObras();
         // Aplicar permissões do cache imediatamente
         const cachedPerms=localStorage.getItem('_ot_permissoes');
-        if(cachedPerms){
+        if(cachedPapel==='admin'){
+          window._permsAtivas=null; // admin: sem restrições
+        } else if(cachedPerms){
           try{ setTimeout(()=>aplicarRestricoesPerfil(JSON.parse(cachedPerms)),100); }catch(e){}
+        } else {
+          // não-admin sem cache de permissões: aplicar preset
+          const preset=PAPEIS_PRESET[cachedPapel]||['dashboard','obras','cronograma','rdo'];
+          setTimeout(()=>aplicarRestricoesPerfil(preset),100);
         }
         toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
         carregarDadosSupabase().then(()=>{
@@ -1640,7 +1661,7 @@ async function iniciarSessao(session){
     document.getElementById('loading-screen').style.display='flex';
     document.getElementById('auth-screen').style.display='none';
 
-    const perfPromise = supa.from('perfis').select('id,nome,papel,cargo,empresa_id').eq('id', session.user.id).maybeSingle();
+    const perfPromise = supa.from('perfis').select('id,nome,papel,cargo,empresa_id,permissoes,obras_ids,email').eq('id', session.user.id).maybeSingle();
     const timeoutPromise = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000));
     const {data:perfil, error:perfErr} = await Promise.race([perfPromise, timeoutPromise]);
 
@@ -1651,15 +1672,24 @@ async function iniciarSessao(session){
       _papelAtual = perfil.papel;
       DB.user.nome  = perfil.nome;
       DB.user.cargo = perfil.cargo || perfil.papel;
-      // Aplicar restrições de módulos se tiver permissões definidas
-      if(perfil.permissoes){
+      // Aplicar restrições de módulos
+      if(perfil.papel==='admin'){
+        // Admin: sem restrições, limpar qualquer cache de permissões
+        window._permsAtivas=null;
+        localStorage.removeItem('_ot_permissoes');
+      } else if(perfil.permissoes){
+        // Usuário com permissões definidas: aplicar
         try{
           const perms=JSON.parse(perfil.permissoes);
           localStorage.setItem('_ot_permissoes', perfil.permissoes);
           setTimeout(()=>aplicarRestricoesPerfil(perms),200);
         }catch(e){}
       } else {
-        localStorage.removeItem('_ot_permissoes');
+        // Usuário sem permissões definidas E não é admin:
+        // Aplicar preset padrão do papel
+        const presetPerms=PAPEIS_PRESET[perfil.papel]||['dashboard','obras','cronograma','rdo'];
+        localStorage.setItem('_ot_permissoes', JSON.stringify(presetPerms));
+        setTimeout(()=>aplicarRestricoesPerfil(presetPerms),200);
       }
 
       // Salvar no cache local para próximos logins serem instantâneos
@@ -1667,6 +1697,7 @@ async function iniciarSessao(session){
       localStorage.setItem('_ot_papel', perfil.papel);
       localStorage.setItem('_ot_nome', perfil.nome);
       localStorage.setItem('_ot_cargo', perfil.cargo||'');
+      localStorage.setItem('_ot_user_id', perfil.id);
 
       _atualizarSidebar(perfil.nome, perfil.papel);
 
@@ -1699,7 +1730,19 @@ async function iniciarSessao(session){
       const cachedEmpresa = localStorage.getItem('_ot_empresa_id');
       const cachedPapel = localStorage.getItem('_ot_papel');
       const cachedNome = localStorage.getItem('_ot_nome');
-      if(cachedEmpresa && cachedPapel && cachedNome){
+      const cachedUserId = localStorage.getItem('_ot_user_id');
+    const cacheValido = cachedEmpresa && cachedPapel && cachedNome && 
+      (!cachedUserId || cachedUserId === session.user.id);
+    // Se cache não pertence a este user, limpar e forçar novo load
+    if(cachedUserId && cachedUserId !== session.user.id){
+      localStorage.removeItem('_ot_empresa_id');
+      localStorage.removeItem('_ot_papel');
+      localStorage.removeItem('_ot_nome');
+      localStorage.removeItem('_ot_user_id');
+      localStorage.removeItem('_ot_permissoes');
+      console.log('Cache de outro usuário detectado — limpando e recarregando perfil');
+    }
+    if(cacheValido){
         _empresaId = cachedEmpresa;
         _papelAtual = cachedPapel;
         DB.user.nome = cachedNome;
@@ -1753,17 +1796,23 @@ async function _atualizarPerfilBackground(userId){
       localStorage.setItem('_ot_empresa_id', perfil.empresa_id);
       localStorage.setItem('_ot_papel', perfil.papel);
       localStorage.setItem('_ot_nome', perfil.nome);
-      // Salvar permissoes no cache local
+      localStorage.setItem('_ot_user_id', perfil.id);
       if(perfil.permissoes) localStorage.setItem('_ot_permissoes', perfil.permissoes);
       else localStorage.removeItem('_ot_permissoes');
       if(perfil.obras_ids) localStorage.setItem('_ot_obras_ids', perfil.obras_ids);
       else localStorage.removeItem('_ot_obras_ids');
       // Aplicar restrições imediatamente
-      if(perfil.permissoes){
+      if(perfil.papel==='admin'){
+        window._permsAtivas=null;
+        localStorage.removeItem('_ot_permissoes');
+      } else if(perfil.permissoes){
         try{
           const perms=JSON.parse(perfil.permissoes);
           aplicarRestricoesPerfil(perms);
         }catch(e){}
+      } else {
+        const preset=PAPEIS_PRESET[perfil.papel]||['dashboard','obras','cronograma','rdo'];
+        aplicarRestricoesPerfil(preset);
       }
       // Se papel mudou, recarregar
       if(perfil.papel!==_papelAtual){
@@ -2201,12 +2250,12 @@ function renderEquipeUsuarios(usuarios){
           modAtivos.map(m=>'<span style="font-size:10px;padding:2px 6px;background:var(--bg3);border-radius:4px;border:1px solid var(--border)">'+m.ic+" "+m.label+'</span>').join("")+
           (modAtivos.length===0?'<span style="font-size:10px;color:var(--txt3);font-style:italic">Sem permissões</span>':'')+
         '</div>'+
-        (!isSelf?
+        (!isSelf && u.papel!=='admin'?
           '<div style="display:flex;gap:6px">'+
             '<button class="btn sm" style="flex:1" onclick="abrirEditarPermissoes(\''+u.id+'\')">⚙️ Permissões</button>'+
             '<button class="btn sm ico" onclick="removerAcessoUsuario(\''+u.id+'\',\''+u.nome+'\')">🗑️</button>'+
           '</div>'
-        :"")+
+        :(!isSelf&&u.papel==='admin'?'<div style="font-size:10px;color:var(--txt3);text-align:center;padding:4px">Administrador — acesso total</div>':""))+
       '</div>';
     }).join("")+'</div>';
 }
@@ -2340,34 +2389,44 @@ async function enviarConviteEquipe(){
     const num=Math.floor(100+Math.random()*900);
     const senha=palavra+num+"!";
 
-    // Criar usuário via signUp (única forma segura no browser com chave pública)
-    const {data:authData,error:authError}=await supa.auth.signUp({
-      email,
-      password:senha,
-      options:{data:{nome,papel,empresa_id:_empresaId}}
-    });
+    // Criar usuário via fetch direto na API Supabase
+    // NÃO usamos supa.auth.signUp() pois ele faz login automático e desloga o admin
+    const signUpRes = await fetch(
+      'https://vwpyhdriektadkpssyro.supabase.co/auth/v1/signup',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3cHloZHJpZWt0YWRrcHNzeXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzNTQxNjUsImV4cCI6MjA1MTkzMDE2NX0.Y16tUMCHMm6bV8sCNMHFGkOlFRVPMtqXjP3PZnFuXvI'
+        },
+        body: JSON.stringify({
+          email,
+          password: senha,
+          data: {nome, papel, empresa_id: _empresaId}
+        })
+      }
+    );
+    const signUpJson = await signUpRes.json();
 
-    let userId=authData?.user?.id;
-
-    // signUp retorna usuário mesmo se email já existe (por segurança)
-    // mas o id vem null nesse caso — precisamos verificar
-    if(authError){
-      // Erro real de criação
-      toast("❌","Erro ao criar acesso: "+authError.message?.substring(0,60));
+    // Verificar erro
+    if(!signUpRes.ok && signUpJson.error_description !== 'User already registered'){
+      const msg = signUpJson.msg || signUpJson.error_description || signUpJson.message || 'Erro desconhecido';
+      toast("❌","Erro ao criar acesso: "+String(msg).substring(0,60));
       if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
       return;
     }
 
+    let userId = signUpJson?.id || signUpJson?.user?.id;
+
     if(!userId){
-      // Supabase retorna user null quando email já está cadastrado
-      // Tentar buscar o perfil existente pelo email
+      // Email já existe — buscar ID pelo email na tabela perfis
       const {data:perfExist}=await supa.from("perfis")
         .select("id").eq("empresa_id",_empresaId).eq("email",email).maybeSingle();
       if(perfExist?.id){
         userId=perfExist.id;
-        toast("ℹ️","Usuário já existe — atualizando permissões.");
+        toast("ℹ️","Usuário já existe — permissões atualizadas.");
       } else {
-        toast("⚠️","Email já cadastrado no sistema. Verifique no Supabase Dashboard → Authentication → Users.");
+        toast("⚠️","Não foi possível obter o ID do usuário. Tente novamente.");
         if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
         return;
       }
