@@ -1924,7 +1924,7 @@ async function carregarDadosSupabase(){
     const safe = async (query) => { try { const r = await query; return r; } catch(e) { return {data:null}; }};
     // Filtrar EXPLICITAMENTE por empresa_id — não depender só do RLS
     const eid = _empresaId;
-    const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns, dems, driveArqs, medicoes, checklists] = await Promise.all([
+    const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns, dems, driveArqs, medicoes, checklists, terceirizados, pontosTercs, pontos] = await Promise.all([
       safe(supa.from('obras').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('etapas').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('colaboradores').select('*').eq('empresa_id',eid).order('nome')),
@@ -1942,6 +1942,9 @@ async function carregarDadosSupabase(){
       safe(supa.from('drive_arquivos').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('medicoes').select('*').eq('empresa_id',eid).order('numero',{ascending:false})),
       safe(supa.from('checklists').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
+      safe(supa.from('terceirizados').select('*').eq('empresa_id',eid).order('nome')),
+      safe(supa.from('pontos_terceirizados').select('*').eq('empresa_id',eid)),
+      safe(supa.from('pontos').select('*').eq('empresa_id',eid).order('data',{ascending:false})),
     ]);
 
     // Mapear para o formato interno do ObraTech
@@ -1968,8 +1971,11 @@ async function carregarDadosSupabase(){
     if(driveArqs.data)   _driveArqs      = driveArqs.data;
     if(medicoes.data)    DB.medicoes     = medicoes.data.map(mapMedicao);
     if(checklists.data)  DB.checklists   = checklists.data.map(mapChecklist);
-    
-    console.log('✓ Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos,', (DB.demandas||[]).length, 'demandas,', (DB.fornecedores||[]).length, 'fornecedores,', (_driveArqs||[]).length, 'arquivos drive');
+    if(terceirizados.data) DB.terceirizados = terceirizados.data.map(mapTerceirizado);
+    if(pontosTercs.data)   DB.pontosTercs   = pontosTercs.data.map(mapPontoTerc);
+    if(pontos.data)        DB.pontos        = pontos.data.map(row=>({id:row.id,colabId:row.colaborador_id,obraId:row.obra_id,data:row.data,presente:row.presente,tipo:row.tipo,_supa:true}));
+
+    console.log('✓ Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos,', (DB.demandas||[]).length, 'demandas,', (DB.fornecedores||[]).length, 'fornecedores,', (_driveArqs||[]).length, 'arquivos drive,', (DB.terceirizados||[]).length, 'terceirizados');
   } catch(e){
     console.error('Erro ao carregar dados:', e);
     toast('⚠️','Erro ao carregar dados. Verifique a conexão.');
@@ -2137,7 +2143,8 @@ function iniciarRealtime(){
       const orders={obras:'criado_em',etapas:'criado_em',colaboradores:'nome',
         lancamentos:'data',rdos:'data',estoque:'material',movimentacoes:'data',
         contratos:'criado_em',pagamentos:'data',nao_conformidades:'criado_em',pontos:'data',
-        demandas:'criado_em',fornecedores_cadastro:'nome',categorias:'nome',centros_custo:'nome',drive_arquivos:'criado_em'};
+        demandas:'criado_em',fornecedores_cadastro:'nome',categorias:'nome',centros_custo:'nome',drive_arquivos:'criado_em',
+        terceirizados:'nome',pontos_terceirizados:'data'};
       const asc={lancamentos:false,rdos:false,movimentacoes:false,pagamentos:false};
       const {data,error}=await supa.from(tabela).select('*').eq('empresa_id',eid)
         .order(orders[tabela]||'criado_em',{ascending:asc[tabela]!==false?true:false});
@@ -2160,6 +2167,8 @@ function iniciarRealtime(){
         categorias:r=>{DB.categorias=r.map(x=>x.nome);renderCadastros&&renderCadastros();},
         centros_custo:r=>{DB.centros=r.map(x=>x.nome);renderCadastros&&renderCadastros();},
         drive_arquivos:r=>{_driveArqs=r;if(document.getElementById('p-drive')?.style.display!=='none')renderDrive();},
+        terceirizados:r=>{DB.terceirizados=r.map(mapTerceirizado);renderTerceirizados();},
+        pontos_terceirizados:r=>{DB.pontosTercs=r.map(mapPontoTerc);rdoRenderPresencaTercs();},
       };
       if(m[tabela]) m[tabela](data);
       save();
@@ -2167,7 +2176,7 @@ function iniciarRealtime(){
   }
 
   const tabelas=['obras','etapas','colaboradores','lancamentos','rdos','estoque',
-    'movimentacoes','contratos','pagamentos','nao_conformidades','pontos','demandas','fornecedores_cadastro','categorias','centros_custo','drive_arquivos'];
+    'movimentacoes','contratos','pagamentos','nao_conformidades','pontos','demandas','fornecedores_cadastro','categorias','centros_custo','drive_arquivos','terceirizados','pontos_terceirizados'];
 
   const ch=supa.channel('obratech-realtime-'+eid);
   tabelas.forEach(t=>{
