@@ -1986,7 +1986,7 @@ function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
 function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,fotos:r.fotos?JSON.parse(r.fotos):([]),_supa:true};}
-function mapTerceirizado(r){return{id:r.id,nome:r.nome,empresa:r.empresa,funcao:r.funcao||'',obraId:r.obra_id,_supa:true};}
+function mapTerceirizado(r){return{id:r.id,nome:r.nome,empresa:r.empresa,funcao:r.funcao||'',cpf:r.cpf||'',celular:r.celular||'',obraId:r.obra_id,_supa:true};}
 function mapPontoTerc(r){return{id:r.id,tercId:r.terceirizado_id,obraId:r.obra_id,data:r.data,presente:r.presente,_supa:true};}
 function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',exec:r.exec||'',obs:r.obs,fotos:r.fotos?JSON.parse(r.fotos):[],aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
@@ -3945,13 +3945,13 @@ function renderTerceirizados(){
         🏢 ${emp} <span style="font-weight:400;font-size:11px;color:var(--txt3)">${tercs.length} funcionário(s)</span>
       </div>
       <table class="tbl" style="border-radius:0 0 8px 8px">
-        <tr><th>Nome</th><th>Função</th><th>Obra</th><th></th></tr>
+        <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Celular</th><th></th></tr>
         ${tercs.map(t=>{
-          const o=DB.obras.find(x=>String(x.id)===String(t.obraId));
           return`<tr>
             <td style="font-weight:600">${t.nome}</td>
             <td style="color:var(--txt3)">${t.funcao||'—'}</td>
-            <td style="font-size:11px">${o?.nome||'Todas'}</td>
+            <td style="font-size:11px">${t.cpf||'—'}</td>
+            <td style="font-size:11px">${t.celular||'—'}</td>
             <td><div class="ta-actions">
               <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
               <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
@@ -4001,7 +4001,7 @@ function rdoRenderPresencaTercs(){
         <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#16a34a')}">✓ Presente</button>
         <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#dc2626')}">✗ Falta</button>
         <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${t.nome}</span>
-        <span style="font-size:10px;color:var(--txt3)">${t.funcao||''}</span>
+        <span style="font-size:10px;color:var(--txt3)">${t.empresa||''}</span>
       </div>`;
     }).join('')
   ).join('');
@@ -7003,9 +7003,7 @@ function openModal(type,editId=null,editId2=null){
   else if(type==='terceirizado'){
     const t=editId?DB.terceirizados.find(x=>x.id===editId):null;
     title=t?'Editar Terceirizado':'🏢 Novo Terceirizado';
-    // Sugerir empresas já cadastradas
     const empresasExist=[...new Set(DB.terceirizados.map(x=>x.empresa).filter(Boolean))];
-    // Sugerir empresas dos contratos também
     DB.contratos.forEach(c=>{if(c.forn&&!empresasExist.includes(c.forn))empresasExist.push(c.forn);});
     const empOpts=empresasExist.map(e=>`<option value="${e}">${e}</option>`).join('');
     body=`<div class="g g2">
@@ -7022,30 +7020,32 @@ function openModal(type,editId=null,editId2=null){
         <label class="lbl">Função / Cargo</label>
         <input class="inp" id="terc-funcao" value="${t?.funcao||''}" placeholder="Ex: Eletricista, Encanador...">
       </div>
-      <div class="fg" style="grid-column:span 2">
-        <label class="lbl">Obra (deixe vazio para todas as obras)</label>
-        <select class="sel" id="terc-obra">
-          <option value="">Todas as obras</option>
-          ${DB.obras.map(o=>`<option value="${o.id}" ${String(t?.obraId)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}
-        </select>
+      <div class="fg">
+        <label class="lbl">CPF</label>
+        <input class="inp" id="terc-cpf" value="${t?.cpf||''}" placeholder="000.000.000-00">
+      </div>
+      <div class="fg">
+        <label class="lbl">Celular</label>
+        <input class="inp" id="terc-celular" value="${t?.celular||''}" placeholder="(00) 00000-0000">
       </div>
     </div>`;
     onSave=()=>{
       const nome=document.getElementById('terc-nome').value.trim();
       const empresa=document.getElementById('terc-empresa').value.trim();
       const funcao=document.getElementById('terc-funcao').value.trim();
-      const obraId=document.getElementById('terc-obra').value||null;
+      const cpf=document.getElementById('terc-cpf').value.trim();
+      const celular=document.getElementById('terc-celular').value.trim();
       if(!nome){toast('⚠️','Nome obrigatório!');return false;}
       if(!empresa){toast('⚠️','Empresa obrigatória!');return false;}
-      const dados={nome,empresa,funcao,obraId};
+      const dados={nome,empresa,funcao,cpf,celular};
       if(t){
         Object.assign(t,dados);
-        supaUpdate('terceirizados',t.id,{nome,empresa,funcao:funcao||null,obra_id:obraId});
+        supaUpdate('terceirizados',t.id,{nome,empresa,funcao:funcao||null,cpf:cpf||null,celular:celular||null});
       }else{
         const newId=uuidv4();
-        const newT={id:newId,...dados,_supa:true};
+        const newT={id:newId,...dados,obraId:null,_supa:true};
         DB.terceirizados.push(newT);
-        supaInsert('terceirizados',{id:newId,empresa_id:_empresaId,nome,empresa,funcao:funcao||null,obra_id:obraId});
+        supaInsert('terceirizados',{id:newId,empresa_id:_empresaId,nome,empresa,funcao:funcao||null,cpf:cpf||null,celular:celular||null,obra_id:null});
       }
       save();renderTerceirizados();toast('✅',t?'Atualizado!':'Terceirizado cadastrado!');return true;
     };
@@ -7639,12 +7639,11 @@ function gerarRDOPDF(rdo) {
   doc.setDrawColor(...PX.silver); doc.setLineWidth(0.3); doc.line(9, y + 7, W - 9, y + 7);
   y += 12;
 
-  // ── 4 KPIs: Obra, Data, Efetivo, Clima
-  const cw = 45, ch = 27, gap = 2;
-  pKpi(doc, 9,                   y, cw, ch, 'Obra',    (obra?.nome||'—').substring(0,18), obra?.local||'—');
+  // ── 3 KPIs: Obra, Data, Clima
+  const cw = 61, ch = 27, gap = 2;
+  pKpi(doc, 9,                   y, cw, ch, 'Obra',    (obra?.nome||'—').substring(0,22), obra?.local||'—');
   pKpi(doc, 9+(cw+gap),          y, cw, ch, 'Data',    fmtDt(rdo.data), '');
-  pKpi(doc, 9+2*(cw+gap),        y, cw, ch, 'Efetivo', (rdo.real||0)+' / '+(rdo.prev||0), 'realizados / previstos');
-  pKpi(doc, 9+3*(cw+gap),        y, cw, ch, 'Clima',   rdo.clima||'—', '');
+  pKpi(doc, 9+2*(cw+gap),        y, cw, ch, 'Clima',   rdo.clima||'—', '');
   y += ch + 8;
 
   // ── Execução do dia
@@ -7671,45 +7670,6 @@ function gerarRDOPDF(rdo) {
     margin: { left: 9, right: 9 }
   });
   y = doc.lastAutoTable.finalY + 8;
-
-  // ── Efetivo presente
-  const presentes = DB.pontos.filter(p => p.presente && p.data === rdo.data && (!rdo.obraId || p.obraId == rdo.obraId));
-  if (presentes.length) {
-    const qtdMeio = presentes.filter(p => p.tipo === 'meia_diaria').length;
-    const qtdDia  = presentes.length - qtdMeio;
-    if (y > 220) { doc.addPage(); y = pHdr(doc, 'RDO — Efetivo', (obra?.nome||'—')+' — '+fmtDt(rdo.data)) + 8; }
-    const secLbl = 'Efetivo Presente — ' + presentes.length + ' funcionario(s)' +
-      (qtdMeio ? '  [' + qtdDia + ' dia inteiro  +  ' + qtdMeio + ' meia diaria]' : '');
-    y = pSec(doc, y, secLbl);
-    const efRows = presentes.map((p, i) => {
-      const col = DB.colabs.find(x => x.id === p.colabId); if (!col) return null;
-      const meia   = p.tipo === 'meia_diaria';
-      const diaria = Number(col.diaria || col.salario || 0);
-      return [String(i+1).padStart(2,'0'), col.nome, col.funcao||'—',
-        meia ? '1/2 Diaria' : 'Dia inteiro', diaria ? fmtR(meia ? diaria/2 : diaria) : '—'];
-    }).filter(Boolean);
-    doc.autoTable({
-      startY: y,
-      head: [['#', 'Colaborador', 'Funcao', 'Tipo de Presenca', 'Valor']],
-      body: efRows, theme: 'striped',
-      headStyles: hStyle(), bodyStyles: bStyle(), alternateRowStyles: altRow(),
-      columnStyles: {
-        0: { cellWidth: 9,  halign: 'center', textColor: PX.gray },
-        1: { cellWidth: 68, fontStyle: 'bold' },
-        2: { cellWidth: 58, textColor: PX.gray },
-        3: { cellWidth: 34, halign: 'center' },
-        4: { cellWidth: 23, halign: 'right', fontStyle: 'bold' }
-      },
-      didParseCell: (d) => {
-        if (d.section === 'body' && d.column.index === 3) {
-          d.cell.styles.textColor = d.cell.text[0].includes('1/2') ? PX.amber : PX.ink;
-          d.cell.styles.fontStyle = 'bold';
-        }
-      },
-      margin: { left: 9, right: 9 }
-    });
-    y = doc.lastAutoTable.finalY + 8;
-  }
 
   // ── Fotos
   if (rdo.fotos && rdo.fotos.length) {
