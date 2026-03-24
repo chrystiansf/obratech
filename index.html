@@ -3149,7 +3149,7 @@ document.addEventListener('click', e=>{
 // NAV
 // ═══════════════════════════════════════════
 const TITLES={dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe & Ponto',estoque:'Estoque',financeiro:'Financeiro',drive:'Drive / GED',qualidade:'Qualidade',relatorios:'Relatórios',demandas:'Demandas',fornecedores:'Fornecedores',contratos:'Contratos',clientes:'Portal Clientes'};
-const NEW_ACTIONS={obras:()=>openMocModal(),cronograma:()=>openModal('etapa'),rdo:null,equipe:()=>openModal('colab'),estoque:()=>{estSwTab('catalogo');openModal('material');},financeiro:()=>openModal('lanc'),qualidade:()=>openModal('nc'),contratos:()=>openModal('contrato')};
+const NEW_ACTIONS={obras:()=>openMocModal(),cronograma:()=>openModal('etapa'),rdo:null,equipe:()=>{const tercsEl=document.getElementById('t-tercs');if(tercsEl&&tercsEl.style.display!=='none'){openModal('terceirizado')}else{openModal('colab')}},estoque:()=>{estSwTab('catalogo');openModal('material');},financeiro:()=>openModal('lanc'),qualidade:()=>openModal('nc'),contratos:()=>openModal('contrato')};
 
 function goPage(id){
   // Bloquear se usuário não tem permissão para este módulo
@@ -4203,7 +4203,7 @@ function carregarRDO(id){
 // ═══════════════════════════════════════════
 function swTab(btn,id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
-  ['t-colab','t-ponto','t-folha'].forEach(t=>{const el=document.getElementById(t);if(el)el.style.display=t===id?'block':'none';});
+  ['t-colab','t-ponto','t-folha','t-tercs'].forEach(t=>{const el=document.getElementById(t);if(el)el.style.display=t===id?'block':'none';});
   if(id==='t-ponto'){
     // Inicializa semana atual
     const sw=document.getElementById('pt-semana');
