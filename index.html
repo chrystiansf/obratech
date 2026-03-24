@@ -7543,15 +7543,15 @@ function hStyle(_c) {
     fillColor: PX.navy,
     textColor: [255, 255, 255],
     fontStyle: 'bold',
-    fontSize: 7.5,
-    cellPadding: { top: 4.5, bottom: 4.5, left: 5, right: 5 }
+    fontSize: 8.5,
+    cellPadding: { top: 3, bottom: 3, left: 5, right: 5 }
   };
 }
-// ── bStyle: corpo de tabela — texto preto, padding uniforme
+// ── bStyle: corpo de tabela — texto preto, padding compacto
 function bStyle() {
   return {
-    fontSize: 7.5,
-    cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
+    fontSize: 8,
+    cellPadding: { top: 2.5, bottom: 2.5, left: 5, right: 5 },
     textColor: PX.ink,
     lineColor: PX.silver,
     lineWidth: 0.2
@@ -7734,13 +7734,13 @@ function gerarRDOPDF(rdo) {
     y = pSec(doc, y, 'Lista de Presenca - Mao de Obra Civil (' + presColabRows.length + ')');
     doc.autoTable({
       startY: y,
-      head: [['#', 'Nome', 'Funcao / Cargo', 'Presenca']],
+      head: [['No.', 'Nome', 'Funcao / Cargo', 'Presenca']],
       body: presColabRows.map((r, i) => [i + 1, ...r]),
       theme: 'plain',
-      headStyles: { ...hStyle(), cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 } },
+      headStyles: hStyle(),
       bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15 },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center', textColor: PX.gray, fontStyle: 'bold' },
+        0: { cellWidth: 12, halign: 'center', textColor: PX.gray, fontStyle: 'bold' },
         1: { cellWidth: 65, fontStyle: 'bold' },
         2: { textColor: PX.gray },
         3: { cellWidth: 28, halign: 'center' }
@@ -7766,13 +7766,13 @@ function gerarRDOPDF(rdo) {
     y = pSec(doc, y, 'Lista de Presenca - Terceirizados (' + presTercRows.length + ')');
     doc.autoTable({
       startY: y,
-      head: [['#', 'Nome', 'Funcao', 'Empresa', 'Presenca']],
+      head: [['No.', 'Nome', 'Funcao', 'Empresa', 'Presenca']],
       body: presTercRows.map((r, i) => [i + 1, ...r]),
       theme: 'plain',
-      headStyles: { ...hStyle(), cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 } },
+      headStyles: hStyle(),
       bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15 },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center', textColor: PX.gray, fontStyle: 'bold' },
+        0: { cellWidth: 12, halign: 'center', textColor: PX.gray, fontStyle: 'bold' },
         1: { cellWidth: 50, fontStyle: 'bold' },
         2: { cellWidth: 35, textColor: PX.gray },
         3: { cellWidth: 40, textColor: PX.blue, fontStyle: 'bold' },
@@ -7887,7 +7887,7 @@ function exportGanttPDF() {
   const SM = { plan:'Planejado', prog:'Em Andamento', done:'Concluido', late:'Atrasado' };
   doc.autoTable({
     startY: y,
-    head: [['#','Etapa / Atividade','Status','%','Inicio','Termino','Responsavel','Observacoes']],
+    head: [['No.','Etapa / Atividade','Status','%','Inicio','Termino','Responsavel','Observacoes']],
     body: ets.map((e,i) => [
       i+1, e.nome, SM[e.status]||'—', e.pct+'%',
       e.inicio ? fmtDt(e.inicio) : '—',
@@ -7956,7 +7956,7 @@ function exportFolhaPDF() {
   y = pSec(doc, y, 'Detalhamento por Colaborador');
   doc.autoTable({
     startY: y,
-    head: [['#','Nome','Funcao','CPF','Diaria','Dias','Meias','Total']],
+    head: [['No.','Nome','Funcao','CPF','Diaria','Dias','Meias','Total']],
     body: rows.map((r,i) => [
       i+1, r.col.nome, r.col.funcao||'—', r.col.cpf||'—',
       fmtR(r.diaria), String(r.diasInt||0),
@@ -8163,7 +8163,7 @@ function exportQualPDF() {
     y = pSec(doc, y, 'NCs Criticas — Grau Alto (Abertas)');
     doc.autoTable({
       startY: y,
-      head: [['#','Obra','Etapa','Descricao','Prazo','Responsavel','Status']],
+      head: [['No.','Obra','Etapa','Descricao','Prazo','Responsavel','Status']],
       body: ncsAlta.map(n => {
         const o = DB.obras.find(x => x.id == n.obraId);
         return [String(n.numero||'—'), (o?.nome||'—').substring(0,14), (n.etapa||'—').substring(0,12),
@@ -8198,7 +8198,7 @@ function exportQualPDF() {
   y = pSec(doc, y, 'Listagem Completa de Nao Conformidades');
   doc.autoTable({
     startY: y,
-    head: [['#','Obra','Etapa','Descricao','Prazo','Grau','Responsavel','Status']],
+    head: [['No.','Obra','Etapa','Descricao','Prazo','Grau','Responsavel','Status']],
     body: DB.ncs.map(n => {
       const o = DB.obras.find(x => x.id == n.obraId);
       return [String(n.numero||'—'), (o?.nome||'—').substring(0,13), (n.etapa||'—').substring(0,11),
