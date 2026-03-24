@@ -3941,20 +3941,30 @@ function renderTerceirizados(){
     el.innerHTML='<div class="t-empty">Nenhum terceirizado cadastrado. Clique em "＋ Terceirizado" para começar.</div>';
     return;
   }
-  el.innerHTML=`<table class="tbl">
-    <tr><th>Nome</th><th>Empresa</th><th>Função</th><th>CPF</th><th>Telefone</th><th></th></tr>
-    ${DB.terceirizados.map(t=>`<tr>
-      <td style="font-weight:600">${t.nome}</td>
-      <td style="color:var(--primary);font-weight:600;font-size:11px">${t.empresa||'—'}</td>
-      <td style="color:var(--txt3)">${t.funcao||'—'}</td>
-      <td style="font-size:11px">${t.cpf||'—'}</td>
-      <td style="font-size:11px">${t.celular||'—'}</td>
-      <td><div class="ta-actions">
-        <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
-        <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
-      </div></td>
-    </tr>`).join('')}
-  </table>`;
+  const empresas={};
+  DB.terceirizados.forEach(t=>{const emp=t.empresa||'Sem empresa';if(!empresas[emp])empresas[emp]=[];empresas[emp].push(t);});
+  el.innerHTML=Object.keys(empresas).sort().map(emp=>{
+    const tercs=empresas[emp];
+    return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:0;margin-bottom:14px;overflow:hidden">
+      <div style="background:var(--primary);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:700;font-size:14px">${emp}</span>
+        <span style="font-size:11px;opacity:.85">${tercs.length} profissiona${tercs.length>1?'is':'l'}</span>
+      </div>
+      <table class="tbl" style="margin:0">
+        <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Telefone</th><th></th></tr>
+        ${tercs.map(t=>`<tr>
+          <td style="font-weight:600">${t.nome}</td>
+          <td style="color:var(--txt3)">${t.funcao||'—'}</td>
+          <td style="font-size:11px">${t.cpf||'—'}</td>
+          <td style="font-size:11px">${t.celular||'—'}</td>
+          <td><div class="ta-actions">
+            <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
+            <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
+          </div></td>
+        </tr>`).join('')}
+      </table>
+    </div>`;
+  }).join('');
 }
 
 function delTerceirizado(id){
@@ -7652,22 +7662,25 @@ function gerarRDOPDF(rdo) {
   y = doc.lastAutoTable.finalY + 8;
 
   // ── Presenca do Dia (Colaboradores + Terceirizados)
-  const presRows = [];
-  // Colaboradores proprios
-  const colabsObra = DB.colabs.filter(c => !rdo.obraId || c.obraId === rdo.obraId);
-  colabsObra.forEach(col => {
-    const pt = DB.pontos.find(p => String(p.colabId) === String(col.id) && p.data === rdo.data);
+  const presColabRows = [];
+  // Colaboradores proprios (todos, sem filtro de obra — sao globais)
+  const colabsOrdenados = [...DB.colabs].sort((a,b) => (a.nome||'').localeCompare(b.nome||''));
+  colabsOrdenados.forEach(col => {
+    const pt = DB.pontos.find(p => String(p.colabId) === String(col.id) && p.data === rdo.data && p.presente);
     let status = 'Falta';
-    if (pt && pt.tipo === 'M') status = 'Meia Diaria';
-    else if (pt && (pt.tipo === 'P' || pt.presente)) status = 'Presente';
-    presRows.push([col.nome, col.funcao || '-', 'Proprio', status]);
+    if (pt && pt.tipo === 'meia_diaria') status = 'Meia Diaria';
+    else if (pt) status = 'Presente';
+    presColabRows.push([col.nome, col.funcao || '-', 'Proprio', status]);
   });
-  // Terceirizados
-  DB.terceirizados.forEach(t => {
+  // Terceirizados agrupados por empresa
+  const presTercRows = [];
+  const tercsOrdenados = [...DB.terceirizados].sort((a,b) => (a.empresa||'').localeCompare(b.empresa||'') || (a.nome||'').localeCompare(b.nome||''));
+  tercsOrdenados.forEach(t => {
     const pt = (DB.pontosTercs || []).find(p => p.tercId === t.id && p.data === rdo.data);
     const status = pt && pt.presente ? 'Presente' : 'Falta';
-    presRows.push([t.nome, t.funcao || '-', t.empresa || 'Terceirizado', status]);
+    presTercRows.push([t.nome, t.funcao || '-', t.empresa || 'Terceirizado', status]);
   });
+  const presRows = [...presColabRows, ...presTercRows];
   if (presRows.length) {
     if (y > 240) { doc.addPage(); y = pHdr(doc, 'RDO — Presenca', obra?.nome || '-') + 8; }
     y = pSec(doc, y, 'Presenca do Dia  (' + presRows.length + ' profissiona' + (presRows.length > 1 ? 'is' : 'l') + ')');
