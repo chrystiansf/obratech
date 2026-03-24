@@ -737,6 +737,17 @@ nav{padding:4px 0;flex:1}
           <button class="btn sm" onclick="rdoMarcarTodos(false)" style="font-size:10px">☐ Nenhum</button>
         </div>
       </div>
+      <!-- PRESENÇA TERCEIRIZADOS -->
+      <div style="margin-bottom:13px">
+        <div class="lbl" style="margin-bottom:6px">🏢 Presença Terceirizados <span style="font-size:10px;color:var(--txt3);font-weight:400">— empresas parceiras</span></div>
+        <div id="rdo-presenca-tercs" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px 0">
+          <div style="padding:10px 13px;font-size:11px;color:var(--txt3)">Nenhum terceirizado cadastrado.</div>
+        </div>
+        <div style="margin-top:5px;display:flex;gap:6px">
+          <button class="btn sm" onclick="rdoMarcarTodosTercs(true)" style="font-size:10px">✅ Todos</button>
+          <button class="btn sm" onclick="rdoMarcarTodosTercs(false)" style="font-size:10px">☐ Nenhum</button>
+        </div>
+      </div>
       <div style="display:flex;gap:7px">
         <button class="btn" style="flex:1" onclick="saveRDO('rascunho')">💾 Rascunho</button>
         <button class="btn pri" style="flex:1" onclick="saveRDO('finalizado')">✅ Finalizar & PDF</button>
@@ -762,6 +773,7 @@ nav{padding:4px 0;flex:1}
     <div class="tab on" onclick="swTab(this,'t-colab')">👷 Colaboradores</div>
     <div class="tab" onclick="swTab(this,'t-ponto')">📅 Presença</div>
     <div class="tab" onclick="swTab(this,'t-folha')">📊 Folha Semanal</div>
+    <div class="tab" onclick="swTab(this,'t-tercs');renderTerceirizados()">🏢 Terceirizados</div>
   </div>
 
   <!-- COLABORADORES -->
@@ -823,6 +835,17 @@ nav{padding:4px 0;flex:1}
       <div class="ch"><div class="ct">Resultado da Folha</div><div class="cs" id="folha-periodo"></div></div>
       <div id="folha-tbl"></div>
       <div id="folha-total" style="padding:10px 0 2px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;margin-top:3px"></div>
+    </div>
+  </div>
+
+  <!-- TERCEIRIZADOS -->
+  <div id="t-tercs" style="display:none">
+    <div class="card">
+      <div class="ch">
+        <div><div class="ct">🏢 Equipe Terceirizada</div><div class="cs">Funcionários de empresas parceiras — presença marcada no RDO sem valor de diária</div></div>
+        <button class="btn pri" onclick="openModal('terceirizado')">＋ Terceirizado</button>
+      </div>
+      <div id="tercs-tbl"></div>
     </div>
   </div>
 </div>
@@ -1963,6 +1986,8 @@ function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
 function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,fotos:r.fotos?JSON.parse(r.fotos):([]),_supa:true};}
+function mapTerceirizado(r){return{id:r.id,nome:r.nome,empresa:r.empresa,funcao:r.funcao||'',obraId:r.obra_id,_supa:true};}
+function mapPontoTerc(r){return{id:r.id,tercId:r.terceirizado_id,obraId:r.obra_id,data:r.data,presente:r.presente,_supa:true};}
 function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',exec:r.exec||'',obs:r.obs,fotos:r.fotos?JSON.parse(r.fotos):[],aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
@@ -2176,7 +2201,7 @@ function adicionarBotaoLogout(){
 // BANCO DE DADOS — localStorage
 // ═══════════════════════════════════════════
 const KEY='obratech_v1';
-let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],medicoes:[],checklists:[],equipeUsuarios:[],sel:null,nid:1};
+let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],drive:{'/':{}},centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],medicoes:[],checklists:[],terceirizados:[],pontosTercs:[],equipeUsuarios:[],sel:null,nid:1};
 function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},DB,JSON.parse(s));if(!DB.centros)DB.centros=[];if(!Array.isArray(DB.categorias)||!DB.categorias.length)DB.categorias=['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'];if(!DB.fornecedores)DB.fornecedores=[];if(!DB.contratos)DB.contratos=[];if(!DB.medicoes)DB.medicoes=[];if(!DB.checklists)DB.checklists=[];
   if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];if(!DB.pgtos)DB.pgtos=[];}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
@@ -3899,6 +3924,111 @@ function diasR(dt){return Math.max(0,Math.ceil((new Date(dt)-new Date())/8640000
 let rdoClima='Ensolarado',rdoFotos=[];
 function setClima(btn,c){rdoClima=c;document.querySelectorAll('#wbtns .btn').forEach(b=>{b.style.cssText='';});btn.style.borderColor='var(--primary)';btn.style.color='var(--primary)';}
 // ── RDO: presença do dia ────────────────────────────────────────────────────
+// ── TERCEIRIZADOS ──────────────────────────────────────────
+function renderTerceirizados(){
+  const el=document.getElementById('tercs-tbl');
+  if(!el)return;
+  if(!DB.terceirizados.length){
+    el.innerHTML='<div class="t-empty">Nenhum terceirizado cadastrado. Clique em "＋ Terceirizado" para começar.</div>';
+    return;
+  }
+  // Agrupar por empresa
+  const grupos={};
+  DB.terceirizados.forEach(t=>{
+    const emp=t.empresa||'Sem empresa';
+    if(!grupos[emp]) grupos[emp]=[];
+    grupos[emp].push(t);
+  });
+  el.innerHTML=Object.entries(grupos).map(([emp,tercs])=>`
+    <div style="margin-bottom:16px">
+      <div style="font-weight:700;font-size:13px;color:var(--primary);padding:8px 12px;background:var(--bg3);border-radius:8px 8px 0 0;border:1px solid var(--border)">
+        🏢 ${emp} <span style="font-weight:400;font-size:11px;color:var(--txt3)">${tercs.length} funcionário(s)</span>
+      </div>
+      <table class="tbl" style="border-radius:0 0 8px 8px">
+        <tr><th>Nome</th><th>Função</th><th>Obra</th><th></th></tr>
+        ${tercs.map(t=>{
+          const o=DB.obras.find(x=>String(x.id)===String(t.obraId));
+          return`<tr>
+            <td style="font-weight:600">${t.nome}</td>
+            <td style="color:var(--txt3)">${t.funcao||'—'}</td>
+            <td style="font-size:11px">${o?.nome||'Todas'}</td>
+            <td><div class="ta-actions">
+              <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
+              <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`).join('');
+}
+
+function delTerceirizado(id){
+  if(!confirm('Excluir terceirizado?'))return;
+  supaDelete('terceirizados',id);
+  DB.terceirizados=DB.terceirizados.filter(t=>t.id!==id);
+  save();renderTerceirizados();toast('🗑️','Terceirizado excluído.');
+}
+
+// ── RDO: presença terceirizados ─────────────────────────────
+function rdoRenderPresencaTercs(){
+  const oId=document.getElementById('rdo-obra')?.value;
+  const data=document.getElementById('rdo-data')?.value;
+  const el=document.getElementById('rdo-presenca-tercs');
+  if(!el)return;
+
+  // Filtrar por obra
+  const tercs=DB.terceirizados.filter(t=>!t.obraId||!oId||String(t.obraId)===String(oId));
+  if(!tercs.length){
+    el.innerHTML='<div style="padding:10px 13px;font-size:11px;color:var(--txt3)">Nenhum terceirizado cadastrado para esta obra.</div>';
+    return;
+  }
+
+  // Agrupar por empresa
+  const grupos={};
+  tercs.forEach(t=>{
+    const emp=t.empresa||'Sem empresa';
+    if(!grupos[emp])grupos[emp]=[];
+    grupos[emp].push(t);
+  });
+
+  el.innerHTML=Object.entries(grupos).map(([emp,ts])=>
+    `<div style="padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--primary);background:var(--bg3);border-bottom:1px solid var(--border)">${emp}</div>`+
+    ts.map(t=>{
+      const pt=data?DB.pontosTercs?.find(p=>p.tercId===t.id&&p.data===data&&(!oId||p.obraId===oId)):null;
+      const presente=!!pt?.presente;
+      const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
+        <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#16a34a')}">✓ Presente</button>
+        <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#dc2626')}">✗ Falta</button>
+        <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${t.nome}</span>
+        <span style="font-size:10px;color:var(--txt3)">${t.funcao||''}</span>
+      </div>`;
+    }).join('')
+  ).join('');
+}
+
+function rdoSetPresencaTerc(tercId,presente){
+  const oId=document.getElementById('rdo-obra')?.value||null;
+  const data=document.getElementById('rdo-data')?.value;
+  if(!data){toast('⚠️','Informe a data primeiro!');return;}
+  if(!DB.pontosTercs)DB.pontosTercs=[];
+  const prev=DB.pontosTercs.findIndex(p=>p.tercId===tercId&&p.data===data&&(!oId||p.obraId===oId));
+  if(prev!==-1)DB.pontosTercs.splice(prev,1);
+  const newId=uuidv4();
+  const newPt={id:newId,tercId,obraId:oId,data,presente,_supa:true};
+  DB.pontosTercs.push(newPt);
+  supaInsert('pontos_terceirizados',{id:newId,empresa_id:_empresaId,terceirizado_id:tercId,obra_id:oId||null,data,presente});
+  save();rdoRenderPresencaTercs();
+}
+
+function rdoMarcarTodosTercs(pres){
+  const oId=document.getElementById('rdo-obra')?.value;
+  const data=document.getElementById('rdo-data')?.value;
+  if(!data){toast('⚠️','Informe a data primeiro!');return;}
+  const tercs=DB.terceirizados.filter(t=>!t.obraId||!oId||String(t.obraId)===String(oId));
+  tercs.forEach(t=>rdoSetPresencaTerc(t.id,pres));
+}
+
 function rdoRenderPresenca(){
   const oId=document.getElementById('rdo-obra')?.value;
   const data=document.getElementById('rdo-data')?.value;
@@ -3941,7 +4071,7 @@ function rdoSetPresenca(colabId,tipo){
     supaInsert('pontos',{id:novoIdPt2,colaborador_id:colabId,obra_id:oId||null,data,presente:true,tipo:'meia_diaria'}); }
   save();rdoRenderPresenca();
   const n=DB.pontos.filter(p=>p.presente&&p.data===data&&(!oId||p.obraId===oId)).length;
-  const realEl=document.getElementById('rdo-real');if(realEl)realEl.value=n;
+  // rdo-real removido
 }
 function rdoMarcarTodos(estado){
   const oId=document.getElementById('rdo-obra')?.value||null;
@@ -3974,8 +4104,8 @@ function addFotos(e){Array.from(e.target.files).forEach(f=>{const r=new FileRead
 function saveRDO(status){
   const oId=document.getElementById('rdo-obra').value;if(!oId){toast('⚠️','Selecione uma obra!');return;}
   const data=document.getElementById('rdo-data').value;if(!data){toast('⚠️','Informe a data!');return;}
-  const prev=parseInt(document.getElementById('rdo-prev').value)||0;
-  const real=parseInt(document.getElementById('rdo-real').value)||0;
+  const prev=0;
+  const real=0;
   const serv=document.getElementById('rdo-servicos').value.trim();
   const obs=document.getElementById('rdo-obs').value.trim();
   const mat=document.getElementById('rdo-mat').value.trim();
@@ -4000,7 +4130,6 @@ function saveRDO(status){
     gerarRDOPDF(rdo);
     // Limpar formulário para novo RDO
     ['rdo-servicos','rdo-obs','rdo-mat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    ['rdo-prev','rdo-real'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('rdo-data').value=new Date().toISOString().split('T')[0];
     rdoClima='Ensolarado';
     document.querySelectorAll('.clima-btn').forEach(b=>{b.style.background='transparent';b.style.borderColor='';b.style.color='';});
@@ -4040,8 +4169,7 @@ function carregarRDO(id){
     // Preencher campos
     const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
     setVal('rdo-data',rdo.data);
-    setVal('rdo-prev',rdo.prev||0);
-    setVal('rdo-real',rdo.real||0);
+    // Não há prev/real para terceirizados - presença é by day
     setVal('rdo-servicos',rdo.serv||'');
     setVal('rdo-obs',rdo.obs||'');
     setVal('rdo-mat',rdo.mat||'');
@@ -4054,6 +4182,7 @@ function carregarRDO(id){
     rdoFotos=rdo.fotos?rdo.fotos.map(f=>({...f})):[];
     renderFotoGrid();
     rdoRenderPresenca();
+  rdoRenderPresencaTercs();
     // Indicar que está em modo edição
     const statusBar=document.getElementById('rdo-edit-status');
     if(statusBar){
@@ -6871,6 +7000,56 @@ function openModal(type,editId=null,editId2=null){
       save();renderContratos();toast('✅',isEdit?'Pagamento atualizado!':'Pagamento registrado e conciliado no Financeiro!');return true;
     };
   }
+  else if(type==='terceirizado'){
+    const t=editId?DB.terceirizados.find(x=>x.id===editId):null;
+    title=t?'Editar Terceirizado':'🏢 Novo Terceirizado';
+    // Sugerir empresas já cadastradas
+    const empresasExist=[...new Set(DB.terceirizados.map(x=>x.empresa).filter(Boolean))];
+    // Sugerir empresas dos contratos também
+    DB.contratos.forEach(c=>{if(c.forn&&!empresasExist.includes(c.forn))empresasExist.push(c.forn);});
+    const empOpts=empresasExist.map(e=>`<option value="${e}">${e}</option>`).join('');
+    body=`<div class="g g2">
+      <div class="fg" style="grid-column:span 2">
+        <label class="lbl">Nome completo *</label>
+        <input class="inp" id="terc-nome" value="${t?.nome||''}" placeholder="Ex: Francisco da Silva">
+      </div>
+      <div class="fg">
+        <label class="lbl">Empresa *</label>
+        <input class="inp" id="terc-empresa" value="${t?.empresa||''}" list="terc-emp-list" placeholder="Ex: MQN Elétrica">
+        <datalist id="terc-emp-list">${empOpts}</datalist>
+      </div>
+      <div class="fg">
+        <label class="lbl">Função / Cargo</label>
+        <input class="inp" id="terc-funcao" value="${t?.funcao||''}" placeholder="Ex: Eletricista, Encanador...">
+      </div>
+      <div class="fg" style="grid-column:span 2">
+        <label class="lbl">Obra (deixe vazio para todas as obras)</label>
+        <select class="sel" id="terc-obra">
+          <option value="">Todas as obras</option>
+          ${DB.obras.map(o=>`<option value="${o.id}" ${String(t?.obraId)===String(o.id)?'selected':''}>${o.nome}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+    onSave=()=>{
+      const nome=document.getElementById('terc-nome').value.trim();
+      const empresa=document.getElementById('terc-empresa').value.trim();
+      const funcao=document.getElementById('terc-funcao').value.trim();
+      const obraId=document.getElementById('terc-obra').value||null;
+      if(!nome){toast('⚠️','Nome obrigatório!');return false;}
+      if(!empresa){toast('⚠️','Empresa obrigatória!');return false;}
+      const dados={nome,empresa,funcao,obraId};
+      if(t){
+        Object.assign(t,dados);
+        supaUpdate('terceirizados',t.id,{nome,empresa,funcao:funcao||null,obra_id:obraId});
+      }else{
+        const newId=uuidv4();
+        const newT={id:newId,...dados,_supa:true};
+        DB.terceirizados.push(newT);
+        supaInsert('terceirizados',{id:newId,empresa_id:_empresaId,nome,empresa,funcao:funcao||null,obra_id:obraId});
+      }
+      save();renderTerceirizados();toast('✅',t?'Atualizado!':'Terceirizado cadastrado!');return true;
+    };
+  }
   else if(type==='checklist'){
     const chk=editId?DB.checklists.find(x=>x.id===editId):null;
     title=chk?'Editar Item de Checklist':'✅ Novo Item de Checklist';
@@ -7470,6 +7649,9 @@ function gerarRDOPDF(rdo) {
 
   // ── Execução do dia
   y = pSec(doc, y, 'Execucao do Dia');
+  // Terceirizados presentes
+  const tercsPresentes=(DB.pontosTercs||[]).filter(p=>p.data===rdo.data&&(!rdo.obraId||p.obraId===rdo.obraId)&&p.presente);
+  const tercsNomes=tercsPresentes.map(p=>{const t=DB.terceirizados.find(x=>x.id===p.tercId);return t?t.nome+' ('+t.empresa+')':'?';}).join(', ');
   doc.autoTable({
     startY: y,
     head: [['Campo', 'Informacao']],
