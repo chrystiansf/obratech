@@ -842,7 +842,7 @@ nav{padding:4px 0;flex:1}
   <div id="t-tercs" style="display:none">
     <div class="card">
       <div class="ch">
-        <div><div class="ct">🏢 Equipe Terceirizada</div><div class="cs">Funcionários de empresas parceiras — presença marcada no RDO sem valor de diária</div></div>
+        <div><div class="ct">🏢 Equipe Terceirizada</div><div class="cs">Funcionários terceirizados — presença marcada no RDO</div></div>
         <button class="btn pri" onclick="openModal('terceirizado')">＋ Terceirizado</button>
       </div>
       <div id="tercs-tbl"></div>
@@ -3941,34 +3941,19 @@ function renderTerceirizados(){
     el.innerHTML='<div class="t-empty">Nenhum terceirizado cadastrado. Clique em "＋ Terceirizado" para começar.</div>';
     return;
   }
-  // Agrupar por empresa
-  const grupos={};
-  DB.terceirizados.forEach(t=>{
-    const emp=t.empresa||'Sem empresa';
-    if(!grupos[emp]) grupos[emp]=[];
-    grupos[emp].push(t);
-  });
-  el.innerHTML=Object.entries(grupos).map(([emp,tercs])=>`
-    <div style="margin-bottom:16px">
-      <div style="font-weight:700;font-size:13px;color:var(--primary);padding:8px 12px;background:var(--bg3);border-radius:8px 8px 0 0;border:1px solid var(--border)">
-        🏢 ${emp} <span style="font-weight:400;font-size:11px;color:var(--txt3)">${tercs.length} funcionário(s)</span>
-      </div>
-      <table class="tbl" style="border-radius:0 0 8px 8px">
-        <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Celular</th><th></th></tr>
-        ${tercs.map(t=>{
-          return`<tr>
-            <td style="font-weight:600">${t.nome}</td>
-            <td style="color:var(--txt3)">${t.funcao||'—'}</td>
-            <td style="font-size:11px">${t.cpf||'—'}</td>
-            <td style="font-size:11px">${t.celular||'—'}</td>
-            <td><div class="ta-actions">
-              <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
-              <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
-            </div></td>
-          </tr>`;
-        }).join('')}
-      </table>
-    </div>`).join('');
+  el.innerHTML=`<table class="tbl">
+    <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Telefone</th><th></th></tr>
+    ${DB.terceirizados.map(t=>`<tr>
+      <td style="font-weight:600">${t.nome}</td>
+      <td style="color:var(--txt3)">${t.funcao||'—'}</td>
+      <td style="font-size:11px">${t.cpf||'—'}</td>
+      <td style="font-size:11px">${t.celular||'—'}</td>
+      <td><div class="ta-actions">
+        <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
+        <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
+      </div></td>
+    </tr>`).join('')}
+  </table>`;
 }
 
 function delTerceirizado(id){
@@ -3985,35 +3970,24 @@ function rdoRenderPresencaTercs(){
   const el=document.getElementById('rdo-presenca-tercs');
   if(!el)return;
 
-  // Filtrar por obra
-  const tercs=DB.terceirizados.filter(t=>!t.obraId||!oId||String(t.obraId)===String(oId));
+  // Mostrar todos os terceirizados (sem filtro por obra)
+  const tercs=DB.terceirizados;
   if(!tercs.length){
-    el.innerHTML='<div style="padding:10px 13px;font-size:11px;color:var(--txt3)">Nenhum terceirizado cadastrado para esta obra.</div>';
+    el.innerHTML='<div style="padding:10px 13px;font-size:11px;color:var(--txt3)">Nenhum terceirizado cadastrado.</div>';
     return;
   }
 
-  // Agrupar por empresa
-  const grupos={};
-  tercs.forEach(t=>{
-    const emp=t.empresa||'Sem empresa';
-    if(!grupos[emp])grupos[emp]=[];
-    grupos[emp].push(t);
-  });
-
-  el.innerHTML=Object.entries(grupos).map(([emp,ts])=>
-    `<div style="padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--primary);background:var(--bg3);border-bottom:1px solid var(--border)">${emp}</div>`+
-    ts.map(t=>{
-      const pt=data?DB.pontosTercs?.find(p=>p.tercId===t.id&&p.data===data&&(!oId||p.obraId===oId)):null;
-      const presente=!!pt?.presente;
-      const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
-      return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
-        <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#16a34a')}">✓ Presente</button>
-        <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#dc2626')}">✗ Falta</button>
-        <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${t.nome}</span>
-        <span style="font-size:10px;color:var(--txt3)">${t.empresa||''}</span>
-      </div>`;
-    }).join('')
-  ).join('');
+  el.innerHTML=tercs.map(t=>{
+    const pt=data?DB.pontosTercs?.find(p=>p.tercId===t.id&&p.data===data):null;
+    const presente=!!pt?.presente;
+    const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
+    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
+      <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#16a34a')}">✓ Presente</button>
+      <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#dc2626')}">✗ Falta</button>
+      <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${t.nome}</span>
+      <span style="font-size:10px;color:var(--txt3)">${t.funcao||''}</span>
+    </div>`;
+  }).join('');
 }
 
 function rdoSetPresencaTerc(tercId,presente){
@@ -4034,8 +4008,7 @@ function rdoMarcarTodosTercs(pres){
   const oId=document.getElementById('rdo-obra')?.value;
   const data=document.getElementById('rdo-data')?.value;
   if(!data){toast('⚠️','Informe a data primeiro!');return;}
-  const tercs=DB.terceirizados.filter(t=>!t.obraId||!oId||String(t.obraId)===String(oId));
-  tercs.forEach(t=>rdoSetPresencaTerc(t.id,pres));
+  DB.terceirizados.forEach(t=>rdoSetPresencaTerc(t.id,pres));
 }
 
 function rdoRenderPresenca(){
@@ -7012,49 +6985,40 @@ function openModal(type,editId=null,editId2=null){
   else if(type==='terceirizado'){
     const t=editId?DB.terceirizados.find(x=>x.id===editId):null;
     title=t?'Editar Terceirizado':'🏢 Novo Terceirizado';
-    const empresasExist=[...new Set(DB.terceirizados.map(x=>x.empresa).filter(Boolean))];
-    DB.contratos.forEach(c=>{if(c.forn&&!empresasExist.includes(c.forn))empresasExist.push(c.forn);});
-    const empOpts=empresasExist.map(e=>`<option value="${e}">${e}</option>`).join('');
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2">
         <label class="lbl">Nome completo *</label>
         <input class="inp" id="terc-nome" value="${t?.nome||''}" placeholder="Ex: Francisco da Silva">
       </div>
       <div class="fg">
-        <label class="lbl">Empresa *</label>
-        <input class="inp" id="terc-empresa" value="${t?.empresa||''}" list="terc-emp-list" placeholder="Ex: MQN Elétrica">
-        <datalist id="terc-emp-list">${empOpts}</datalist>
-      </div>
-      <div class="fg">
-        <label class="lbl">Função / Cargo</label>
+        <label class="lbl">Função / Cargo *</label>
         <input class="inp" id="terc-funcao" value="${t?.funcao||''}" placeholder="Ex: Eletricista, Encanador...">
       </div>
       <div class="fg">
         <label class="lbl">CPF</label>
         <input class="inp" id="terc-cpf" value="${t?.cpf||''}" placeholder="000.000.000-00">
       </div>
-      <div class="fg">
-        <label class="lbl">Celular</label>
+      <div class="fg" style="grid-column:span 2">
+        <label class="lbl">Telefone</label>
         <input class="inp" id="terc-celular" value="${t?.celular||''}" placeholder="(00) 00000-0000">
       </div>
     </div>`;
     onSave=()=>{
       const nome=document.getElementById('terc-nome').value.trim();
-      const empresa=document.getElementById('terc-empresa').value.trim();
       const funcao=document.getElementById('terc-funcao').value.trim();
       const cpf=document.getElementById('terc-cpf').value.trim();
       const celular=document.getElementById('terc-celular').value.trim();
       if(!nome){toast('⚠️','Nome obrigatório!');return false;}
-      if(!empresa){toast('⚠️','Empresa obrigatória!');return false;}
-      const dados={nome,empresa,funcao,cpf,celular};
+      if(!funcao){toast('⚠️','Função obrigatória!');return false;}
+      const dados={nome,empresa:t?.empresa||'',funcao,cpf,celular};
       if(t){
         Object.assign(t,dados);
-        supaUpdate('terceirizados',t.id,{nome,empresa,funcao:funcao||null,cpf:cpf||null,celular:celular||null});
+        supaUpdate('terceirizados',t.id,{nome,funcao,cpf:cpf||null,celular:celular||null});
       }else{
         const newId=uuidv4();
         const newT={id:newId,...dados,obraId:null,_supa:true};
         DB.terceirizados.push(newT);
-        supaInsert('terceirizados',{id:newId,empresa_id:_empresaId,nome,empresa,funcao:funcao||null,cpf:cpf||null,celular:celular||null,obra_id:null});
+        supaInsert('terceirizados',{id:newId,empresa_id:_empresaId,nome,empresa:'',funcao,cpf:cpf||null,celular:celular||null,obra_id:null});
       }
       save();renderTerceirizados();toast('✅',t?'Atualizado!':'Terceirizado cadastrado!');return true;
     };
@@ -7659,7 +7623,7 @@ function gerarRDOPDF(rdo) {
   y = pSec(doc, y, 'Execucao do Dia');
   // Terceirizados presentes
   const tercsPresentes=(DB.pontosTercs||[]).filter(p=>p.data===rdo.data&&(!rdo.obraId||p.obraId===rdo.obraId)&&p.presente);
-  const tercsNomes=tercsPresentes.map(p=>{const t=DB.terceirizados.find(x=>x.id===p.tercId);return t?t.nome+' ('+t.empresa+')':'?';}).join(', ');
+  const tercsNomes=tercsPresentes.map(p=>{const t=DB.terceirizados.find(x=>x.id===p.tercId);return t?t.nome+(t.funcao?' ('+t.funcao+')':''):'?';}).join(', ');
   doc.autoTable({
     startY: y,
     head: [['Campo', 'Informacao']],
