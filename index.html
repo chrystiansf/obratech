@@ -9977,7 +9977,44 @@ function parseImportRows(rows){
     return new Date().toISOString().split('T')[0];
   }
   function parseVal(v){
-    const s=String(v||'0').replace(/R\$|\s/g,'').replace(/\.(?=\d{3})/g,'').replace(',','.');
+    // Se já é número (xlsx retorna numeric), usar direto
+    if(typeof v==='number') return Math.abs(v);
+    let s=String(v||'0').replace(/R\$|\s/g,'').trim();
+    if(!s||s==='0')return 0;
+    // Detectar formato brasileiro (1.234,56) vs americano (1,234.56) vs simples (1234.56)
+    const temVirgula=s.includes(',');
+    const temPonto=s.includes('.');
+    if(temVirgula && temPonto){
+      // Ambos presentes: verificar qual é o último (separador decimal)
+      const lastComma=s.lastIndexOf(',');
+      const lastDot=s.lastIndexOf('.');
+      if(lastComma>lastDot){
+        // Formato brasileiro: 1.234,56
+        s=s.replace(/\./g,'').replace(',','.');
+      } else {
+        // Formato americano: 1,234.56
+        s=s.replace(/,/g,'');
+      }
+    } else if(temVirgula && !temPonto){
+      // Só vírgula: pode ser decimal (1234,56) ou milhar (1,234)
+      // Se tem exatamente 3 dígitos após vírgula, é milhar americano; senão, decimal BR
+      const afterComma=s.split(',')[1];
+      if(afterComma && afterComma.length===3 && !afterComma.includes(' ')){
+        s=s.replace(/,/g,''); // milhar americano
+      } else {
+        s=s.replace(',','.'); // decimal brasileiro
+      }
+    } else if(temPonto && !temVirgula){
+      // Só ponto: pode ser decimal (1234.56) ou milhar BR (1.234)
+      // Se tem exatamente 3 dígitos após ÚLTIMO ponto e mais pontos, é milhar
+      const parts=s.split('.');
+      if(parts.length>2){
+        // Múltiplos pontos = milhar BR sem centavos: 1.234.567
+        s=s.replace(/\./g,'');
+      }
+      // Se tem 1 ponto com 3 dígitos depois e valor > possível (ex: 1.500 = R$ 1500, não R$ 1.5)
+      // Manter como decimal americano (padrão XLSX)
+    }
     return Math.abs(parseFloat(s)||0);
   }
 
