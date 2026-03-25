@@ -186,9 +186,9 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
 .ni{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:var(--txt2);font-size:12.5px;font-weight:500;transition:.15s;border-radius:0;margin:0}
 .ni:hover{color:var(--txt);background:var(--bg3)}
 .ni.on{color:var(--primary);background:var(--pglow);font-weight:600}
-.ni .ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;filter:grayscale(1);opacity:.65;transition:all .15s}
+.ni .ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;filter:saturate(.4) brightness(.95);opacity:.7;transition:all .15s}
 .ni.on .ic{filter:none;opacity:1}
-.ni:hover .ic{filter:grayscale(.3);opacity:.85}
+.ni:hover .ic{filter:saturate(.7) brightness(1);opacity:.9}
 /* Sub-items */
 .ni-sub{display:none;flex-direction:column}
 .ni.on+.ni-sub,.ni-parent.open+.ni-sub{display:flex}
@@ -595,7 +595,7 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
     </div>
   </div>
   <nav>
-    <div class="ni" data-p="empresa" onclick="goPage('empresa')"><span class="ic">🏢</span><span class="sb-txt">Minha Empresa</span></div>
+    <div class="ni" data-p="empresa" onclick="goPage('empresa')"><span class="ic">🏢</span><span class="sb-txt">Empresa</span></div>
     <div class="ni on" data-p="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span><span class="sb-txt">Dashboard</span></div>
     <div class="ni" data-p="obras" onclick="goPage('obras')"><span class="ic">🏗️</span><span class="sb-txt">Obras</span></div>
     <div class="ni" data-p="cronograma" onclick="goPage('cronograma')"><span class="ic">📅</span><span class="sb-txt">Cronograma</span></div>
@@ -609,7 +609,7 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
     <div class="ni" data-p="demandas" onclick="goPage('demandas')"><span class="ic">📋</span><span class="sb-txt">Demandas</span></div>
     <div class="ni" data-p="fornecedores" onclick="goPage('fornecedores')"><span class="ic">🏭</span><span class="sb-txt">Fornecedores</span></div>
     <div class="ni" data-p="relatorios" onclick="goPage('relatorios')"><span class="ic">📈</span><span class="sb-txt">Relatorios</span></div>
-    <div class="ni" data-p="cadastros" onclick="goPage('cadastros')"><span class="ic">👥</span><span class="sb-txt">Cadastros</span></div>
+    <div class="ni" data-p="empresa" onclick="goPage('cadastros')"><span class="ic">👥</span><span class="sb-txt">Cadastros</span></div>
   </nav>
   <div class="sbfoot">
     <div class="av" id="user-av" onclick="openUserModal()" style="overflow:hidden">?</div>
@@ -1201,11 +1201,11 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
 </div>
 
 <!-- CLIENTES / PORTAL -->
-<div class="page" id="p-cadastros">
+<div class="page" id="p-empresa">
   <!-- Tabs -->
   <div style="display:flex;gap:2px;margin-bottom:14px;border-bottom:1px solid var(--border)">
     <div class="usr-tab on" data-ut="empresa" onclick="usrTab('empresa')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">🏢 Minha Empresa</div>
-    <div class="usr-tab" data-ut="cadastros" onclick="usrTab('clientes')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">👤 Clientes</div>
+    <div class="usr-tab" data-ut="empresa" onclick="usrTab('clientes')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">👤 Clientes</div>
     <div class="usr-tab" data-ut="equipe" onclick="usrTab('equipe')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)">👷 Equipe</div>
     <div class="usr-tab" data-ut="empresa" onclick="usrTab('empresa')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)">🏢 Minha Empresa</div>
   </div>
@@ -2333,7 +2333,7 @@ const MODULOS_SISTEMA=[
   {id:"qualidade",   label:"Qualidade",       ic:"✅"},
   {id:"demandas",    label:"Demandas",        ic:"📋"},
   {id:"fornecedores",label:"Fornecedores",    ic:"🏭"},
-  {id:"cadastros",   label:"Cadastros",       ic:"👥"},
+  {id:"empresa",    label:"Empresa",         ic:"🏢"},
   {id:"relatorios",  label:"Relatórios",      ic:"📈"},
 ];
 
@@ -2351,7 +2351,7 @@ function usrTab(tab){
     t.style.borderBottomColor=on?"var(--primary)":"transparent";
     t.style.color=on?"var(--primary)":"var(--txt3)";
   });
-  document.getElementById("usr-panel-clientes").style.display=tab==="cadastros"?"block":"none";
+  document.getElementById("usr-panel-clientes").style.display=tab==="clientes"?"block":"none";
   document.getElementById("usr-panel-equipe").style.display=tab==="equipe"?"block":"none";
   const empPanel=document.getElementById("usr-panel-empresa");
   if(empPanel) empPanel.style.display=tab==="empresa"?"block":"none";
@@ -3419,7 +3419,7 @@ document.addEventListener('click', e=>{
 // ═══════════════════════════════════════════
 // NAV
 // ═══════════════════════════════════════════
-const TITLES={empresa:'Minha Empresa',dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe / Folha',estoque:'Estoque',financeiro:'Financeiro',drive:'Drive',qualidade:'Qualidade',relatorios:'Relatórios',demandas:'Demandas',fornecedores:'Fornecedores',contratos:'Contratos',cadastros:'Cadastros'};
+const TITLES={empresa:'Empresa',dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe / Folha',estoque:'Estoque',financeiro:'Financeiro',drive:'Drive',qualidade:'Qualidade',relatorios:'Relatórios',demandas:'Demandas',fornecedores:'Fornecedores',contratos:'Contratos'};
 const NEW_ACTIONS={obras:()=>openMocModal(),cronograma:()=>openModal('etapa'),rdo:null,equipe:()=>{const tercsEl=document.getElementById('t-tercs');if(tercsEl&&tercsEl.style.display!=='none'){openModal('terceirizado')}else{openModal('colab')}},estoque:()=>{estSwTab('catalogo');openModal('material');},financeiro:()=>openModal('lanc'),qualidade:()=>openModal('nc'),contratos:()=>openModal('contrato')};
 
 function goPage(id){
@@ -3436,7 +3436,7 @@ function goPage(id){
   document.querySelector(`.mni[data-p="${id}"]`)?.classList.add('on');
   document.getElementById('ptitle').textContent=TITLES[id]||id;
   updateSbObra();fillSelects();
-  const _renderFns={dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,drive:()=>{if(_drvObraId)carregarDriveArqs();else renderDrive();},qualidade:renderQual,contratos:renderContratos,relatorios:()=>{},demandas:renderDemandas,fornecedores:renderFornecedores,cadastros:renderClientes,empresa:()=>{goPage("cadastros");setTimeout(()=>usrTab("empresa"),30)}};
+  const _renderFns={dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,drive:()=>{if(_drvObraId)carregarDriveArqs();else renderDrive();},qualidade:renderQual,contratos:renderContratos,relatorios:()=>{},demandas:renderDemandas,fornecedores:renderFornecedores,empresa:renderClientes};
   _renderFns[id]?.();
   window._paginaAtual=id;
 }
@@ -3448,7 +3448,7 @@ function renderPaginaAtual(){
   if(id==='drive'){if(_drvObraId)carregarDriveArqs();else renderDrive();return;}
   const fns={dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,
     equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,qualidade:renderQual,
-    contratos:renderContratos,demandas:renderDemandas,fornecedores:renderFornecedores,cadastros:renderClientes};
+    contratos:renderContratos,demandas:renderDemandas,fornecedores:renderFornecedores,empresa:renderClientes};
   fns[id]?.();
 }
 function mainNew(){const p=document.querySelector('.ni.on')?.dataset.p;NEW_ACTIONS[p]?.();}
@@ -7115,7 +7115,7 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg" style="grid-column:span 2"><label class="lbl">Descrição do Objeto *</label><textarea class="ta" id="ct-desc" style="height:55px" placeholder="Descreva o objeto do contrato...">${ct?.descricao||''}</textarea></div>
       <div class="fg"><label class="lbl">Data de Assinatura</label><input type="date" class="inp" id="ct-assin" value="${ct?.assinatura||''}"></div>
       <div class="fg"><label class="lbl">Prazo de Entrega</label><input type="date" class="inp" id="ct-prazo" value="${ct?.prazo||''}"></div>
-      <div class="fg"><label class="lbl">Valor do Contrato (R$) *</label><input type="number" class="inp" id="ct-valor" value="${ct?.valor||''}" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fg"><label class="lbl">Valor do Contrato (R$) *</label><input type="number" class="inp" id="ct-valor" value="${ct?.valor||''}" min="0" step="0.01" placeholder="0.00"></div>
       <div class="fg"><label class="lbl">Tipo de Despesa</label>
         <select class="sel" id="ct-tipo">
           <option value="Despesa"${!ct||ct.tipo==='Despesa'?' selected':''}>Despesa</option>
@@ -7197,7 +7197,7 @@ function openModal(type,editId=null,editId2=null){
         <input type="date" class="inp" id="pg-data" value="${pgtoEx?.data||new Date().toISOString().split('T')[0]}">
       </div>
       <div class="fg"><label class="lbl">Valor (R$) *</label>
-        <input type="number" class="inp" id="pg-valor" value="${pgtoEx?.valor||''}" min="0" step="0.01" placeholder="0,00"
+        <input type="number" class="inp" id="pg-valor" value="${pgtoEx?.valor||''}" min="0" step="0.01" placeholder="0.00"
           oninput="document.getElementById('pg-pct-lbl').textContent=this.value&&${ct?.valor}?'≈ '+Math.round(this.value/${ct?.valor||1}*100)+'% do contrato':''">
         <div id="pg-pct-lbl" style="font-size:10px;color:var(--primary);margin-top:2px"></div>
       </div>
@@ -7445,7 +7445,7 @@ function openModal(type,editId=null,editId2=null){
         <!-- Linha 4: Campos de valor (muda conforme modo) -->
         <div class="fg" id="med-campo-real" style="${med?.pctMedido?'display:none':''}">
           <label class="lbl">Valor desta Medição (R$) *</label>
-          <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0,00" oninput="medCalcAcum()">
+          <input type="number" class="inp" id="med-valor" value="${med?.valorMedido||''}" min="0" step="0.01" placeholder="0.00" oninput="medCalcAcum()">
         </div>
         <div class="fg" id="med-campo-pct" style="${med?.pctMedido?'':'display:none'}">
           <label class="lbl">% desta Medição no Contrato *</label>
@@ -9655,6 +9655,13 @@ function initTheme(){
 }
 
 // ── Inicialização do ObraTech ─────────────────────────────────
+
+// ── Formatar campos de valor com 2 casas decimais ──
+document.addEventListener('blur',function(e){
+  if(e.target&&e.target.type==='number'&&e.target.step==='0.01'&&e.target.value){
+    e.target.value=parseFloat(e.target.value).toFixed(2);
+  }
+},true);
 async function initObraTech(){
   initTheme();
   initSupabase();
