@@ -2737,34 +2737,31 @@ async function enviarConviteEquipe(){
     const num=Math.floor(100+Math.random()*900);
     const senha=palavra+num+"!";
 
-    // Criar usuário via fetch direto na API Supabase
-    // NÃO usamos supa.auth.signUp() pois ele faz login automático e desloga o admin
-    const signUpRes = await fetch(
-      'https://vwpyhdriektadkpssyro.supabase.co/auth/v1/signup',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3cHloZHJpZWt0YWRrcHNzeXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzNTQxNjUsImV4cCI6MjA1MTkzMDE2NX0.Y16tUMCHMm6bV8sCNMHFGkOlFRVPMtqXjP3PZnFuXvI'
-        },
-        body: JSON.stringify({
-          email,
-          password: senha,
-          data: {nome, papel, empresa_id: _empresaId}
-        })
-      }
-    );
-    const signUpJson = await signUpRes.json();
+    // Criar usuário via SDK signUp — salvar sessão atual antes para restaurar depois
+    const {data:sessaoAtual} = await supa.auth.getSession();
+    window._ignorarAuthEvent = true; // flag para não disparar iniciarSessao no listener
 
-    // Verificar erro
-    if(!signUpRes.ok && signUpJson.error_description !== 'User already registered'){
-      const msg = signUpJson.msg || signUpJson.error_description || signUpJson.message || 'Erro desconhecido';
-      toast("❌","Erro ao criar acesso: "+String(msg).substring(0,60));
+    const {data:signUpData, error:signUpErr} = await supa.auth.signUp({
+      email, password: senha,
+      options: { data: {nome, papel, empresa_id: _empresaId} }
+    });
+
+    // Restaurar sessão do admin imediatamente
+    if(sessaoAtual?.session){
+      await supa.auth.setSession({
+        access_token: sessaoAtual.session.access_token,
+        refresh_token: sessaoAtual.session.refresh_token
+      });
+    }
+    window._ignorarAuthEvent = false;
+
+    if(signUpErr && !signUpErr.message?.includes('already registered')){
+      toast("❌","Erro ao criar acesso: "+String(signUpErr.message).substring(0,80));
       if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
       return;
     }
 
-    let userId = signUpJson?.id || signUpJson?.user?.id;
+    let userId = signUpData?.user?.id;
 
     if(!userId){
       // Email já existe — buscar ID pelo email na tabela perfis
@@ -3194,7 +3191,10 @@ async function enviarConviteCliente(){
     const url=window.location.origin;
 
     // ETAPA 1: Criar usuário no Supabase Auth
-    // IMPORTANTE: Desative "Confirm email" em Authentication → Providers → Email
+    // Salvar sessão atual do admin para restaurar depois
+    const {data:sessaoAdmin} = await supa.auth.getSession();
+    window._ignorarAuthEvent = true;
+
     const {data:authData, error:authErr} = await supa.auth.signUp({
       email,
       password: senhaTemp,
@@ -3203,6 +3203,15 @@ async function enviarConviteCliente(){
         emailRedirectTo: url
       }
     });
+
+    // Restaurar sessão do admin imediatamente
+    if(sessaoAdmin?.session){
+      await supa.auth.setSession({
+        access_token: sessaoAdmin.session.access_token,
+        refresh_token: sessaoAdmin.session.refresh_token
+      });
+    }
+    window._ignorarAuthEvent = false;
 
     // Tratar erros específicos do signUp
     if(authErr){
@@ -9774,6 +9783,7 @@ async function initObraTech(){
 
     // Escutar logout e recovery
     supa.auth.onAuthStateChange((event, session)=>{
+      if(window._ignorarAuthEvent) return; // Ignorar eventos durante convite de equipe
       if(event==='SIGNED_OUT'){
         window._sessaoAtiva=false;
         localStorage.removeItem('_ot_empresa_id');
