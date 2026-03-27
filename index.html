@@ -2070,8 +2070,20 @@ async function carregarDadosSupabase(){
     if(contratos.data)   DB.contratos  = contratos.data.map(mapContrato);
     if(pgtos.data)       DB.pgtos      = pgtos.data.map(mapPgto);
     if(ncs.data)         DB.ncs        = ncs.data.map(mapNc);
-    if(cats.data)        DB.categorias = cats.data.map(r=>r.nome);
-    if(ccs.data)         DB.centros    = ccs.data.map(r=>r.nome);
+    if(cats.data){
+      const supaCats=cats.data.map(r=>r.nome);
+      // Mesclar: manter locais que nao estao no Supabase e sincroniza-las
+      const locais=(DB.categorias||[]).filter(c=>!supaCats.includes(c));
+      DB.categorias=[...new Set([...supaCats,...locais])];
+      // Sync categorias locais que nao estavam no Supabase
+      locais.forEach(c=>supaInsert('categorias',{id:uuidv4(),nome:c}));
+    }
+    if(ccs.data){
+      const supaCcs=ccs.data.map(r=>r.nome);
+      const locaisCc=(DB.centros||[]).filter(c=>!supaCcs.includes(c));
+      DB.centros=[...new Set([...supaCcs,...locaisCc])];
+      locaisCc.forEach(c=>supaInsert('centros_custo',{id:uuidv4(),nome:c}));
+    }
     if(forns.data)       DB.fornecedores = forns.data.map(r=>({id:r.id,nome:r.nome,tipo:r.tipo,cnpj:r.cnpj,contato:r.contato,email:r.email,telefone:r.telefone}));
     if(dems.data)        DB.demandas     = dems.data.map(r=>({id:r.id,numero:r.numero,titulo:r.titulo,desc:r.descricao,obraId:r.obra_id,categoria:r.categoria,responsavel:r.responsavel,prazo:r.prazo,prioridade:r.prioridade,status:r.status,obs:r.obs,_supa:true}));
     if(driveArqs.data)   _driveArqs      = driveArqs.data;
@@ -2270,8 +2282,8 @@ function iniciarRealtime(){
         demandas:r=>{DB.demandas=r.map(x=>({id:x.id,numero:x.numero,titulo:x.titulo,desc:x.descricao,obraId:x.obra_id,categoria:x.categoria,responsavel:x.responsavel,prazo:x.prazo,prioridade:x.prioridade,status:x.status,obs:x.obs,_supa:true}));if(document.getElementById('p-demandas')?.style.display!=='none')renderDemandas();},
         pontos:r=>{DB.pontos=r.map(row=>({id:row.id,colabId:row.colaborador_id,obraId:row.obra_id,data:row.data,presente:row.presente,tipo:row.tipo,_supa:true}));},
         fornecedores_cadastro:r=>{DB.fornecedores=r.map(x=>({id:x.id,nome:x.nome,tipo:x.tipo,cnpj:x.cnpj,contato:x.contato,email:x.email,telefone:x.telefone,_supa:true}));if(document.getElementById('p-fornecedores')?.style.display!=='none')renderFornecedores();fillSelects();},
-        categorias:r=>{DB.categorias=r.map(x=>x.nome);renderCadastros&&renderCadastros();},
-        centros_custo:r=>{DB.centros=r.map(x=>x.nome);renderCadastros&&renderCadastros();},
+        categorias:r=>{const supaCats=r.map(x=>x.nome);const locais=(DB.categorias||[]).filter(c=>!supaCats.includes(c));DB.categorias=[...new Set([...supaCats,...locais])];renderCadastros&&renderCadastros();},
+        centros_custo:r=>{const supaCcs=r.map(x=>x.nome);const locais=(DB.centros||[]).filter(c=>!supaCcs.includes(c));DB.centros=[...new Set([...supaCcs,...locais])];renderCadastros&&renderCadastros();},
         drive_arquivos:r=>{_driveArqs=r;if(document.getElementById('p-drive')?.style.display!=='none')renderDrive();},
         terceirizados:r=>{DB.terceirizados=r.map(mapTerceirizado);renderTerceirizados();},
         pontos_terceirizados:r=>{DB.pontosTercs=r.map(mapPontoTerc);rdoRenderPresencaTercs();},
