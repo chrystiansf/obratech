@@ -5429,13 +5429,13 @@ function renderFin(){
     el.innerHTML=`<table class="tbl tbl-filter-hdr">
       <tr>
         ${thData}
-        <th><div class="th-inner">DESCRIÇÃO<input type="text" placeholder="🔍 Buscar..." style="height:22px;font-size:9px;width:120px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-desc" value="${_finBuscaDesc}" oninput="document.getElementById('fin-busca-desc').value=this.value;renderFin()" onclick="event.stopPropagation()"></div></th>
+        <th><div class="th-inner">DESCRIÇÃO<input type="text" placeholder="🔍 Buscar..." style="height:22px;font-size:9px;width:120px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-desc" value="${_finBuscaDesc}" oninput="window._finDescVal=this.value;document.getElementById('fin-busca-desc').value=this.value;clearTimeout(window._finDescTm);window._finDescTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-desc');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
         <th>${_finThBtn('obra','OBRA')}</th>
         <th>${_finThBtn('tipo','TIPO')}</th>
         <th>${_finThBtn('cat','CATEGORIA')}</th>
         <th>${_finThBtn('cc','C. CUSTO')}</th>
         <th>${_finThBtn('forn','FORNECEDOR')}</th>
-        <th style="text-align:right"><div class="th-inner">VALOR<input type="text" placeholder="🔍 Buscar..." style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-valor" value="${_finBuscaValor||''}" oninput="_finBuscaValorInput=this.value;renderFin()" onclick="event.stopPropagation()"></div></th>
+        <th style="text-align:right"><div class="th-inner">VALOR<input type="text" placeholder="🔍 Buscar..." style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-valor" value="${_finBuscaValor||''}" oninput="window._finBuscaValorInput=this.value;clearTimeout(window._finValorTm);window._finValorTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-valor');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
         <th></th>
       </tr>`
       +lans.sort((a,b)=>b.data.localeCompare(a.data)).map(l=>{
