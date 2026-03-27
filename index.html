@@ -1030,6 +1030,7 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
       <div class="card">
         <div class="ch"><div class="ct">💳 Lançamentos</div>
           <div class="ca">
+            <input class="inp" id="fin-busca-desc" placeholder="🔍 Buscar descrição..." style="height:34px;font-size:12px;width:180px" oninput="renderFin()">
             <select class="sel" id="fin-obra-rapido" style="height:34px;font-size:12px;width:170px" onchange="finFiltrarObra(this.value)">
               <option value="">🏗️ Todas as obras</option>
             </select>
@@ -5325,6 +5326,8 @@ function finLimparFiltros(){
   Object.keys(_finFiltros).forEach(k=>_finFiltros[k]=k==='dataIni'||k==='dataFim'?'':null);
   const sel=document.getElementById('fin-obra-rapido');
   if(sel) sel.value='';
+  const busca=document.getElementById('fin-busca-desc');
+  if(busca) busca.value='';
   renderFin();
 }
 
@@ -5348,7 +5351,9 @@ function renderFin(){
       DB.obras.map(o=>`<option value="${o.id}"${curVal===String(o.id)?' selected':''}>${o.nome}</option>`).join('');
   }
   const isObra=true;
+  const _finBuscaDesc=(document.getElementById('fin-busca-desc')?.value||'').toLowerCase().trim();
   const lans=DB.lancs.filter(l=>{
+    if(_finBuscaDesc&&!(l.desc||'').toLowerCase().includes(_finBuscaDesc)) return false;
     if(_finFiltros.obra!==null&&!_finFiltros.obra.has(String(l.obraId))) return false;
     if(_finFiltros.tipo!==null&&!_finFiltros.tipo.has(l.tipo||'—')) return false;
     if(_finFiltros.cat!==null&&!_finFiltros.cat.has(l.cat||'—')) return false;
@@ -5366,7 +5371,7 @@ function renderFin(){
     <div class="kpi"><div class="kl">⚖️ Saldo</div><div class="kv" style="color:${rec>=dep?'var(--green)':'var(--red)'}">${fmtR(rec-dep)}</div><div class="kd ${rec>=dep?'up':'dn'}">${rec>=dep?'Superávit':'Déficit'}</div></div>
     <div class="kpi"><div class="kl">📊 Total</div><div class="kv">${lans.length}</div><div class="kd neu">Lançamentos</div></div>`;
   // Chips de filtros ativos
-  const temFiltro=Object.entries(_finFiltros).some(([k,v])=>k==='dataIni'||k==='dataFim'?v!=='':v!==null);
+  const temFiltro=Object.entries(_finFiltros).some(([k,v])=>k==='dataIni'||k==='dataFim'?v!=='':v!==null)||!!_finBuscaDesc;
   const limparBtn=document.getElementById('fin-limpar-btn');
   if(limparBtn)limparBtn.style.display=temFiltro?'inline-flex':'none';
   const chipsEl=document.getElementById('fin-chips');
