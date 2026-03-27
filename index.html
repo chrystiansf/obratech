@@ -786,9 +786,10 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
           <button class="btn sm" onclick="rdoMarcarTodosTercs(false)" style="font-size:10px">☐ Nenhum</button>
         </div>
       </div>
-      <div style="display:flex;gap:7px">
-        <button class="btn" style="flex:1" onclick="saveRDO('rascunho')">💾 Rascunho</button>
-        <button class="btn pri" style="flex:1" onclick="saveRDO('finalizado')">✅ Finalizar & PDF</button>
+      <div id="rdo-save-status" style="display:none;text-align:center;padding:8px;font-size:12px;color:var(--primary);font-weight:600">⏳ Salvando RDO...</div>
+      <div style="display:flex;gap:7px" id="rdo-save-btns">
+        <button class="btn" style="flex:1" onclick="rdoSaveClick('rascunho')">💾 Rascunho</button>
+        <button class="btn pri" style="flex:1" onclick="rdoSaveClick('finalizado')">✅ Finalizar & PDF</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:11px">
@@ -4415,6 +4416,21 @@ function renderFotoGrid(){
   }).join('')+`<div class="pc add" onclick="document.getElementById('rdo-foto-in').click()"><span>📷</span><span style="font-size:9px">Foto</span></div>`;
 }
 function addFotos(e){Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{rdoFotos.push({name:f.name,data:ev.target.result});renderFotoGrid();};r.readAsDataURL(f);});e.target.value='';}
+async function rdoSaveClick(status){
+  const btns=document.getElementById('rdo-save-btns');
+  const st=document.getElementById('rdo-save-status');
+  if(btns)btns.style.display='none';
+  if(st){st.style.display='block';st.textContent=status==='finalizado'?'⏳ Finalizando e gerando PDF...':'⏳ Salvando RDO...';}
+  try{
+    await saveRDO(status);
+  }catch(e){
+    console.error('Erro saveRDO:',e);
+    toast('❌','Erro ao salvar: '+e.message);
+  }finally{
+    if(btns)btns.style.display='flex';
+    if(st)st.style.display='none';
+  }
+}
 async function saveRDO(status){
   const oId=document.getElementById('rdo-obra').value;if(!oId){toast('⚠️','Selecione uma obra!');return;}
   const data=document.getElementById('rdo-data').value;if(!data){toast('⚠️','Informe a data!');return;}
@@ -4469,27 +4485,36 @@ async function saveRDO(status){
   const rdo={id:rdoId,obraId:oId,data,clima:rdoClima,prev,real,serv,obs,mat,status,fotos:fotosFinais,_supa:true};
   // Fotos para salvar no Supabase (sem base64, só URLs)
   const fotosParaSupa=fotosFinais.map(f=>({name:f.name,url:f.url||'',desc:f.desc||''}));
+  const dadosSupa={obra_id:rdo.obraId,data:rdo.data,clima:rdo.clima,previsto:rdo.prev,realizado:rdo.real,servicos:rdo.serv,obs:rdo.obs,materiais:rdo.mat,status:rdo.status,fotos:fotosParaSupa};
 
-  if(idx>=0){
-    DB.rdos[idx]=rdo;
-    supaUpdate('rdos',rdo.id,{obra_id:rdo.obraId,data:rdo.data,clima:rdo.clima,previsto:rdo.prev,realizado:rdo.real,servicos:rdo.serv,obs:rdo.obs,materiais:rdo.mat,status:rdo.status,fotos:JSON.stringify(fotosParaSupa)});
-  } else {
-    DB.rdos.push(rdo);
-    supaInsert('rdos',{id:rdo.id,obra_id:rdo.obraId,data:rdo.data,clima:rdo.clima,previsto:rdo.prev,realizado:rdo.real,servicos:rdo.serv,obs:rdo.obs,materiais:rdo.mat,status:rdo.status,fotos:JSON.stringify(fotosParaSupa)});
-  }
+  // Salvar local primeiro (garante dados mesmo offline)
+  if(idx>=0){ DB.rdos[idx]=rdo; } else { DB.rdos.push(rdo); }
   save();renderRDOHist();
+
+  // Salvar no Supabase com await (critico para mobile)
+  try{
+    if(idx>=0){
+      await supaUpdate('rdos',rdo.id,dadosSupa);
+    } else {
+      await supaInsert('rdos',{id:rdo.id,...dadosSupa});
+    }
+    toast('☁️','RDO sincronizado!');
+  }catch(e){
+    console.error('Erro sync RDO:',e);
+    toast('⚠️','RDO salvo localmente. Sync pendente.');
+  }
+
   window._rdoEditId=null;
   const sb=document.getElementById('rdo-edit-status');if(sb)sb.style.display='none';
   if(status==='finalizado'){
-    gerarRDOPDF(rdo);
-    // Limpar formulário para novo RDO
+    await gerarRDOPDF(rdo);
     ['rdo-servicos','rdo-obs','rdo-mat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('rdo-data').value=new Date().toISOString().split('T')[0];
     rdoClima='Ensolarado';
     document.querySelectorAll('.clima-btn').forEach(b=>{b.style.background='transparent';b.style.borderColor='';b.style.color='';});
     rdoFotos=[];renderFotoGrid();rdoRenderPresenca();
-    toast('✅','RDO finalizado e PDF gerado! Formulário limpo para novo registro.');
-  } else toast('💾','RDO salvo como rascunho!');
+    toast('✅','RDO finalizado e PDF gerado!');
+  } else toast('💾','RDO salvo!');
 }
 function renderRDOHist(){
   const oId=document.getElementById('rdo-obra')?.value||getObra()?.id;
