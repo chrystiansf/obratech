@@ -8507,17 +8507,17 @@ function exportFinPDF() {
 
   // ── Resumo por categoria
   y = pSec(doc, y, 'Resumo por Categoria');
-  const cats = [...new Set(lans.filter(l=>l.tipo==='Despesa').map(l => l.cat||'Sem Categoria'))].sort();
+  const catsData = [...new Set(lans.filter(l=>l.tipo==='Despesa').map(l => l.cat||'Sem Categoria'))].map(cat => {
+    const d2 = lans.filter(l => l.cat===cat && l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
+    const qtd = lans.filter(l => l.cat===cat && l.tipo==='Despesa').length;
+    return {cat, d2, qtd};
+  }).sort((a,b) => b.d2 - a.d2);
   doc.autoTable({
     startY: y,
     head: [['Categoria', 'Valor (R$)', 'Qtd', '% do Total']],
     body: [
-      ...cats.map(cat => {
-        const d2 = lans.filter(l => l.cat===cat && l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-        const qtd = lans.filter(l => l.cat===cat && l.tipo==='Despesa').length;
-        return [cat, fmtR(d2), qtd, dep>0 ? Math.round(d2/dep*100)+'%' : '0%'];
-      }),
-      ['TOTAL GERAL', fmtR(dep), nDep, '100%']
+      ...catsData.map(c => [c.cat, fmtR(c.d2), c.qtd, dep>0 ? (c.d2/dep*100).toFixed(2)+'%' : '0.00%']),
+      ['TOTAL GERAL', fmtR(dep), nDep, '100.00%']
     ],
     theme: 'striped',
     headStyles: hStyle(),
@@ -8530,7 +8530,7 @@ function exportFinPDF() {
       3: { cellWidth: 30, halign: 'center' }
     },
     didParseCell: (d) => {
-      if (d.section === 'body' && d.row.index === cats.length) {
+      if (d.section === 'body' && d.row.index === catsData.length) {
         d.cell.styles.fillColor   = PX.navy;
         d.cell.styles.textColor   = [255,255,255];
         d.cell.styles.fontStyle   = 'bold';
