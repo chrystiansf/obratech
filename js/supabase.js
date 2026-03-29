@@ -613,7 +613,7 @@ async function carregarDadosSupabase(){
       safe(supa.from('etapas').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('colaboradores').select('*').eq('empresa_id',eid).order('nome')),
       safe(supa.from('lancamentos').select('*').eq('empresa_id',eid).order('data',{ascending:false})),
-      safe(supa.from('rdos').select('id,obra_id,data,clima,previsto,realizado,servicos,materiais,obs,status').eq('empresa_id',eid).order('data',{ascending:false})),
+      safe(supa.from('rdos').select('*').eq('empresa_id',eid).order('data',{ascending:false})),
       safe(supa.from('estoque').select('*').eq('empresa_id',eid).order('material')),
       safe(supa.from('movimentacoes').select('*').eq('empresa_id',eid).order('data',{ascending:false})),
       safe(supa.from('contratos').select('*').eq('empresa_id',eid).order('criado_em')),
