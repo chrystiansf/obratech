@@ -1,0 +1,294 @@
+// ═══════════════════════════════════════════
+// CRONOGRAMA
+// ═══════════════════════════════════════════
+// ── SEQUÊNCIA CONSTRUTIVA ESPERADA ──────────────────────────────────────
+// Para cada etapa (pelo nome), define:
+//   startPct: % do prazo total da obra em que essa etapa deveria COMEÇAR
+//   endPct:   % do prazo total em que deveria TERMINAR
+// Baseado em cronograma típico de obra residencial de médio porte.
+const ENGENHARIA_SEQ = [
+  {keys:['taxa','encargo','implurb','licença','aprovação','projeto'],     s:0,  e:5  },
+  {keys:['canteiro','instalação do canteiro'],                            s:0,  e:5  },
+  {keys:['fundaç','fundacao','sondagem','terraplan'],                     s:2,  e:12 },
+  {keys:['estrutura','laje','pilar','viga','concret'],                    s:8,  e:35 },
+  {keys:['alvenaria'],                                                    s:28, e:55 },
+  {keys:['cobertura','telhado'],                                          s:45, e:62 },
+  {keys:['hidráulic','hidraulic'],                                        s:30, e:70 },
+  {keys:['elétric','eletric'],                                            s:30, e:72 },
+  {keys:['ar-condicionado','ar condicionado','tubulação ar'],             s:50, e:75 },
+  {keys:['revestimento e acabamento','reboco','argamass'],                s:55, e:85 },
+  {keys:['piso','piscina','churrasqueira','itens especiais'],             s:65, e:88 },
+  {keys:['pintura','selador','massa corrida'],                            s:75, e:95 },
+  {keys:['forro'],                                                        s:60, e:85 },
+  {keys:['mão de obra civil'],                                            s:0,  e:100},
+  {keys:['administração'],                                                s:0,  e:100},
+  {keys:['serviços gerais'],                                              s:0,  e:100},
+];
+
+function engSeq(nome){
+  const n=nome.toLowerCase();
+  for(const r of ENGENHARIA_SEQ){
+    if(r.keys.some(k=>n.includes(k)))return{s:r.s,e:r.e};
+  }
+  return{s:0,e:100};
+}
+
+// Calcula % esperado hoje para uma etapa com base no prazo da obra
+function pctEsperadoHoje(obra, etapa){
+  // Somente valor manual definido pelo gestor via botão 🎯
+  if(etapa.pctEsp!=null && etapa.pctEsp!=='') return Number(etapa.pctEsp);
+  return null;
+}
+
+// Saúde da barra: compara pct real vs esperado
+function ganttSaude(obra, etapa){
+  const pct=Number(etapa.pct);
+  if(pct>=100)return'done';
+  const esp=pctEsperadoHoje(obra,etapa);
+  if(esp===null)return pct>0?'ok':'future';
+  if(esp===0) return pct>0?'ahead':'future';
+  const diff=pct-esp;
+  if(diff>=0) return diff>=5?'ahead':'ok';   // 5%+ acima = adiantado
+  return'late';                               // abaixo = atrasado
+}
+
+// Cores e rótulos por saúde
+const SAUDE_STYLE={
+  done:   {bg:'#18a84d', track:'rgba(24,168,77,.15)',  glow:'rgba(24,168,77,.4)',  label:'Concluído',  txt:'#18a84d'},
+  ahead:  {bg:'#5b8ff9', track:'rgba(91,143,249,.15)', glow:'rgba(91,143,249,.4)', label:'Adiantado',  txt:'#5b8ff9'},
+  ok:     {bg:'#f4a623', track:'rgba(244,166,35,.15)', glow:'rgba(244,166,35,.4)', label:'No prazo',   txt:'#f4a623'},
+  late:   {bg:'#d94040', track:'rgba(217,64,64,.15)',  glow:'rgba(217,64,64,.4)',  label:'Atrasado',   txt:'#d94040'},
+  future: {bg:'#3a4260', track:'rgba(58,66,96,.2)',    glow:'transparent',         label:'Aguardando', txt:'#4a5278'},
+};
+
+function renderCron(){
+  // Popular seletor
+  const cronSel=document.getElementById('cron-obra-sel');
+  if(cronSel){
+    const prev=cronSel.value;
+    cronSel.innerHTML=DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
+    if(prev&&DB.obras.find(o=>o.id===prev)) cronSel.value=prev;
+    else if(DB.sel) cronSel.value=DB.sel;
+    else if(DB.obras.length) cronSel.value=DB.obras[0].id;
+  }
+  const selId=cronSel?cronSel.value:null;
+  const obra=selId?DB.obras.find(o=>o.id===selId):null;
+  document.getElementById('cron-empty').style.display=obra?'none':'flex';
+  if(!obra)return;
+  document.getElementById('cron-sub').textContent=obra.nome;
+  const ets=DB.etapas.filter(e=>String(e.obraId)===String(obra.id));
+  const pm=ets.length?Math.round(ets.reduce((a,e)=>a+Number(e.pct),0)/ets.length):0;
+  const conc=ets.filter(e=>Number(e.pct)>=100).length;
+  const ahead=ets.filter(e=>ganttSaude(obra,e)==='ahead').length;
+  const atrasadas=ets.filter(e=>ganttSaude(obra,e)==='late').length;
+
+  // Financeiro da obra
+  const orcTotal=ets.reduce((a,e)=>a+Number(e.orc||0),0);
+  const orcRealizado=ets.reduce((a,e)=>a+Number(e.orc||0)*Number(e.pct||0)/100,0);
+  const gastoReal=DB.lancs.filter(l=>String(l.obraId)===String(obra.id)&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor||0),0);
+  const orcObra=orcTotal||Number(obra.orc||0); // soma das etapas (prioridade) ou orc da obra
+  const saldoObra=orcObra-gastoReal;
+  const pctGasto=orcObra>0?Math.round(gastoReal/orcObra*100):0;
+  const corSaldo=saldoObra<0?'var(--red)':saldoObra<orcObra*0.1?'var(--yellow)':'var(--green)';
+
+  document.getElementById('cron-kpis').innerHTML=`
+    <div class="kpi"><div class="kl">📊 Avanço Geral</div><div class="kv">${pm}%</div><div class="kd ${pm>=50?'up':'neu'}">Média das etapas</div></div>
+    <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv">${conc}/${ets.length}</div><div class="kd up">100% executadas</div></div>
+    <div class="kpi"><div class="kl">⬆️ Adiantadas</div><div class="kv" style="color:${ahead?'var(--green)':'var(--txt3)'}">${ahead}</div><div class="kd ${ahead?'up':'neu'}">Acima do esperado</div></div>
+    <div class="kpi"><div class="kl">🔴 Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>
+    <div class="kpi"><div class="kl">💰 Orçado</div><div class="kv" style="font-size:14px">${orcObra>0?fmtR(orcObra):'Não definido'}</div><div class="kd neu">${orcObra>0?'orçamento total':orcTotal>0?'defina em Obras':'cadastre nas etapas'}</div></div>
+    <div class="kpi"><div class="kl">💸 Gasto Real</div><div class="kv" style="font-size:14px;color:${gastoReal>orcObra&&orcObra>0?'var(--red)':'var(--txt)'}">${fmtR(gastoReal)}</div><div class="kd ${pctGasto>100?'dn':pctGasto>80?'neu':'up'}">${orcObra>0?pctGasto+'% do orçado':gastoReal>0?'lançamentos financeiros':'sem lançamentos'}</div></div>
+    ${orcObra>0?`<div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="font-size:14px;color:${corSaldo}">${fmtR(Math.abs(saldoObra))}</div><div class="kd ${saldoObra<0?'dn':'up'}">${saldoObra<0?'⚠ Acima do orçamento':'disponível'}</div></div>`:''}`;
+
+  document.getElementById('gantt-empty').style.display=ets.length?'none':'block';
+
+  let obraHojePct=50;
+  if(obra.dataIni&&obra.dataFim){
+    const ini=new Date(obra.dataIni),fim=new Date(obra.dataFim),hj=new Date();
+    obraHojePct=Math.max(0,Math.min(100,Math.round((hj-ini)/(fim-ini)*100)));
+  }
+
+  const ganttRows=ets.map(e=>{
+    const pct=Number(e.pct);
+    const saude=ganttSaude(obra,e);
+    const st=SAUDE_STYLE[saude];
+    const esp=pctEsperadoHoje(obra,e);
+    const marca=(esp!==null&&esp>0&&esp<100)?esp:null;
+    const espLabel=e.pctEsp!=null?`Manual: ${e.pctEsp}%`:(esp!==null?`Calculado: ${esp}%`:'—');
+    const tip=`${e.nome} | Realizado: ${pct}% | Esperado: ${espLabel} | ${st.label}`;
+    return `<div class="gr" title="${tip}" style="min-height:28px;margin-bottom:6px;align-items:center">
+      <div class="gn" style="font-size:11px;font-weight:600;color:var(--txt)">${e.nome}${e.orc>0?`<div style="font-size:9px;color:var(--txt3);font-weight:400">${fmtR(e.orc)}</div>`:''}</div>
+      <div style="flex:1;position:relative;height:16px">
+        <div style="position:absolute;inset:0;background:${st.track};border-radius:4px;border:1px solid ${st.bg}30"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'18px':'0'}">
+          ${pct>8?`<span style="font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)">${pct>=100?'✓':pct+'%'}</span>`:''}
+        </div>
+        ${pct>0&&pct<=8?`<span style="position:absolute;left:${pct+1}%;top:50%;transform:translateY(-50%);font-size:8px;font-weight:700;color:${st.bg}">${pct}%</span>`:''}
+        ${marca!==null?`<div style="position:absolute;left:${marca}%;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.95);z-index:3;border-radius:1px">
+          <div style="position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:5px;height:5px;background:#fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.4)"></div>
+        </div>`:''}
+      </div>
+      <div style="width:130px;flex-shrink:0;display:flex;align-items:center;gap:3px;margin-left:8px">
+        <span style="font-size:9px;font-weight:700;color:#fff;background:${st.bg};padding:2px 6px;border-radius:8px;white-space:nowrap;flex:1;text-align:center">${st.label}</span>
+        <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="padding:2px 5px;font-size:11px">🎯</button>
+        <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="padding:2px 5px">✏️</button>
+        <button class="btn sm ico" onclick="delEtapa('${e.id}')" style="padding:2px 5px">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('gantt-area').innerHTML=`
+    <div style="display:flex;margin-left:163px;margin-right:122px;margin-bottom:10px;position:relative;height:16px">
+      ${[0,25,50,75,100].map(p=>`<div style="position:absolute;left:${p}%;transform:translateX(-50%);font-size:9px;color:var(--txt3);text-align:center"><div style="width:1px;height:4px;background:var(--border2);margin:0 auto 2px"></div>${p}%</div>`).join('')}
+    </div>
+    ${ganttRows}
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--txt3);align-items:center">
+      ${Object.entries(SAUDE_STYLE).map(([,v])=>`<span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;background:${v.bg};border-radius:2px;flex-shrink:0"></span><span style="color:var(--txt2);font-size:11px">${v.label}</span></span>`).join('')}
+      <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt3)"><span style="display:inline-block;width:2px;height:10px;background:rgba(255,255,255,.7);border-radius:1px"></span>Esperado hoje</span>
+    </div>`;
+
+  // ── CURVA S FINANCEIRA ─────────────────────────────────────
+  setTimeout(()=>{
+    const emptyEl=document.getElementById('ch-curvas-empty');
+    const canvasEl=document.getElementById('ch-curvas');
+
+    // Verificar se tem dados financeiros ou orçamento
+    const orcTotal=ets.reduce((a,e)=>a+Number(e.orc||0),0);
+    const lancObra=DB.lancs.filter(l=>String(l.obraId)===String(obra.id)&&l.tipo==='Despesa'&&l.data);
+    const medObra=(DB.medicoes||[]).filter(m=>String(m.obraId)===String(obra.id)&&m.status==='aprovado'&&m.periodo);
+
+    if(!orcTotal&&!lancObra.length&&!medObra.length){
+      if(emptyEl) emptyEl.style.display='block';
+      if(canvasEl) canvasEl.style.display='none';
+      return;
+    }
+    if(emptyEl) emptyEl.style.display='none';
+    if(canvasEl) canvasEl.style.display='block';
+
+    // Determinar período da obra (meses)
+    let dIni,dFim;
+    if(obra.dataIni) dIni=new Date(obra.dataIni);
+    else if(lancObra.length) dIni=new Date(lancObra.reduce((a,l)=>l.data<a?l.data:a,lancObra[0].data));
+    else dIni=new Date();
+    if(obra.dataFim) dFim=new Date(obra.dataFim);
+    else { dFim=new Date(); dFim.setMonth(dFim.getMonth()+3); }
+
+    // Gerar array de meses do período
+    const meses=[];
+    const cur=new Date(dIni.getFullYear(),dIni.getMonth(),1);
+    const fim=new Date(dFim.getFullYear(),dFim.getMonth(),1);
+    while(cur<=fim){ meses.push(new Date(cur)); cur.setMonth(cur.getMonth()+1); }
+    if(!meses.length){meses.push(new Date());}
+
+    const labels=meses.map(m=>m.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
+    const nMeses=meses.length;
+
+    // CURVA ORÇADA: distribuição linear do orçamento total ao longo dos meses
+    // (idealmente viria das datas das etapas ponderadas pelo orçamento)
+    const orcPorMes=[];
+    const orcAcum=[];
+    let orcAcc=0;
+    ets.forEach(e=>{
+      if(!e.orc||!e.inicio||!e.fim) return;
+      const eIni=new Date(e.inicio);
+      const eFim=new Date(e.fim);
+      const eDur=Math.max(1,(eFim.getFullYear()-eIni.getFullYear())*12+(eFim.getMonth()-eIni.getMonth())+1);
+      const orcMensal=Number(e.orc)/eDur;
+      meses.forEach((m,i)=>{
+        if(m>=new Date(eIni.getFullYear(),eIni.getMonth(),1)&&m<=new Date(eFim.getFullYear(),eFim.getMonth(),1)){
+          orcPorMes[i]=(orcPorMes[i]||0)+orcMensal;
+        }
+      });
+    });
+    // Se não tem datas nas etapas, distribuir uniformemente
+    if(orcPorMes.filter(Boolean).length===0&&orcTotal>0){
+      const mensal=orcTotal/nMeses;
+      meses.forEach((_,i)=>orcPorMes[i]=mensal);
+    }
+    for(let i=0;i<nMeses;i++){ orcAcc+=(orcPorMes[i]||0); orcAcum.push(orcAcc); }
+
+    // CURVA REALIZADA: lançamentos de despesa acumulados por mês
+    const realAcum=[];
+    let realAcc=0;
+    meses.forEach(m=>{
+      const mesStr=`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+      const soma=lancObra.filter(l=>l.data&&l.data.substring(0,7)===mesStr).reduce((a,l)=>a+Number(l.valor||0),0);
+      realAcc+=soma;
+      realAcum.push(realAcc);
+    });
+
+    // CURVA MEDIDA: medições aprovadas acumuladas por mês
+    const medAcum=[];
+    let medAcc=0;
+    const temMedicoes=medObra.length>0;
+    if(temMedicoes){
+      meses.forEach(m=>{
+        const mesStr=`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+        const soma=medObra.filter(med=>med.periodo&&med.periodo.substring(0,7)===mesStr).reduce((a,med)=>a+Number(med.valorMedido||0),0);
+        medAcc+=soma;
+        medAcum.push(medAcc);
+      });
+    }
+
+    // Formatar valores em R$ para tooltips
+    const fmtK=v=>v>=1000000?'R$'+(v/1000000).toFixed(1)+'M':v>=1000?'R$'+(v/1000).toFixed(0)+'K':'R$'+Math.round(v);
+
+    const datasets=[
+      {label:'Orçado Acumulado',data:orcAcum,borderColor:'#5b8ff9',backgroundColor:'rgba(91,143,249,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#5b8ff9',fill:true,tension:0.3},
+      {label:'Realizado Acumulado',data:realAcum,borderColor:'#18a84d',backgroundColor:'rgba(24,168,77,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#18a84d',fill:false,tension:0.3},
+    ];
+    if(temMedicoes){
+      datasets.push({label:'Medido Acumulado',data:medAcum,borderColor:'#f4a623',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,pointBackgroundColor:'#f4a623',fill:false,tension:0.3});
+    }
+
+    mkChart('ch-curvas',{
+      type:'line',
+      data:{labels,datasets},
+      options:{
+        ...BO,
+        plugins:{...BO.plugins,tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtK(ctx.parsed.y)}`}}},
+        scales:{
+          x:{ticks:{color:'rgba(180,190,220,.8)',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+          y:{ticks:{color:'rgba(180,190,220,.8)',font:{size:9},callback:v=>fmtK(v)},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}
+        }
+      }
+    });
+  },50);
+}
+function editarEspEtapa(id){
+  const e=DB.etapas.find(x=>String(x.id)===String(id));
+  if(!e)return;
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
+    <div class="mo" style="max-width:380px">
+      <div class="moh"><div class="mot">🎯 % Esperado — ${e.nome}</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="mob">
+        <p style="font-size:12px;color:var(--txt3);margin-bottom:14px">
+          Define quanto desta etapa deveria estar concluído <strong>hoje</strong>.<br>
+          Isso determina se está: <span style="color:#d94040">Atrasado</span>, <span style="color:#f4a623">No prazo</span>, <span style="color:#5b8ff9">Adiantado</span> ou <span style="color:#18a84d">Concluído</span>.
+        </p>
+        <div class="fg">
+          <label class="lbl">% Esperado hoje (0–100)</label>
+          <input type="number" class="inp" id="esp-val" min="0" max="100" value="${e.pctEsp??''}" placeholder="Ex: 50 (deixe vazio para calcular automaticamente)">
+          <div style="font-size:11px;color:var(--txt3);margin-top:4px">
+            Atual: <strong>${e.pct||0}%</strong> realizado · 
+            ${e.inicio&&e.fim?`Período: ${e.inicio} → ${e.fim}`:'Sem datas definidas'}
+          </div>
+        </div>
+      </div>
+      <div class="mof">
+        <button class="btn" onclick="closeModal()">Cancelar</button>
+        <button class="btn pri" onclick="(()=>{
+          const v=document.getElementById('esp-val').value;
+          const n=v===''?null:Math.min(100,Math.max(0,Number(v)));
+          const e2=DB.etapas.find(x=>String(x.id)==='${id}');
+          if(e2){e2.pctEsp=n;supaUpdate('etapas','${id}',{pct_esperado:n});save();renderCron();closeModal();toast('🎯','% esperado atualizado!');}
+        })()">✅ Salvar</button>
+      </div>
+    </div></div>`;
+  window._mSave=null;
+}
+
+function delEtapa(id){if(!confirm('Excluir etapa?'))return;if(typeof id==='string'&&id.includes('-'))supaDelete('etapas',id);DB.etapas=DB.etapas.filter(e=>String(e.id)!==String(id));save();renderCron();toast('🗑️','Etapa excluída.');}
+function diasR(dt){return Math.max(0,Math.ceil((new Date(dt)-new Date())/86400000));}
+
