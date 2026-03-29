@@ -77,7 +77,7 @@ async function pcCarregarObra(obraId){
     const [etapas,lancs,rdos,estoque,movs,ncs,contratos,pgtos,colabs] = await Promise.all([
       supa.from('etapas').select('id,nome,status,pct,inicio,fim,responsavel').eq('empresa_id',eid).eq('obra_id',obraId),
       supa.from('lancamentos').select('id,tipo,descricao,categoria,valor,data,fornecedor').eq('empresa_id',eid).eq('obra_id',obraId).order('data',{ascending:false}),
-      supa.from('rdos').select('id,data,clima,previsto,realizado,servicos,materiais,obs,status').eq('empresa_id',eid).eq('obra_id',obraId).order('data',{ascending:false}),
+      supa.from('rdos').select('*').eq('empresa_id',eid).eq('obra_id',obraId).order('data',{ascending:false}),
       supa.from('estoque').select('id,material,unidade,estoque_min').eq('empresa_id',eid),
       supa.from('movimentacoes').select('id,estoque_id,tipo,quantidade').eq('empresa_id',eid).eq('obra_id',obraId),
       supa.from('nao_conformidades').select('id,numero,descricao,grau,prazo,status,etapa').eq('empresa_id',eid).eq('obra_id',obraId),
@@ -107,31 +107,6 @@ function pcTab(tab){
   _pcTabAtiva = tab;
   document.querySelectorAll('.pc-tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===tab));
   if(_pcObraId) pcRenderTab(tab);
-}
-
-function pcRenderTab(tab){
-  const el = document.getElementById('pc-main');
-  const d = _pcDados;
-  const o = d.obra;
-  if(!o){ el.innerHTML=''; return; }
-
-  let html='';
-  if(tab==='resumo') html = pcHtmlResumo(d,o);
-  else if(tab==='cronograma') html = pcHtmlCronograma(d,o);
-  else if(tab==='financeiro') html = pcHtmlFinanceiro(d,o);
-  else if(tab==='rdo') html = pcHtmlRdo(d,o);
-  else if(tab==='estoque') html = pcHtmlEstoque(d,o);
-  else if(tab==='qualidade') html = pcHtmlQualidade(d,o);
-  else if(tab==='equipe') html = pcHtmlEquipe(d,o);
-  else if(tab==='contratos') html = pcHtmlContratos(d,o);
-
-  // Botão PDF
-  const btnPdf = PC_PDF_TABS[tab]
-    ? `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-        <button class="btn sm pri" onclick="pcGerarPdf('${tab}')">📄 Exportar PDF</button>
-       </div>`
-    : '';
-  el.innerHTML = btnPdf + html;
 }
 
 function pcFmtR(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});}
