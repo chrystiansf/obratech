@@ -934,11 +934,46 @@ function openModal(type,editId=null,editId2=null){
 }
 function _refreshLancEtapas(obraVal){
   const sel=document.getElementById('l-etapa');if(!sel)return;
-  sel.innerHTML='<option value="">— Selecionar —</option>'+DB.etapas.filter(e=>!obraVal||e.obraId==parseInt(obraVal)).map(e=>'<option value="'+e.nome+'">'+e.nome+'</option>').join('');
+  let opts='<option value="">— Selecionar —</option>';
+  // Etapas do cronograma
+  DB.etapas.filter(e=>!obraVal||String(e.obraId)==String(obraVal)).forEach(e=>{
+    opts+=`<option value="${e.nome}">${e.nome}</option>`;
+  });
+  // Itens do orçamento (grupos principais com valor)
+  if(obraVal){
+    const orcGrupos=typeof _orcGet==='function'?_orcGet(obraVal):[];
+    const gruposComValor=orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+    if(gruposComValor.length){
+      opts+='<option disabled>── Orçamento ──</option>';
+      gruposComValor.forEach(g=>{
+        // Only add if not already in etapas
+        const already=DB.etapas.some(e=>e.nome===g.nome&&String(e.obraId)==String(obraVal));
+        if(!already) opts+=`<option value="${g.cod} - ${g.nome}">${g.cod} - ${g.nome}</option>`;
+      });
+    }
+  }
+  sel.innerHTML=opts;
 }
 function _refreshCtEtapas(obraVal){
   const sel=document.getElementById('ct-etapa');if(!sel)return;
-  sel.innerHTML='<option value="">— Selecionar —</option>'+DB.etapas.filter(e=>!obraVal||e.obraId==parseInt(obraVal)).map(e=>{const opt=document.createElement('option');opt.value=e.nome;opt.textContent=e.nome;return opt.outerHTML;}).join('');
+  let opts='<option value="">— Selecionar —</option>';
+  // Etapas do cronograma
+  DB.etapas.filter(e=>!obraVal||String(e.obraId)==String(obraVal)).forEach(e=>{
+    opts+=`<option value="${e.nome}">${e.nome}</option>`;
+  });
+  // Itens do orçamento (grupos principais com valor)
+  if(obraVal){
+    const orcGrupos=typeof _orcGet==='function'?_orcGet(obraVal):[];
+    const gruposComValor=orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+    if(gruposComValor.length){
+      opts+='<option disabled>── Orçamento ──</option>';
+      gruposComValor.forEach(g=>{
+        const already=DB.etapas.some(e=>e.nome===g.nome&&String(e.obraId)==String(obraVal));
+        if(!already) opts+=`<option value="${g.cod} - ${g.nome}">${g.cod} - ${g.nome}</option>`;
+      });
+    }
+  }
+  sel.innerHTML=opts;
 }
 function closeModal(){document.getElementById('modal-root').innerHTML='';window._mSave=null;}
 

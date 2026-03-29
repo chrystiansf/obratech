@@ -147,6 +147,27 @@ function renderCron(){
       <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt3)"><span style="display:inline-block;width:2px;height:10px;background:rgba(255,255,255,.7);border-radius:1px"></span>Esperado hoje</span>
     </div>`;
 
+  // Orçado x Realizado KPIs
+  const orcSection=document.getElementById('cron-orc-section');
+  if(orcSection){
+    const orcGrupos=typeof _orcGet==='function'?_orcGet(obra.id):[];
+    const totalOrcado=orcGrupos.reduce((a,g)=>a+g.subs.reduce((b,s)=>b+(Number(s.qtd)||0)*(Number(s.unit)||0),0),0);
+    const totalRealizado=DB.lancs.filter(l=>String(l.obraId)===String(obra.id)&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor||0),0);
+    const saldo=totalOrcado-totalRealizado;
+
+    if(totalOrcado>0){
+      orcSection.style.display='block';
+      document.getElementById('cron-orc-kpis').innerHTML=`
+        <div class="kpi"><div class="kl">💰 Orçado</div><div class="kv" style="color:var(--primary)">${fmtR(totalOrcado)}</div></div>
+        <div class="kpi"><div class="kl">✅ Realizado</div><div class="kv" style="color:var(--green)">${fmtR(totalRealizado)}</div></div>
+        <div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="color:${saldo>=0?'var(--green)':'var(--red)'}">${fmtR(saldo)}</div><div class="kd ${saldo>=0?'up':'dn'}">${totalOrcado>0?((totalRealizado/totalOrcado)*100).toFixed(1)+'% executado':'—'}</div></div>
+      `;
+      renderCurvaOrcRealizado(obra.id);
+    } else {
+      orcSection.style.display='none';
+    }
+  }
+
   // ── CURVA S FINANCEIRA ─────────────────────────────────────
   setTimeout(()=>{
     const emptyEl=document.getElementById('ch-curvas-empty');
@@ -287,6 +308,42 @@ function editarEspEtapa(id){
       </div>
     </div></div>`;
   window._mSave=null;
+}
+
+function renderCurvaOrcRealizado(obraId){
+  const grupos=typeof _orcGet==='function'?_orcGet(obraId):[];
+  if(!grupos.length) return;
+
+  const gruposComValor=grupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+  if(!gruposComValor.length) return;
+
+  const labels=gruposComValor.map(g=>g.cod+' '+g.nome.substring(0,20));
+  const orcado=gruposComValor.map(g=>g.subs.reduce((a,s)=>a+(Number(s.qtd)||0)*(Number(s.unit)||0),0));
+  const realizado=gruposComValor.map(g=>{
+    const nomeMatch=g.cod+' - '+g.nome;
+    return DB.lancs.filter(l=>String(l.obraId)===String(obraId)&&l.tipo==='Despesa'&&(l.etapa===nomeMatch||l.etapa===g.nome||l.cat===g.nome)).reduce((a,l)=>a+Number(l.valor||0),0);
+  });
+
+  mkChart('ch-orc-real',{
+    type:'bar',
+    data:{
+      labels:labels,
+      datasets:[
+        {label:'Orçado',data:orcado,backgroundColor:'rgba(91,143,249,0.7)',borderRadius:4},
+        {label:'Realizado',data:realizado,backgroundColor:'rgba(45,212,122,0.7)',borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': R$ '+Number(ctx.raw).toLocaleString('pt-BR',{minimumFractionDigits:2})}}
+      },
+      scales:{
+        x:{ticks:{font:{size:9},maxRotation:45}},
+        y:{ticks:{font:{size:10},callback:v=>'R$ '+(v>=1000?(v/1000).toFixed(0)+'k':v)}}
+      }
+    }
+  });
 }
 
 function delEtapa(id){if(!confirm('Excluir etapa?'))return;if(typeof id==='string'&&id.includes('-'))supaDelete('etapas',id);DB.etapas=DB.etapas.filter(e=>String(e.id)!==String(id));save();renderCron();toast('🗑️','Etapa excluída.');}
