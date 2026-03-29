@@ -940,17 +940,13 @@ function _refreshLancEtapas(obraVal){
   if(etapasCron.length){
     etapasCron.forEach(e=>{opts+=`<option value="${e.nome}">${e.nome}</option>`;});
   }
-  // Itens do orçamento (grupos + subitens com valor)
+  // Etapas principais do orçamento (só grupos)
   if(obraVal){
     const orcGrupos=typeof _orcGet==='function'?_orcGet(obraVal):[];
     const gruposComValor=orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
     if(gruposComValor.length){
       gruposComValor.forEach(g=>{
-        const gNome=g.cod+' - '+g.nome;
-        opts+=`<option disabled style="font-weight:700;color:var(--primary)">── ${gNome} ──</option>`;
-        g.subs.filter(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0).forEach(s=>{
-          opts+=`<option value="${s.cod} - ${s.desc}">&nbsp;&nbsp;${s.cod} - ${s.desc}</option>`;
-        });
+        opts+=`<option value="${g.cod} - ${g.nome}">${g.cod} - ${g.nome}</option>`;
       });
     }
   }
@@ -967,11 +963,7 @@ function _refreshCtEtapas(obraVal){
     const gruposComValor=orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
     if(gruposComValor.length){
       gruposComValor.forEach(g=>{
-        const gNome=g.cod+' - '+g.nome;
-        opts+=`<option disabled style="font-weight:700">── ${gNome} ──</option>`;
-        g.subs.filter(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0).forEach(s=>{
-          opts+=`<option value="${s.cod} - ${s.desc}">&nbsp;&nbsp;${s.cod} - ${s.desc}</option>`;
-        });
+        opts+=`<option value="${g.cod} - ${g.nome}">${g.cod} - ${g.nome}</option>`;
       });
     }
   }
