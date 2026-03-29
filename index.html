@@ -183,8 +183,10 @@ body:not(.light) #theme-toggle::before{transform:translateX(0)}
 nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
 
 
-.ni{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:var(--txt2);font-size:12.5px;font-weight:500;transition:.15s;border-radius:0;margin:0}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:grab;color:var(--txt2);font-size:12.5px;font-weight:500;transition:.15s;border-radius:0;margin:0}
 .ni:hover{color:var(--txt);background:var(--bg3)}
+.ni.dragging{opacity:.4;background:var(--bg3)}
+.ni.drag-over{border-top:2px solid var(--primary);margin-top:-2px}
 .ni.on{color:var(--primary);background:var(--pglow);font-weight:600}
 .ni .ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;filter:saturate(.4) brightness(.95);opacity:.7;transition:all .15s}
 .ni.on .ic{filter:none;opacity:1}
@@ -600,20 +602,20 @@ nav{padding:4px 0;flex:1;display:flex;flex-direction:column;gap:0}
   <div id="sb-user" style="display:none"><div id="sb-user-nome"></div><div id="sb-user-papel"></div></div>
   <div style="display:none"><div id="sb-obra-txt"></div></div>
   <nav>
-    <div class="ni" data-p="empresa" onclick="goPage('empresa')"><span class="ic">🏢</span><span class="sb-txt">Empresa</span></div>
-    <div class="ni on" data-p="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span><span class="sb-txt">Dashboard</span></div>
-    <div class="ni" data-p="obras" onclick="goPage('obras')"><span class="ic">🏗️</span><span class="sb-txt">Obras</span></div>
-    <div class="ni" data-p="cronograma" onclick="goPage('cronograma')"><span class="ic">📅</span><span class="sb-txt">Cronograma</span></div>
-    <div class="ni" data-p="rdo" onclick="goPage('rdo')"><span class="ic">📋</span><span class="sb-txt">RDO Diario</span></div>
-    <div class="ni" data-p="equipe" onclick="goPage('equipe')"><span class="ic">👷</span><span class="sb-txt">Equipe / Folha</span></div>
-    <div class="ni" data-p="estoque" onclick="goPage('estoque')"><span class="ic">📦</span><span class="sb-txt">Estoque</span></div>
-    <div class="ni" data-p="financeiro" onclick="goPage('financeiro')"><span class="ic">💰</span><span class="sb-txt">Financeiro</span></div>
-    <div class="ni" data-p="contratos" onclick="goPage('contratos')"><span class="ic">📑</span><span class="sb-txt">Contratos</span></div>
-    <div class="ni" data-p="orcamento" onclick="goPage('orcamento')"><span class="ic">💲</span><span class="sb-txt">Orçamento</span></div>
-    <div class="ni" data-p="qualidade" onclick="goPage('qualidade')"><span class="ic">✅</span><span class="sb-txt">Qualidade</span></div>
-    <div class="ni" data-p="demandas" onclick="goPage('demandas')"><span class="ic">📋</span><span class="sb-txt">Demandas</span></div>
-    <div class="ni" data-p="fornecedores" onclick="goPage('fornecedores')"><span class="ic">🏭</span><span class="sb-txt">Fornecedores</span></div>
-    <div class="ni" data-p="relatorios" onclick="goPage('relatorios')"><span class="ic">📈</span><span class="sb-txt">Relatorios</span></div>
+    <div class="ni" data-p="empresa" draggable="true" onclick="goPage('empresa')"><span class="ic">🏢</span><span class="sb-txt">Empresa</span></div>
+    <div class="ni on" data-p="dashboard" draggable="true" onclick="goPage('dashboard')"><span class="ic">📊</span><span class="sb-txt">Dashboard</span></div>
+    <div class="ni" data-p="obras" draggable="true" onclick="goPage('obras')"><span class="ic">🏗️</span><span class="sb-txt">Obras</span></div>
+    <div class="ni" data-p="cronograma" draggable="true" onclick="goPage('cronograma')"><span class="ic">📅</span><span class="sb-txt">Cronograma</span></div>
+    <div class="ni" data-p="rdo" draggable="true" onclick="goPage('rdo')"><span class="ic">📋</span><span class="sb-txt">RDO Diario</span></div>
+    <div class="ni" data-p="equipe" draggable="true" onclick="goPage('equipe')"><span class="ic">👷</span><span class="sb-txt">Equipe / Folha</span></div>
+    <div class="ni" data-p="estoque" draggable="true" onclick="goPage('estoque')"><span class="ic">📦</span><span class="sb-txt">Estoque</span></div>
+    <div class="ni" data-p="financeiro" draggable="true" onclick="goPage('financeiro')"><span class="ic">💰</span><span class="sb-txt">Financeiro</span></div>
+    <div class="ni" data-p="contratos" draggable="true" onclick="goPage('contratos')"><span class="ic">📑</span><span class="sb-txt">Contratos</span></div>
+    <div class="ni" data-p="orcamento" draggable="true" onclick="goPage('orcamento')"><span class="ic">💲</span><span class="sb-txt">Orçamento</span></div>
+    <div class="ni" data-p="qualidade" draggable="true" onclick="goPage('qualidade')"><span class="ic">✅</span><span class="sb-txt">Qualidade</span></div>
+    <div class="ni" data-p="demandas" draggable="true" onclick="goPage('demandas')"><span class="ic">📋</span><span class="sb-txt">Demandas</span></div>
+    <div class="ni" data-p="fornecedores" draggable="true" onclick="goPage('fornecedores')"><span class="ic">🏭</span><span class="sb-txt">Fornecedores</span></div>
+    <div class="ni" data-p="relatorios" draggable="true" onclick="goPage('relatorios')"><span class="ic">📈</span><span class="sb-txt">Relatorios</span></div>
   </nav>
   <div class="sbfoot" style="flex-direction:column;align-items:center;gap:6px;padding:12px 8px">
     <div class="av" id="user-av" onclick="openUserModal()" style="overflow:hidden;width:36px;height:36px;font-size:14px">?</div>
@@ -2306,6 +2308,63 @@ function adicionarBotaoLogout(){
   btn.onclick=logout;
   sb.appendChild(btn);
 }
+
+// ═══════════════════════════════════════════
+// SIDEBAR DRAG & DROP — Reordenar abas
+// ═══════════════════════════════════════════
+(function(){
+  let _dragEl=null;
+  function initSidebarDrag(){
+    const nav=document.querySelector('#sb nav');
+    if(!nav) return;
+    // Restore saved order
+    const saved=localStorage.getItem('obratech_nav_order');
+    if(saved){
+      try{
+        const order=JSON.parse(saved);
+        const items=[...nav.querySelectorAll('.ni[data-p]')];
+        const map={};items.forEach(el=>map[el.dataset.p]=el);
+        order.forEach(p=>{if(map[p])nav.appendChild(map[p]);});
+        // Append any items not in saved order
+        items.forEach(el=>{if(!order.includes(el.dataset.p))nav.appendChild(el);});
+      }catch(e){}
+    }
+    nav.addEventListener('dragstart',e=>{
+      const ni=e.target.closest('.ni[data-p]');
+      if(!ni)return;
+      _dragEl=ni;ni.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',ni.dataset.p);
+    });
+    nav.addEventListener('dragend',e=>{
+      if(_dragEl)_dragEl.classList.remove('dragging');
+      nav.querySelectorAll('.ni').forEach(n=>n.classList.remove('drag-over'));
+      _dragEl=null;
+    });
+    nav.addEventListener('dragover',e=>{
+      e.preventDefault();e.dataTransfer.dropEffect='move';
+      const ni=e.target.closest('.ni[data-p]');
+      nav.querySelectorAll('.ni').forEach(n=>n.classList.remove('drag-over'));
+      if(ni&&ni!==_dragEl)ni.classList.add('drag-over');
+    });
+    nav.addEventListener('drop',e=>{
+      e.preventDefault();
+      const target=e.target.closest('.ni[data-p]');
+      if(!target||!_dragEl||target===_dragEl)return;
+      const items=[...nav.querySelectorAll('.ni[data-p]')];
+      const dragIdx=items.indexOf(_dragEl);
+      const dropIdx=items.indexOf(target);
+      if(dragIdx<dropIdx)target.after(_dragEl);
+      else nav.insertBefore(_dragEl,target);
+      // Save order
+      const newOrder=[...nav.querySelectorAll('.ni[data-p]')].map(n=>n.dataset.p);
+      localStorage.setItem('obratech_nav_order',JSON.stringify(newOrder));
+      nav.querySelectorAll('.ni').forEach(n=>n.classList.remove('drag-over'));
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initSidebarDrag);
+  else setTimeout(initSidebarDrag,100);
+})();
 
 // ═══════════════════════════════════════════
 // BANCO DE DADOS — localStorage
@@ -6279,7 +6338,7 @@ function renderOrcamento(){
 
   // KPIs
   kpis.innerHTML=`
-    <div class="kpi"><div class="kl">Total Geral</div><div class="kv" style="color:var(--primary)">${fmtR(totalGeral)}</div><div class="kd neu">${grupos.length} grupos</div></div>
+    <div class="kpi"><div class="kl">Total Geral</div><div class="kv" style="color:#1a7a3a">${fmtR(totalGeral)}</div><div class="kd neu">${grupos.length} grupos</div></div>
     <div class="kpi"><div class="kl">Custo/m²</div><div class="kv">${m2>0?fmtR(totalGeral/m2):'—'}</div><div class="kd neu">${m2>0?m2.toLocaleString('pt-BR')+' m²':'Área não informada'}</div></div>
     <div class="kpi"><div class="kl">Itens Preenchidos</div><div class="kv">${itensPreenchidos}</div><div class="kd neu">de ${itensTotal} itens</div></div>
   `;
@@ -6292,12 +6351,12 @@ function renderOrcamento(){
     const pct=totalGeral>0?(gTotal/totalGeral*100).toFixed(1):'0.0';
 
     html+=`<div style="margin-bottom:2px">
-      <div onclick="orcToggleGrupo('${obraId}','${g.cod}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;transition:.15s${isOpen?';border-color:var(--primary)':''}">
+      <div onclick="orcToggleGrupo('${obraId}','${g.cod}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;transition:.15s${isOpen?';border-color:#1a7a3a':''}">
         <span style="font-size:12px;transition:.2s;transform:rotate(${isOpen?'90':'0'}deg)">▶</span>
-        <span style="font-weight:700;font-size:12px;color:var(--primary);min-width:28px">${g.cod}</span>
+        <span style="font-weight:700;font-size:12px;color:#1a7a3a;min-width:28px">${g.cod}</span>
         <span style="font-weight:600;font-size:12px;flex:1">${g.nome}</span>
         <span style="font-size:10px;color:var(--txt3);margin-right:4px">${pct}%</span>
-        <span style="font-weight:700;font-size:12px;color:var(--primary);min-width:90px;text-align:right">${fmtR(gTotal)}</span>
+        <span style="font-weight:700;font-size:12px;color:#1a7a3a;min-width:90px;text-align:right">${fmtR(gTotal)}</span>
         <button class="btn sm ico" onclick="event.stopPropagation();orcAdicionarItem('${obraId}',${gi})" title="Adicionar subitem" style="font-size:10px">＋</button>
         <button class="btn sm ico" onclick="event.stopPropagation();orcRemoverGrupo('${obraId}',${gi})" title="Remover grupo" style="font-size:10px;color:var(--red)">🗑️</button>
       </div>`;
@@ -6323,13 +6382,13 @@ function renderOrcamento(){
           <td style="text-align:center;font-size:11px">${s.un}</td>
           <td><input type="number" class="inp" value="${s.qtd||''}" min="0" step="any" style="width:70px;height:28px;font-size:11px;text-align:right;padding:0 6px" onchange="orcUpdateItem('${obraId}',${gi},${si},'qtd',this.value)"></td>
           <td><input type="number" class="inp" value="${s.unit||''}" min="0" step="any" style="width:90px;height:28px;font-size:11px;text-align:right;padding:0 6px" onchange="orcUpdateItem('${obraId}',${gi},${si},'unit',this.value)"></td>
-          <td style="text-align:right;font-weight:600;font-size:11px;color:${subTotal>0?'var(--primary)':'var(--txt3)'}">${subTotal>0?fmtR(subTotal):'—'}</td>
+          <td style="text-align:right;font-weight:600;font-size:11px;color:${subTotal>0?'#1a7a3a':'var(--txt3)'}">${subTotal>0?fmtR(subTotal):'—'}</td>
           <td><button class="btn sm ico" onclick="orcRemoverItem('${obraId}',${gi},${si})" title="Remover" style="font-size:10px;color:var(--red)">✕</button></td>
         </tr>`;
       });
       html+=`<tr style="background:var(--bg3);font-weight:700">
         <td colspan="5" style="text-align:right;font-size:12px">Subtotal ${g.nome}</td>
-        <td style="text-align:right;font-size:12px;color:var(--primary)">${fmtR(gTotal)}</td>
+        <td style="text-align:right;font-size:12px;color:#1a7a3a">${fmtR(gTotal)}</td>
         <td></td>
       </tr></tbody></table></div>`;
     }
@@ -6337,7 +6396,7 @@ function renderOrcamento(){
   });
 
   // Total geral row
-  html+=`<div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:14px 16px;margin-top:8px;background:var(--primary);border-radius:8px;color:#fff">
+  html+=`<div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:14px 16px;margin-top:8px;background:#1a7a3a;border-radius:8px;color:#fff">
     <span style="font-size:14px;font-weight:600">TOTAL GERAL DO ORÇAMENTO</span>
     <span style="font-size:18px;font-weight:800">${fmtR(totalGeral)}</span>
   </div>`;
@@ -6442,8 +6501,8 @@ function orcGerarPDF(){
   const doc=new jsPDF();
   const pw=doc.internal.pageSize.getWidth();
   const ph=doc.internal.pageSize.getHeight();
-  const accent=corEmpresa();
-  const accentHex=_empresaCor||'#0A193C';
+  const accent=[26,122,58]; // verde escuro
+  const accentHex='#1a7a3a';
   let totalGeral=0;
 
   // ── HEADER
