@@ -77,10 +77,24 @@ function renderCron(){
   if(!obra)return;
   document.getElementById('cron-sub').textContent=obra.nome;
   const ets=DB.etapas.filter(e=>String(e.obraId)===String(obra.id));
-  const pm=ets.length?Math.round(ets.reduce((a,e)=>a+Number(e.pct),0)/ets.length):0;
-  const conc=ets.filter(e=>Number(e.pct)>=100).length;
-  const ahead=ets.filter(e=>ganttSaude(obra,e)==='ahead').length;
-  const atrasadas=ets.filter(e=>ganttSaude(obra,e)==='late').length;
+  // Calcular avanço considerando orçamento se disponível
+  const _orcG=typeof _orcGet==='function'?_orcGet(obra.id):[];
+  const _temOrcKpi=_orcG.some(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+  let pm,conc,ahead,atrasadas;
+  if(_temOrcKpi){
+    const pctS=_orcLoadPct(obra.id);
+    const allSubs=_orcG.flatMap(g=>g.subs.filter(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+    const pcts=allSubs.map(s=>Number(pctS[s.cod]||0));
+    pm=pcts.length?Math.round(pcts.reduce((a,p)=>a+p,0)/pcts.length):0;
+    conc=pcts.filter(p=>p>=100).length;
+    ahead=0;atrasadas=0;
+  } else {
+    pm=ets.length?Math.round(ets.reduce((a,e)=>a+Number(e.pct),0)/ets.length):0;
+    conc=ets.filter(e=>Number(e.pct)>=100).length;
+    ahead=ets.filter(e=>ganttSaude(obra,e)==='ahead').length;
+    atrasadas=ets.filter(e=>ganttSaude(obra,e)==='late').length;
+  }
+  const totalEtapas=_temOrcKpi?_orcG.flatMap(g=>g.subs.filter(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0)).length:ets.length;
 
   // Financeiro da obra
   const orcTotal=ets.reduce((a,e)=>a+Number(e.orc||0),0);
@@ -93,58 +107,124 @@ function renderCron(){
 
   document.getElementById('cron-kpis').innerHTML=`
     <div class="kpi"><div class="kl">📊 Avanço Geral</div><div class="kv">${pm}%</div><div class="kd ${pm>=50?'up':'neu'}">Média das etapas</div></div>
-    <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv">${conc}/${ets.length}</div><div class="kd up">100% executadas</div></div>
+    <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv">${conc}/${totalEtapas}</div><div class="kd up">100% executadas</div></div>
     <div class="kpi"><div class="kl">⬆️ Adiantadas</div><div class="kv" style="color:${ahead?'var(--green)':'var(--txt3)'}">${ahead}</div><div class="kd ${ahead?'up':'neu'}">Acima do esperado</div></div>
     <div class="kpi"><div class="kl">🔴 Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>
     <div class="kpi"><div class="kl">💰 Orçado</div><div class="kv" style="font-size:14px">${orcObra>0?fmtR(orcObra):'Não definido'}</div><div class="kd neu">${orcObra>0?'orçamento total':orcTotal>0?'defina em Obras':'cadastre nas etapas'}</div></div>
     <div class="kpi"><div class="kl">💸 Gasto Real</div><div class="kv" style="font-size:14px;color:${gastoReal>orcObra&&orcObra>0?'var(--red)':'var(--txt)'}">${fmtR(gastoReal)}</div><div class="kd ${pctGasto>100?'dn':pctGasto>80?'neu':'up'}">${orcObra>0?pctGasto+'% do orçado':gastoReal>0?'lançamentos financeiros':'sem lançamentos'}</div></div>
     ${orcObra>0?`<div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="font-size:14px;color:${corSaldo}">${fmtR(Math.abs(saldoObra))}</div><div class="kd ${saldoObra<0?'dn':'up'}">${saldoObra<0?'⚠ Acima do orçamento':'disponível'}</div></div>`:''}`;
 
-  document.getElementById('gantt-empty').style.display=ets.length?'none':'block';
+  // ── Gantt: etapas tradicionais + orçamento ──
+  const orcGrupos=typeof _orcGet==='function'?_orcGet(obra.id):[];
+  const temOrc=orcGrupos.some(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
 
-  let obraHojePct=50;
-  if(obra.dataIni&&obra.dataFim){
-    const ini=new Date(obra.dataIni),fim=new Date(obra.dataFim),hj=new Date();
-    obraHojePct=Math.max(0,Math.min(100,Math.round((hj-ini)/(fim-ini)*100)));
+  // Montar lista de itens do Gantt
+  let ganttItems=[];
+  if(temOrc){
+    // Usar orçamento como fonte — cada grupo = etapa, subitens = sub-etapas
+    const pctStore=_orcLoadPct(obra.id);
+
+    orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0)).forEach(g=>{
+      const subsComValor=g.subs.filter(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0);
+      const subTotal=subsComValor.reduce((a,s)=>a+(Number(s.qtd)||0)*(Number(s.unit)||0),0);
+      // Calcular pct médio do grupo baseado nos subitens
+      const subPcts=subsComValor.map(s=>Number(pctStore[s.cod]||0));
+      const grupoPct=subPcts.length?Math.round(subPcts.reduce((a,p)=>a+p,0)/subPcts.length):0;
+
+      // Grupo (header)
+      ganttItems.push({tipo:'grupo',cod:g.cod,nome:g.nome,pct:grupoPct,valor:subTotal,subs:subsComValor.length});
+
+      // Subitens
+      const isOpen=_orcExpandidos[obra.id]&&_orcExpandidos[obra.id].has(g.cod);
+      if(isOpen){
+        subsComValor.forEach(s=>{
+          const sPct=Number(pctStore[s.cod]||0);
+          const sVal=(Number(s.qtd)||0)*(Number(s.unit)||0);
+          ganttItems.push({tipo:'sub',cod:s.cod,nome:s.desc,pct:sPct,valor:sVal,grupoCod:g.cod});
+        });
+      }
+    });
+  } else {
+    // Sem orçamento — usar etapas tradicionais
+    ets.forEach(e=>ganttItems.push({tipo:'etapa',id:e.id,nome:e.nome,pct:Number(e.pct),orc:e.orc,etapa:e}));
   }
 
-  const ganttRows=ets.map(e=>{
-    const pct=Number(e.pct);
-    const saude=ganttSaude(obra,e);
-    const st=SAUDE_STYLE[saude];
-    const esp=pctEsperadoHoje(obra,e);
-    const marca=(esp!==null&&esp>0&&esp<100)?esp:null;
-    const espLabel=e.pctEsp!=null?`Manual: ${e.pctEsp}%`:(esp!==null?`Calculado: ${esp}%`:'—');
-    const tip=`${e.nome} | Realizado: ${pct}% | Esperado: ${espLabel} | ${st.label}`;
-    return `<div class="gr" title="${tip}" style="min-height:28px;margin-bottom:6px;align-items:center">
-      <div class="gn" style="font-size:11px;font-weight:600;color:var(--txt)">${e.nome}${e.orc>0?`<div style="font-size:9px;color:var(--txt3);font-weight:400">${fmtR(e.orc)}</div>`:''}</div>
-      <div style="flex:1;position:relative;height:16px">
-        <div style="position:absolute;inset:0;background:${st.track};border-radius:4px;border:1px solid ${st.bg}30"></div>
-        <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'18px':'0'}">
-          ${pct>8?`<span style="font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)">${pct>=100?'✓':pct+'%'}</span>`:''}
+  const totalItems=ganttItems.filter(i=>i.tipo!=='grupo').length||ganttItems.length;
+  document.getElementById('gantt-empty').style.display=ganttItems.length?'none':'block';
+
+  let ganttRows='';
+  ganttItems.forEach(item=>{
+    const pct=item.pct;
+    const saude=pct>=100?'done':pct>=50?'ok':pct>0?'late':'future';
+    const st=SAUDE_STYLE[saude]||SAUDE_STYLE.future;
+
+    if(item.tipo==='grupo'){
+      // Header de grupo (clicável para expandir)
+      const isOpen=_orcExpandidos[obra.id]&&_orcExpandidos[obra.id].has(item.cod);
+      ganttRows+=`<div class="gr" style="min-height:32px;margin-bottom:2px;align-items:center;background:var(--bg3);border-radius:6px;padding:2px 0;cursor:pointer" onclick="orcToggleGrupo('${obra.id}','${item.cod}');renderCron()">
+        <div class="gn" style="font-size:11px;font-weight:700;color:var(--primary)">
+          <span style="font-size:10px;margin-right:4px">${isOpen?'▼':'▶'}</span>${item.cod} - ${item.nome}
+          <div style="font-size:9px;color:var(--txt3);font-weight:400">${fmtR(item.valor)} · ${item.subs} subitens</div>
         </div>
-        ${pct>0&&pct<=8?`<span style="position:absolute;left:${pct+1}%;top:50%;transform:translateY(-50%);font-size:8px;font-weight:700;color:${st.bg}">${pct}%</span>`:''}
-        ${marca!==null?`<div style="position:absolute;left:${marca}%;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.95);z-index:3;border-radius:1px">
-          <div style="position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:5px;height:5px;background:#fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.4)"></div>
-        </div>`:''}
-      </div>
-      <div style="width:130px;flex-shrink:0;display:flex;align-items:center;gap:3px;margin-left:8px">
-        <span style="font-size:9px;font-weight:700;color:#fff;background:${st.bg};padding:2px 6px;border-radius:8px;white-space:nowrap;flex:1;text-align:center">${st.label}</span>
-        <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="padding:2px 5px;font-size:11px">🎯</button>
-        <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="padding:2px 5px">✏️</button>
-        <button class="btn sm ico" onclick="delEtapa('${e.id}')" style="padding:2px 5px">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
+        <div style="flex:1;position:relative;height:18px">
+          <div style="position:absolute;inset:0;background:${st.track};border-radius:4px;border:1px solid ${st.bg}30"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'20px':'0'}">
+            ${pct>5?`<span style="font-size:9px;font-weight:800;color:#fff">${pct}%</span>`:''}
+          </div>
+        </div>
+        <div style="width:80px;flex-shrink:0;text-align:center;margin-left:8px">
+          <span style="font-size:9px;font-weight:700;color:#fff;background:${st.bg};padding:2px 8px;border-radius:8px">${pct}%</span>
+        </div>
+      </div>`;
+    } else if(item.tipo==='sub'){
+      // Subitem com input de %
+      ganttRows+=`<div class="gr" style="min-height:26px;margin-bottom:1px;align-items:center;padding-left:20px">
+        <div class="gn" style="font-size:10px;color:var(--txt2)">
+          ${item.cod} - ${item.nome.substring(0,45)}${item.nome.length>45?'...':''}
+          <div style="font-size:9px;color:var(--txt3)">${fmtR(item.valor)}</div>
+        </div>
+        <div style="flex:1;position:relative;height:14px">
+          <div style="position:absolute;inset:0;background:${st.track};border-radius:4px;border:1px solid ${st.bg}30"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;min-width:${pct>0?'14px':'0'}"></div>
+        </div>
+        <div style="width:80px;flex-shrink:0;display:flex;align-items:center;gap:4px;margin-left:8px">
+          <input type="number" class="inp" value="${pct}" min="0" max="100" step="5" style="width:50px;height:24px;font-size:10px;text-align:center;padding:0 4px" onchange="orcSetPct('${obra.id}','${item.cod}',this.value)">
+          <span style="font-size:10px;color:var(--txt3)">%</span>
+        </div>
+      </div>`;
+    } else {
+      // Etapa tradicional (sem orçamento)
+      const e=item.etapa;
+      const saude2=ganttSaude(obra,e);
+      const st2=SAUDE_STYLE[saude2];
+      const esp=pctEsperadoHoje(obra,e);
+      const marca=(esp!==null&&esp>0&&esp<100)?esp:null;
+      ganttRows+=`<div class="gr" style="min-height:28px;margin-bottom:6px;align-items:center">
+        <div class="gn" style="font-size:11px;font-weight:600;color:var(--txt)">${e.nome}${e.orc>0?`<div style="font-size:9px;color:var(--txt3);font-weight:400">${fmtR(e.orc)}</div>`:''}</div>
+        <div style="flex:1;position:relative;height:16px">
+          <div style="position:absolute;inset:0;background:${st2.track};border-radius:4px;border:1px solid ${st2.bg}30"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st2.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'18px':'0'}">
+            ${pct>8?`<span style="font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)">${pct>=100?'✓':pct+'%'}</span>`:''}
+          </div>
+          ${marca!==null?`<div style="position:absolute;left:${marca}%;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.95);z-index:3;border-radius:1px"></div>`:''}
+        </div>
+        <div style="width:130px;flex-shrink:0;display:flex;align-items:center;gap:3px;margin-left:8px">
+          <span style="font-size:9px;font-weight:700;color:#fff;background:${st2.bg};padding:2px 6px;border-radius:8px;white-space:nowrap;flex:1;text-align:center">${st2.label}</span>
+          <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="padding:2px 5px;font-size:11px">🎯</button>
+          <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="padding:2px 5px">✏️</button>
+          <button class="btn sm ico" onclick="delEtapa('${e.id}')" style="padding:2px 5px">🗑️</button>
+        </div>
+      </div>`;
+    }
+  });
 
   document.getElementById('gantt-area').innerHTML=`
-    <div style="display:flex;margin-left:163px;margin-right:122px;margin-bottom:10px;position:relative;height:16px">
+    <div style="display:flex;margin-left:163px;margin-right:80px;margin-bottom:10px;position:relative;height:16px">
       ${[0,25,50,75,100].map(p=>`<div style="position:absolute;left:${p}%;transform:translateX(-50%);font-size:9px;color:var(--txt3);text-align:center"><div style="width:1px;height:4px;background:var(--border2);margin:0 auto 2px"></div>${p}%</div>`).join('')}
     </div>
-    ${ganttRows}
+    ${ganttRows||'<div style="text-align:center;padding:20px;color:var(--txt3);font-size:12px">Preencha o orçamento da obra para ver as etapas aqui.</div>'}
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--txt3);align-items:center">
       ${Object.entries(SAUDE_STYLE).map(([,v])=>`<span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;background:${v.bg};border-radius:2px;flex-shrink:0"></span><span style="color:var(--txt2);font-size:11px">${v.label}</span></span>`).join('')}
-      <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt3)"><span style="display:inline-block;width:2px;height:10px;background:rgba(255,255,255,.7);border-radius:1px"></span>Esperado hoje</span>
     </div>`;
 
   // Orçado x Realizado KPIs
@@ -276,6 +356,26 @@ function renderCron(){
     });
   },50);
 }
+// Salvar % executado de um subitem do orçamento no cronograma
+function orcSetPct(obraId,cod,valor){
+  if(!window._orcPct) window._orcPct={};
+  if(!window._orcPct[obraId]) window._orcPct[obraId]={};
+  window._orcPct[obraId][cod]=Math.max(0,Math.min(100,Number(valor)||0));
+  localStorage.setItem('orcPct_'+obraId,JSON.stringify(window._orcPct[obraId]));
+  renderCron();
+}
+
+// Carregar % executados salvos do localStorage
+function _orcLoadPct(obraId){
+  if(!window._orcPct) window._orcPct={};
+  if(!window._orcPct[obraId]){
+    const saved=localStorage.getItem('orcPct_'+obraId);
+    if(saved){try{window._orcPct[obraId]=JSON.parse(saved);}catch(e){window._orcPct[obraId]={};}}
+    else window._orcPct[obraId]={};
+  }
+  return window._orcPct[obraId];
+}
+
 function editarEspEtapa(id){
   const e=DB.etapas.find(x=>String(x.id)===String(id));
   if(!e)return;
