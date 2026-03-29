@@ -1090,7 +1090,7 @@ async function salvarPermissoesCliente(clienteId){
   });
 })();
 
-document.addEventListener("DOMContentLoaded", initObraTech);
+// initObraTech chamado em init.js
 
 // ── Mobile Navigation ──────────────────────────────────────────
 function toggleMobileMore(){

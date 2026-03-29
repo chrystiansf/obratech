@@ -660,3 +660,5 @@ window.addEventListener('load',()=>{
   if(document.getElementById('rel-ate'))document.getElementById('rel-ate').value=hoje;
   if(document.getElementById('rdo-data'))document.getElementById('rdo-data').value=hoje;
 });
+
+document.addEventListener("DOMContentLoaded", initObraTech);
