@@ -61,7 +61,7 @@ const SAUDE_STYLE={
   future: {bg:'#3a4260', track:'rgba(58,66,96,.2)',    glow:'transparent',         label:'Aguardando', txt:'#4a5278'},
 };
 
-function renderCron(){
+async function renderCron(){
   // Popular seletor
   const cronSel=document.getElementById('cron-obra-sel');
   if(cronSel){
@@ -78,7 +78,7 @@ function renderCron(){
   document.getElementById('cron-sub').textContent=obra.nome;
   const ets=DB.etapas.filter(e=>String(e.obraId)===String(obra.id));
   // Calcular avanço considerando orçamento se disponível
-  const _orcG=typeof _orcGet==='function'?_orcGet(obra.id):[];
+  const _orcG=typeof _orcGet==="function"?await _orcGet(obra.id):[];
   const _temOrcKpi=_orcG.some(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
   let pm,conc,ahead,atrasadas;
   if(_temOrcKpi){
@@ -115,7 +115,7 @@ function renderCron(){
     ${orcObra>0?`<div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="font-size:14px;color:${corSaldo}">${fmtR(Math.abs(saldoObra))}</div><div class="kd ${saldoObra<0?'dn':'up'}">${saldoObra<0?'⚠ Acima do orçamento':'disponível'}</div></div>`:''}`;
 
   // ── Gantt: etapas tradicionais + orçamento ──
-  const orcGrupos=typeof _orcGet==='function'?_orcGet(obra.id):[];
+  const orcGrupos=typeof _orcGet==="function"?await _orcGet(obra.id):[];
   const temOrc=orcGrupos.some(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
 
   // Montar lista de itens do Gantt
@@ -230,7 +230,7 @@ function renderCron(){
   // Orçado x Realizado KPIs
   const orcSection=document.getElementById('cron-orc-section');
   if(orcSection){
-    const orcGrupos=typeof _orcGet==='function'?_orcGet(obra.id):[];
+    const orcGrupos=typeof _orcGet==="function"?await _orcGet(obra.id):[];
     const totalOrcado=orcGrupos.reduce((a,g)=>a+g.subs.reduce((b,s)=>b+(Number(s.qtd)||0)*(Number(s.unit)||0),0),0);
     const totalRealizado=DB.lancs.filter(l=>String(l.obraId)===String(obra.id)&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor||0),0);
     const saldo=totalOrcado-totalRealizado;

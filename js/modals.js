@@ -185,7 +185,7 @@ function openModal(type,editId=null,editId2=null){
         <select class="sel" id="l-obra" onchange="_refreshLancEtapas(this.value)">${DB.obras.map(o=>`<option value="${o.id}"${(l?.obraId||obra?.id)==o.id?' selected':''}>${o.nome}</option>`).join('')}</select>
       </div>
       <div class="fg"><label class="lbl">Etapa</label>
-        <select class="sel" id="l-etapa"><option value="">— Selecionar —</option>${DB.etapas.filter(e=>!obra||e.obraId==obra.id).map(e=>`<option value="${e.nome}"${l?.etapa===e.nome?' selected':''}>${e.nome}</option>`).join('')}</select>
+        <select class="sel" id="l-etapa"><option value="">Carregando etapas...</option></select>
       </div>
       <div class="fg"><label class="lbl">Fornecedor
         <button type="button" onclick="closeModal();goPage('fornecedores')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer" title="Cadastrar fornecedor">＋ cadastrar</button>
@@ -222,6 +222,18 @@ function openModal(type,editId=null,editId2=null){
         supaInsert('lancamentos',{id:novoId,tipo:dados.tipo,descricao:dados.desc,categoria:dados.cat,centro_custo:dados.etapa||'',valor:dados.valor,data:dados.data,fornecedor:dados.forn,nota_fiscal:dados.nf,obra_id:dados.obraId||null});
       }
       save();renderFin();toast('✅',l?'Lançamento atualizado!':'Lançamento registrado!');return true;
+    };
+    // Carregar etapas do orçamento async após modal renderizar
+    window._postModalRender=()=>{
+      const obraVal=document.getElementById('l-obra')?.value;
+      if(obraVal) _refreshLancEtapas(obraVal).then(()=>{
+        // Restaurar seleção se editando
+        const sel=document.getElementById('l-etapa');
+        if(sel&&l?.etapa){
+          const opt=[...sel.options].find(o=>o.value===l.etapa);
+          if(opt) opt.selected=true;
+        }
+      });
     };
   }
   else if(type==='material'){
@@ -932,23 +944,27 @@ function openModal(type,editId=null,editId2=null){
     setTimeout(cb,30);
   }
 }
-function _refreshLancEtapas(obraVal){
+async function _refreshLancEtapas(obraVal){
   const sel=document.getElementById('l-etapa');if(!sel)return;
   let opts='<option value="">— Selecionar —</option>';
-  // Etapas do cronograma (se existirem)
-  const etapasCron=DB.etapas.filter(e=>!obraVal||String(e.obraId)==String(obraVal));
-  if(etapasCron.length){
-    etapasCron.forEach(e=>{opts+=`<option value="${e.nome}">${e.nome}</option>`;});
-  }
-  // Etapas principais do orçamento (só grupos)
-  if(obraVal){
-    const orcGrupos=typeof _orcGet==='function'?_orcGet(obraVal):[];
-    const gruposComValor=orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+  // Etapas do orçamento (fonte principal)
+  if(obraVal && typeof _orcGet==='function'){
+    const orcGrupos=await _orcGet(obraVal);
+    const gruposComValor=(orcGrupos||[]).filter(g=>g.subs&&g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
     if(gruposComValor.length){
       gruposComValor.forEach(g=>{
         opts+=`<option value="${g.cod} - ${g.nome}">${g.cod} - ${g.nome}</option>`;
+        // Incluir subitens com valor
+        g.subs.filter(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0).forEach(s=>{
+          opts+=`<option value="${s.cod} - ${s.desc}">  ${s.cod} - ${s.desc}</option>`;
+        });
       });
     }
+  }
+  // Fallback: etapas do cronograma tradicional
+  if(opts==='<option value="">— Selecionar —</option>'){
+    const etapasCron=DB.etapas.filter(e=>!obraVal||String(e.obraId)==String(obraVal));
+    etapasCron.forEach(e=>{opts+=`<option value="${e.nome}">${e.nome}</option>`;});
   }
   sel.innerHTML=opts;
 }
