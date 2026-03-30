@@ -426,15 +426,11 @@ function renderFin(){
         </tr>`;
       }).join('')+'</table>';
   }
-  // Calcular m² total das obras filtradas
-  const obrasIds=_finFiltros.obra?[..._finFiltros.obra]:DB.obras.map(o=>String(o.id));
-  const m2Total=DB.obras.filter(o=>obrasIds.includes(String(o.id))).reduce((a,o)=>a+Number(o.m2||0),0);
-  // Categorias ordenadas do maior para o menor com R$/m²
-  const cats=DB.categorias||[];
-  const catVals=cats.map(ct=>{const v=lans.filter(l=>l.cat===ct&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);return{nome:ct,valor:v};}).filter(c=>c.valor>0).sort((a,b)=>b.valor-a.valor);
+  // Categorias com lançamentos, ordenadas do maior para o menor
+  const catSet=new Set([...(DB.categorias||[]),...lans.map(l=>l.cat).filter(Boolean)]);
+  const catVals=[...catSet].map(ct=>{const v=lans.filter(l=>l.cat===ct&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);return{nome:ct,valor:v};}).filter(c=>c.valor>0).sort((a,b)=>b.valor-a.valor);
   document.getElementById('fin-resumo').innerHTML='<div class="ct" style="margin-bottom:9px">Por Categoria</div>'
-    +(m2Total?`<div style="font-size:10px;color:var(--txt3);margin-bottom:8px">Área total: ${m2Total.toLocaleString('pt-BR')} m²</div>`:'')
-    +catVals.map(c=>`<div style="margin-bottom:7px"><div class="pl"><span style="font-size:11px">${c.nome}</span><span style="font-size:11px;display:flex;align-items:center;gap:8px">${m2Total?`<span style="font-size:10px;color:var(--txt3)">${fmtR(c.valor/m2Total)}/m²</span>`:''}<strong>${fmtR(c.valor)}</strong></span></div><div class="pw"><div class="pb" style="width:${dep?Math.round(c.valor/dep*100):0}%;background:var(--primary)"></div></div></div>`).join('');
+    +catVals.map(c=>`<div style="margin-bottom:7px"><div class="pl"><span style="font-size:11px">${c.nome}</span><span style="font-size:11px;font-weight:600">${fmtR(c.valor)}</span></div><div class="pw"><div class="pb" style="width:${dep?Math.round(c.valor/dep*100):0}%;background:var(--primary)"></div></div></div>`).join('');
   setTimeout(()=>{
     mkChart('ch-rv',{type:'doughnut',data:{labels:['Receitas','Despesas'],datasets:[{data:[rec||0.01,dep||0.01],backgroundColor:[CP.grnA,CP.redA],borderColor:[CP.grn,CP.red],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:CP.t,font:{size:9}}}}}});
     const ms=meses6();
