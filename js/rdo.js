@@ -198,7 +198,7 @@ async function saveRDO(status){
   const serv=document.getElementById('rdo-servicos').value.trim();
   const obs=document.getElementById('rdo-obs').value.trim();
   const mat=document.getElementById('rdo-mat').value.trim();
-  const idx=DB.rdos.findIndex(r=>r.obraId===oId&&r.data===data);
+  const idx=DB.rdos.findIndex(r=>String(r.obraId)===String(oId)&&r.data===data);
   const editingId=window._rdoEditId||null;
   const existingById=editingId?DB.rdos.find(x=>x.id===editingId):null;
   const rdoId=existingById?existingById.id:(idx>=0?DB.rdos[idx].id:uuidv4());
@@ -277,10 +277,12 @@ async function saveRDO(status){
 }
 function renderRDOHist(){
   const oId=document.getElementById('rdo-obra')?.value||getObra()?.id;
-  const rdos=DB.rdos.filter(r=>!oId||r.obraId===oId).sort((a,b)=>b.data.localeCompare(a.data));
+  const filtro=window._rdoHistFiltro||'obra';
+  const rdos=(filtro==='todos'?DB.rdos:DB.rdos.filter(r=>!oId||String(r.obraId)===String(oId))).sort((a,b)=>b.data.localeCompare(a.data));
   const el=document.getElementById('rdo-hist');
   if(!rdos.length){el.innerHTML='<div class="t-empty">Nenhum RDO registrado.</div>';return;}
-  el.innerHTML=`<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--txt3)">${rdos.length} relatório(s)</span>`
+  const btnSt=(v)=>filtro===v?'background:var(--primary);color:#fff':'';
+  el.innerHTML=`<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px"><div style="display:flex;gap:4px"><button class="btn sm" style="${btnSt('obra')}" onclick="window._rdoHistFiltro='obra';renderRDOHist()">Esta obra</button><button class="btn sm" style="${btnSt('todos')}" onclick="window._rdoHistFiltro='todos';renderRDOHist()">Todas as obras</button></div><span style="font-size:11px;color:var(--txt3)">${rdos.length} relatório(s)</span>`
     +`<button class="btn sm" onclick="exportRDOsLote()" title="Exportar todos em lote">📄 Exportar Lote</button></div>`
     +`<div style="display:flex;flex-direction:column;gap:6px">`
     +rdos.map(r=>{
