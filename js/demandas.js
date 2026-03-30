@@ -45,7 +45,9 @@ function renderDemandas(){
     const obra=DB.obras.find(o=>String(o.id)===String(d.obraId));
     const venc=d.prazo&&new Date(d.prazo)<new Date()&&d.status!=='concluida';
     const prCor={alta:'var(--red)',media:'var(--yellow)',baixa:'var(--green)'};
-    return`<div class="dem-card" onclick="this.classList.toggle('open')" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:.2s;border-left:4px solid ${prCor[d.prioridade]||'var(--border)'};opacity:${d.status==='concluida'?'.65':'1'}">
+    const statusBg={pendente:'rgba(220,38,38,.10)',andamento:'rgba(234,179,8,.12)',concluida:'rgba(22,163,74,.10)'};
+    const statusBorder={pendente:'rgba(220,38,38,.35)',andamento:'rgba(234,179,8,.40)',concluida:'rgba(22,163,74,.35)'};
+    return`<div class="dem-card" onclick="this.classList.toggle('open')" style="background:${statusBg[d.status]||'var(--bg2)'};border:1px solid ${statusBorder[d.status]||'var(--border)'};border-radius:10px;padding:14px 16px;cursor:pointer;transition:.2s;border-left:4px solid ${prCor[d.prioridade]||'var(--border)'}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div style="flex:1;min-width:180px">
           <div style="font-weight:600;font-size:13px;color:var(--txt)">${d.numero?'#'+d.numero+' — ':''}${d.titulo}</div>
