@@ -302,15 +302,15 @@ function renderRDOHist(){
     +`<div style="display:flex;flex-direction:column;gap:6px">`
     +rdos.map(r=>{
       const obra=DB.obras.find(o=>String(o.id)===String(r.obraId));
-      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap">
+      return `<div onclick="visualizarRDO('${r.id}')" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;cursor:pointer;transition:.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
         <span style="font-weight:600;font-size:12px;min-width:75px">${fmtDt(r.data)}</span>
         <span style="font-size:13px">${climaIco(r.clima)}</span>
         <span style="font-size:11px;color:var(--txt2);flex:1;min-width:60px">${obra?.nome||''}</span>
         ${r.autor?`<span style="font-size:10px;color:var(--txt3)">por ${r.autor}</span>`:''}
         <span class="b ${r.status==='finalizado'?'bg':'by'}" style="font-size:10px">${r.status==='finalizado'?'✓ Final.':'📝 Rasc.'}</span>
-        <div style="display:flex;gap:4px">
+        <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
           <button class="btn sm ico" onclick="carregarRDO('${r.id}')" title="Editar">✏️</button>
-          <button class="btn sm" onclick="gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))" title="Gerar PDF" style="font-size:11px">📄 PDF</button>
+          <button class="btn sm" onclick="gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))" title="Baixar PDF" style="font-size:11px">⬇ PDF</button>
           <button class="btn sm ico" onclick="delRDO('${r.id}')" title="Excluir">🗑️</button>
         </div>
       </div>`;
@@ -318,6 +318,37 @@ function renderRDOHist(){
 }
 function climaIco(c){return{Ensolarado:'☀️',Nublado:'🌤️',Chuva:'🌧️',Temporal:'⛈️'}[c]||'☀️';}
 function delRDO(id){if(!confirm('Excluir RDO?'))return;const rdo=DB.rdos.find(r=>String(r.id)===String(id));if(rdo&&typeof rdo.id==='string'&&rdo.id.includes('-'))supaDelete('rdos',rdo.id);DB.rdos=DB.rdos.filter(r=>String(r.id)!==String(id));save();renderRDOHist();toast('🗑️','RDO excluído.');}
+
+async function visualizarRDO(id){
+  const rdo=DB.rdos.find(x=>x.id===id);
+  if(!rdo){toast('⚠️','RDO não encontrado!');return;}
+  const obra=DB.obras.find(o=>String(o.id)===String(rdo.obraId));
+  const nomeArq='RDO_'+(obra?.nome||'obra').replace(/\s/g,'_')+'_'+rdo.data+'.pdf';
+
+  // Gerar PDF em modo preview (não baixa)
+  const doc=await gerarRDOPDF(rdo,{preview:true});
+  if(!doc)return;
+  const blobUrl=doc.output('bloburl');
+
+  // Criar overlay de visualização
+  let ov=document.getElementById('rdo-preview-overlay');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='rdo-preview-overlay';
+    document.body.appendChild(ov);
+  }
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;padding:12px';
+  ov.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;width:100%;max-width:900px;justify-content:space-between">
+      <span style="font-weight:700;font-size:14px;color:#fff">${fmtDt(rdo.data)} — ${obra?.nome||'Obra'}${rdo.autor?' (por '+rdo.autor+')':''}</span>
+      <div style="display:flex;gap:6px">
+        <a href="${blobUrl}" download="${nomeArq}" class="btn pri sm" style="text-decoration:none;font-size:12px">⬇ Baixar PDF</a>
+        <button class="btn sm" onclick="carregarRDO('${id}');document.getElementById('rdo-preview-overlay').style.display='none'" style="font-size:12px">✏️ Editar</button>
+        <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff">✕ Fechar</button>
+      </div>
+    </div>
+    <iframe src="${blobUrl}" style="flex:1;width:100%;max-width:900px;border:none;border-radius:8px;background:#fff"></iframe>`;
+}
 function carregarRDO(id){
   const rdo=DB.rdos.find(x=>x.id===id);if(!rdo)return;
   // Navegar para aba RDO e carregar dados

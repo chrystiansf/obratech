@@ -166,7 +166,7 @@ function pBar(doc, x, y, w, h, pct, _color) {
 // 1. RDO — Relatorio Diario de Obra
 // ─────────────────────────────────────────────────────────────────
 
-async function gerarRDOPDF(rdo) {
+async function gerarRDOPDF(rdo, opts) {
   if (!rdo) { toast('⚠️', 'Sem RDO selecionado!'); return; }
   const doc = new jsPDF();
   const W = doc.internal.pageSize.getWidth();
@@ -424,6 +424,10 @@ async function gerarRDOPDF(rdo) {
   doc.setLineWidth(0.2);
 
   pFtr(doc);
+  if(opts?.preview){
+    // Retornar o doc para preview inline
+    return doc;
+  }
   doc.save('RDO_' + (obra?.nome || 'obra').replace(/\s/g, '_') + '_' + rdo.data + '.pdf');
   toast('📄', 'RDO exportado (' + (rdo.fotos?.length || 0) + ' foto(s))!');
 }
