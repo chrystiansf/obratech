@@ -180,16 +180,14 @@ async function gerarRDOPDF(rdo, opts) {
     if (y + need > 275) { doc.addPage(); y = pHdr(doc, 'Relatorio Diario de Obra', (obra?.nome||'-') + '  -  ' + fmtDt(rdo.data)) + 6; }
   };
 
-  // Helper: presenca didParseCell com cores + maiuscula em labels
+  // Helper: presenca didParseCell — só vermelho para FALTA
   const presStyle = function(data) {
     if (data.section === 'body') {
       const lastCol = data.table.columns.length - 1;
       if (data.column.index === lastCol) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.halign = 'center';
-        if (data.cell.raw === 'PRESENTE') data.cell.styles.textColor = [22, 130, 60];
-        else if (data.cell.raw === 'FALTA') data.cell.styles.textColor = [200, 30, 30];
-        else if (data.cell.raw === 'MEIA DIARIA') data.cell.styles.textColor = [180, 90, 0];
+        if (data.cell.raw === 'FALTA') data.cell.styles.textColor = [200, 30, 30];
       }
       if (data.row.index % 2 === 0) data.cell.styles.fillColor = [250, 251, 253];
     }
@@ -231,11 +229,6 @@ async function gerarRDOPDF(rdo, opts) {
   drawInfoBox(M, y, bw1, bh, 'Obra', obra?.nome || '-');
   drawInfoBox(M + bw1 + 3, y, bw2, bh, 'Data', fmtDt(rdo.data));
   drawInfoBox(M + bw1 + bw2 + 6, y, bw3, bh, 'Clima', rdo.clima || '-');
-  y += bh + 3;
-  // Segunda linha: Local + Responsavel
-  const bwHalf = CW * 0.5 - 1.5;
-  drawInfoBox(M, y, bwHalf, bh, 'Localizacao', obra?.local || '-');
-  drawInfoBox(M + bwHalf + 3, y, bwHalf, bh, 'Responsavel Tecnico', obra?.resp || '-');
   y += bh + 8;
 
   // ═══════════════════════════════════════════════════════════════
@@ -252,10 +245,11 @@ async function gerarRDOPDF(rdo, opts) {
     head: [['CAMPO', 'DESCRICAO']],
     body: execData,
     theme: 'plain',
+    tableWidth: CW,
     headStyles: hStyle(),
-    bodyStyles: { ...bStyle(), minCellHeight: 10, valign: 'top' },
+    bodyStyles: { ...bStyle(), minCellHeight: 12, valign: 'top', cellPadding: {top:3.5,bottom:3.5,left:5,right:5} },
     columnStyles: {
-      0: { cellWidth: 48, fontStyle: 'bold', fillColor: [240, 242, 246], textColor: PX.gray },
+      0: { cellWidth: 48, fontStyle: 'bold', fillColor: [240, 242, 246] },
       1: { fillColor: [255, 255, 255] }
     },
     margin: { left: M, right: M },
@@ -290,12 +284,13 @@ async function gerarRDOPDF(rdo, opts) {
       head: [['N', 'NOME', 'FUNCAO / CARGO', 'PRESENCA']],
       body: presColabRows.map((r, i) => [i + 1, ...r]),
       theme: 'plain',
+      tableWidth: CW,
       headStyles: hStyle(),
-      bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15 },
+      bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15, cellPadding: {top:3,bottom:3,left:5,right:5} },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center', textColor: PX.gray },
-        1: { cellWidth: 65, fontStyle: 'bold' },
-        2: { textColor: PX.gray },
+        0: { cellWidth: 12, halign: 'center' },
+        1: { fontStyle: 'bold' },
+        2: { },
         3: { cellWidth: 30, halign: 'center' }
       },
       margin: { left: M, right: M },
@@ -322,13 +317,14 @@ async function gerarRDOPDF(rdo, opts) {
       head: [['N', 'NOME', 'FUNCAO', 'EMPRESA', 'PRESENCA']],
       body: presTercRows.map((r, i) => [i + 1, ...r]),
       theme: 'plain',
+      tableWidth: CW,
       headStyles: hStyle(),
-      bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15 },
+      bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15, cellPadding: {top:3,bottom:3,left:5,right:5} },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center', textColor: PX.gray },
-        1: { cellWidth: 50, fontStyle: 'bold' },
-        2: { cellWidth: 35, textColor: PX.gray },
-        3: { cellWidth: 40, textColor: PX.blue, fontStyle: 'bold' },
+        0: { cellWidth: 12, halign: 'center' },
+        1: { fontStyle: 'bold' },
+        2: { },
+        3: { },
         4: { cellWidth: 30, halign: 'center' }
       },
       margin: { left: M, right: M },
