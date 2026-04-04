@@ -289,55 +289,83 @@ function gerarBoletimPDF(medicaoId){
   try{doc=new jsPDF();}catch(e){toast('⚠️','PDF não disponível.');return;}
   const W=doc.internal.pageSize.getWidth();
   const H=doc.internal.pageSize.getHeight();
+  const M=9;
+  const CW=W-M*2;
   const pctAcum=ct?.valor?Math.round(Number(m.valorAcumulado)/Number(ct.valor)*100):0;
   const pctEsta=ct?.valor?Math.round(Number(m.valorMedido)/Number(ct.valor)*100):0;
   const saldo=Math.max(0,Number(ct?.valor||0)-Number(m.valorAcumulado||0));
   const periodoStr=m.periodo?fmtDt(m.periodo).substring(3):'—';
 
+  // Cabeçalho com cor da empresa
   let y=pHdr(doc,'Boletim de Medicao No '+String(m.numero||'1').padStart(3,'0'),
     (o?.nome||'—')+'  —  '+(ct?.forn||'—')+'  —  Periodo: '+periodoStr);
   y+=4;
 
-  // ── BLOCO 1: DADOS FINANCEIROS
-  y=pSec(doc,y,'1. Valor da Medicao em Relacao ao Contrato');
+  // Estilos: corpo sempre preto/cinza (sem cores nas celulas)
+  const bodyPB={fontSize:8,cellPadding:{top:2.5,bottom:2.5,left:4,right:4},textColor:PX.ink,lineColor:PX.silver,lineWidth:0.2};
+  const headPB={fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:8,cellPadding:{top:2.2,bottom:2.2,left:4,right:4}};
+
+  // ── BLOCO 1: DADOS DO CONTRATO
+  y=pSec(doc,y,'Dados do Contrato');
   doc.autoTable({
     startY:y,
-    head:[['','Descricao','Valor','%']],
+    head:[['Contrato','Fornecedor','Valor do Contrato','Periodo']],
+    body:[[ct?.numero||'—',ct?.forn||'—',fmtR(Number(ct?.valor||0)),periodoStr]],
+    headStyles:headPB,
+    bodyStyles:{...bodyPB,fontStyle:'bold'},
+    columnStyles:{0:{cellWidth:35},1:{cellWidth:60},2:{cellWidth:50,halign:'right'},3:{cellWidth:47,halign:'center'}},
+    margin:{left:M,right:M},
+  });
+  y=doc.lastAutoTable.finalY+6;
+
+  // ── BLOCO 2: RESUMO FINANCEIRO
+  y=pSec(doc,y,'Resumo Financeiro da Medicao');
+  doc.autoTable({
+    startY:y,
+    head:[['Descricao','Valor (R$)','%']],
     body:[
-      ['CT',ct?.descricao||ct?.numero||'—',fmtR(Number(ct?.valor||0)),'100%'],
-      ['ANT','Medicoes anteriores acumuladas',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0)),(pctAcum-pctEsta)+'%'],
-      ['ESTA','Esta medicao — Periodo: '+periodoStr,fmtR(Number(m.valorMedido||0)),pctEsta+'%'],
-      ['ACUM','Total acumulado incluindo esta medicao',fmtR(Number(m.valorAcumulado||0)),pctAcum+'%'],
-      ['SALDO','Saldo remanescente do contrato',fmtR(saldo),(100-pctAcum)+'%'],
+      ['Valor do contrato',fmtR(Number(ct?.valor||0)),'100%'],
+      ['Medicoes anteriores',fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0)),(pctAcum-pctEsta)+'%'],
+      ['Esta medicao (No '+String(m.numero||'1').padStart(2,'0')+')',fmtR(Number(m.valorMedido||0)),pctEsta+'%'],
+      ['Total acumulado',fmtR(Number(m.valorAcumulado||0)),pctAcum+'%'],
+      ['Saldo remanescente',fmtR(saldo),(100-pctAcum)+'%'],
     ],
-    foot:[[{colSpan:2,content:'Fornecedor: '+(ct?.forn||'—')+'  |  Contrato: '+(ct?.numero||'—')},{content:fmtR(Number(ct?.valor||0))},{content:'100%'}]],
-    headStyles:{...hStyle(),fontSize:7.5},
-    bodyStyles:{...bStyle(),fontSize:8},
-    alternateRowStyles:altRow(),
-    footStyles:{...totRow(),fontSize:7.5},
-    columnStyles:{0:{cellWidth:14,halign:'center',fontStyle:'bold',textColor:PX.blue},1:{cellWidth:90},2:{cellWidth:40,halign:'right',fontStyle:'bold'},3:{cellWidth:22,halign:'center'}},
+    headStyles:headPB,
+    bodyStyles:bodyPB,
+    alternateRowStyles:{fillColor:PX.bg},
+    columnStyles:{0:{cellWidth:100},1:{cellWidth:50,halign:'right',fontStyle:'bold'},2:{cellWidth:42,halign:'center'}},
     didParseCell(d){
-      if(d.section==='body'&&d.row.index===2){
-        d.cell.styles.fillColor=[235,245,255];
-        if(d.column.index===2||d.column.index===3) d.cell.styles.textColor=PX.blue;
+      if(d.section==='body'){
+        // Linha "Esta medicao" em destaque suave
+        if(d.row.index===2) d.cell.styles.fontStyle='bold';
+        // Linha "Total acumulado" em destaque
+        if(d.row.index===3){d.cell.styles.fillColor=[235,240,248];d.cell.styles.fontStyle='bold';}
+        // Linha "Saldo" em destaque
+        if(d.row.index===4){d.cell.styles.fillColor=corEmpresa();d.cell.styles.textColor=[255,255,255];d.cell.styles.fontStyle='bold';}
       }
     },
-    margin:{left:9,right:9},
+    margin:{left:M,right:M},
   });
   y=doc.lastAutoTable.finalY+4;
 
-  // Barra de progresso
-  doc.setFillColor(220,225,235);doc.rect(9,y,W-18,7,'F');
-  doc.setFillColor(...PX.blue);doc.rect(9,y,(W-18)*pctAcum/100,7,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-  if(pctAcum>10) doc.text(pctAcum+'% acumulado',13,y+5);
-  else{doc.setTextColor(...PX.blue);doc.text(pctAcum+'%',13+(W-18)*pctAcum/100,y+5);}
-  y+=12;
+  // Barra de progresso VERDE
+  doc.setFillColor(230,232,236);doc.roundedRect(M,y,CW,6,1.5,1.5,'F');
+  doc.setFillColor(22,163,74); // verde
+  if(pctAcum>0) doc.roundedRect(M,y,CW*Math.min(pctAcum,100)/100,6,1.5,1.5,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(6);
+  if(pctAcum>12){doc.setTextColor(255,255,255);doc.text(pctAcum+'% pago',M+4,y+4.2);}
+  else{doc.setTextColor(80,80,80);doc.text(pctAcum+'% pago',M+CW*pctAcum/100+3,y+4.2);}
+  y+=11;
 
-  // ── BLOCO 2: O QUE FOI EXECUTADO
-  y=pSec(doc,y,'2. Servicos Executados nesta Medicao');
-  const execTexto=m.exec&&m.exec.trim()?m.exec:'(Servicos executados nao informados na medicao)';
-  doc.autoTable({startY:y,body:[[execTexto]],bodyStyles:{...bStyle(),fontSize:8,minCellHeight:14,fontStyle:m.exec?'normal':'italic',textColor:m.exec?PX.ink:PX.lgray},margin:{left:9,right:9}});
+  // ── BLOCO 3: SERVICOS EXECUTADOS
+  y=pSec(doc,y,'Servicos Executados nesta Medicao');
+  const execTexto=m.exec&&m.exec.trim()?m.exec:'(Nao informado)';
+  doc.autoTable({
+    startY:y,
+    body:[[execTexto]],
+    bodyStyles:{...bodyPB,fontSize:8,minCellHeight:12,fontStyle:m.exec?'normal':'italic',textColor:m.exec?PX.ink:PX.lgray},
+    margin:{left:M,right:M}
+  });
   y=doc.lastAutoTable.finalY+4;
 
   // Etapas da obra
@@ -345,50 +373,49 @@ function gerarBoletimPDF(medicaoId){
   if(etapas.length){
     doc.autoTable({
       startY:y,
-      head:[['Etapa / Servico','% Concluido','Situacao']],
+      head:[['Etapa','%','Situacao']],
       body:etapas.map(e=>[e.nome,(e.pct||0)+'%',Number(e.pct)>=100?'Concluida':Number(e.pct)>0?'Em andamento':'Nao iniciada']),
-      headStyles:{...hStyle(),fontSize:7},bodyStyles:{...bStyle(),fontSize:7.5},alternateRowStyles:altRow(),
-      columnStyles:{0:{cellWidth:110},1:{cellWidth:30,halign:'center'},2:{cellWidth:40,halign:'center'}},
-      didParseCell(d){if(d.section==='body'&&d.column.index===2){if(d.cell.raw==='Concluida')d.cell.styles.textColor=PX.green;else if(d.cell.raw==='Em andamento')d.cell.styles.textColor=PX.blue;}},
-      margin:{left:9,right:9},
+      headStyles:headPB,bodyStyles:bodyPB,alternateRowStyles:{fillColor:PX.bg},
+      columnStyles:{0:{cellWidth:114},1:{cellWidth:24,halign:'center'},2:{cellWidth:54,halign:'center'}},
+      didParseCell(d){if(d.section==='body'&&d.column.index===2){
+        d.cell.styles.textColor=d.cell.raw==='Concluida'?PX.green:d.cell.raw==='Em andamento'?[80,80,80]:PX.lgray;
+      }},
+      margin:{left:M,right:M},
     });
     y=doc.lastAutoTable.finalY+4;
   }
 
   // Observações
   if(m.obs&&m.obs.trim()){
-    doc.autoTable({startY:y,head:[['Pendencias e Observacoes']],body:[[m.obs]],headStyles:{...hStyle(),fontSize:7.5,fillColor:PX.amber},bodyStyles:{...bStyle(),fontSize:8},margin:{left:9,right:9}});
+    y=pSec(doc,y,'Pendencias e Observacoes');
+    doc.autoTable({startY:y,body:[[m.obs]],bodyStyles:{...bodyPB,fontSize:8},margin:{left:M,right:M}});
     y=doc.lastAutoTable.finalY+4;
   }
 
-  // ── BLOCO 3: FOTOS DO EXECUTADO
-  const fotos=(m.fotos||[]).filter(f=>f&&f.src&&f.src.startsWith('data:'));
+  // ── BLOCO 4: FOTOS
+  const fotos=(m.fotos||[]).filter(f=>f&&(f.src||f.url)&&((f.src||'').startsWith('data:')||(f.url||'').startsWith('http')));
   if(fotos.length>0){
     doc.addPage();
     let y2=pHdr(doc,'Registro Fotografico — Medicao No '+String(m.numero||'1').padStart(3,'0'),
-      periodoStr+'  —  '+(o?.nome||'—')+'  —  '+(ct?.forn||'—'));
+      periodoStr+'  —  '+(o?.nome||'—'));
     y2+=6;
-    const cols=3,imgW=58,imgH=50,gapX=4,gapY=12,startX=9;
-    let col=0,curRow=0;
+    const cols=3,imgW=(CW-6)/3,imgH=44,gapF=3;
+    let photoY=y2;
     fotos.forEach((foto,fi)=>{
-      const fy=y2+curRow*(imgH+gapY);
-      if(fy+imgH+gapY>H-15){doc.addPage();pHdr(doc,'Registro Fotografico (cont.)','Medicao No '+String(m.numero||'1').padStart(3,'0'));y2=36;curRow=0;col=0;}
-      const fx=startX+col*(imgW+gapX);
-      const fyCur=y2+curRow*(imgH+gapY);
-      try{
-        const fmt=foto.src.includes('data:image/png')?'PNG':'JPEG';
-        doc.addImage(foto.src,fmt,fx,fyCur,imgW,imgH);
-        doc.setFillColor(...PX.navy);doc.rect(fx,fyCur,imgW,5,'F');
-        doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-        doc.text('Foto '+(fi+1)+'/'+fotos.length,fx+imgW/2,fyCur+3.5,{align:'center'});
-        doc.setDrawColor(...PX.silver);doc.setLineWidth(0.3);doc.rect(fx,fyCur,imgW,imgH,'S');
-      }catch(e){
-        doc.setFillColor(245,245,245);doc.rect(fx,fyCur,imgW,imgH,'F');
-        doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...PX.lgray);
-        doc.text('Foto '+(fi+1),fx+imgW/2,fyCur+imgH/2,{align:'center'});
-      }
-      col++;
-      if(col>=cols){col=0;curRow++;}
+      const imgSrc=foto.src||foto.url||'';
+      if(!imgSrc) return;
+      const col=fi%cols;
+      if(col===0&&fi>0) photoY+=imgH+12;
+      if(photoY+imgH>268){doc.addPage();photoY=pHdr(doc,'Registro Fotografico (cont.)','Medicao No '+String(m.numero||'1').padStart(3,'0'))+8;}
+      const x=M+col*(imgW+gapF);
+      doc.setFillColor(230,232,236);doc.rect(x+0.5,photoY+0.5,imgW,imgH,'F');
+      doc.setFillColor(255,255,255);doc.rect(x,photoY,imgW,imgH,'F');
+      doc.setDrawColor(...PX.silver);doc.setLineWidth(0.2);doc.rect(x,photoY,imgW,imgH,'S');
+      try{doc.addImage(imgSrc,'JPEG',x+0.8,photoY+0.8,imgW-1.6,imgH-1.6,'','FAST');}
+      catch(e){doc.setFontSize(7);doc.setTextColor(...PX.lgray);doc.text('[Foto '+(fi+1)+']',x+imgW/2,photoY+imgH/2,{align:'center'});}
+      doc.setFillColor(40,40,40);doc.roundedRect(x+2,photoY+2,11,5,1,1,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
+      doc.text('#'+String(fi+1).padStart(2,'0'),x+7.5,photoY+5.5,{align:'center'});
     });
   }
 
@@ -401,20 +428,18 @@ function gerarBoletimPDF(medicaoId){
   } else {
     doc.addPage();assinY=240;
   }
-  const assinW=(W-18)/3;
-  [['Elaborado por','Empreiteiro / Contratado'],['Fiscalizado por',DB.user.nome||'Engenheiro Responsavel'],['Aprovado por',m.status==='aprovado'?(m.aprovadoPor||'Gestor'):'']].forEach((a,i)=>{
-    const ax=9+i*assinW;
-    doc.setFillColor(...PX.bg);doc.rect(ax,assinY,assinW-2,22,'F');
-    doc.setDrawColor(...PX.silver);doc.rect(ax,assinY,assinW-2,22,'S');
-    doc.setFillColor(...PX.navy);doc.rect(ax,assinY,assinW-2,5,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-    doc.text(a[0].toUpperCase(),ax+(assinW-2)/2,assinY+3.5,{align:'center'});
-    doc.setDrawColor(150,150,150);doc.line(ax+4,assinY+14,ax+assinW-6,assinY+14);
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...PX.ink);
-    doc.text((a[1]||'').substring(0,24),ax+(assinW-2)/2,assinY+18,{align:'center'});
+  const assinW=(CW)/3;
+  [['Elaborado por','Empreiteiro / Contratado'],['Fiscalizado por',DB.user.nome||'Eng. Responsavel'],['Aprovado por',m.status==='aprovado'?(m.aprovadoPor||'Gestor'):'']].forEach((a,i)=>{
+    const ax=M+i*assinW;
+    doc.setDrawColor(...PX.silver);doc.setLineWidth(0.15);
+    doc.line(ax+4,assinY+10,ax+assinW-6,assinY+10);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...PX.ink);
+    doc.text(a[0].toUpperCase(),ax+(assinW)/2,assinY+14,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...PX.gray);
+    doc.text((a[1]||'').substring(0,28),ax+(assinW)/2,assinY+18,{align:'center'});
     if(i===2&&m.status==='aprovado'){
       doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...PX.green);
-      doc.text('APROVADO'+(m.aprovadoEm?' em '+fmtDt(m.aprovadoEm):''),ax+(assinW-2)/2,assinY+21,{align:'center'});
+      doc.text('APROVADO'+(m.aprovadoEm?' em '+fmtDt(m.aprovadoEm):''),ax+assinW/2,assinY+22,{align:'center'});
     }
   });
 
