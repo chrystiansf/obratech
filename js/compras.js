@@ -123,23 +123,12 @@ function _criarPedidoFromSolicitacao(sol){
 
 function solReceber(id){
   const s=(DB.solicitacoes||[]).find(x=>x.id===id);
-  if(!s||!confirm('Confirmar recebimento? Sera lancado no estoque e financeiro.')) return;
+  if(!s||!confirm('Confirmar recebimento? Sera lancado no financeiro.')) return;
   s.status='recebida';
   supaUpdate('compras_solicitacoes',id,{status:'recebida'});
 
   // Buscar pedido vinculado
   const ped=(DB.pedidosCompra||[]).find(p=>String(p.solicitacaoId)===String(id));
-
-  // Lancar no estoque
-  const estExiste=DB.estoque.find(e=>e.material?.toLowerCase()===s.item?.toLowerCase());
-  if(estExiste){
-    estExiste.qtd=(estExiste.qtd||0)+Number(s.quantidade||0);
-    supaUpdate('estoque',estExiste.id,{qtd:estExiste.qtd});
-  } else {
-    const estId=uuidv4();
-    DB.estoque.push({id:estId,material:s.item,un:s.unidade||'un',qtd:Number(s.quantidade||0),min:0,preco:0,_supa:true});
-    supaInsert('estoque',{id:estId,material:s.item,unidade:s.unidade||'un',estoque_min:0,preco:0});
-  }
 
   // Lancar despesa financeira
   if(ped&&ped.valorTotal>0){
@@ -149,7 +138,7 @@ function solReceber(id){
   }
 
   save();renderSolicitacoes();renderPedidos();
-  toast('✅','Material recebido! Estoque e financeiro atualizados.');
+  toast('✅','Material recebido! Lançamento financeiro registrado.');
 }
 
 // ═══════════════════════════════════════════
@@ -282,17 +271,6 @@ function pedReceber(id){
     sol.status='recebida';
     supaUpdate('compras_solicitacoes',sol.id,{status:'recebida'});
 
-    // Lancar no estoque
-    const estExiste=DB.estoque.find(e=>e.material?.toLowerCase()===sol.item?.toLowerCase());
-    if(estExiste){
-      estExiste.qtd=(estExiste.qtd||0)+Number(sol.quantidade||0);
-      supaUpdate('estoque',estExiste.id,{qtd:estExiste.qtd});
-    } else {
-      const estId=uuidv4();
-      DB.estoque.push({id:estId,material:sol.item,un:sol.unidade||'un',qtd:Number(sol.quantidade||0),min:0,preco:0,_supa:true});
-      supaInsert('estoque',{id:estId,material:sol.item,unidade:sol.unidade||'un',estoque_min:0,preco:0});
-    }
-
     // Lancar despesa financeira
     if(p.valorTotal>0){
       const lancId=uuidv4();
@@ -302,7 +280,7 @@ function pedReceber(id){
   }
 
   save();renderPedidos();renderSolicitacoes();
-  toast('✅','Pedido recebido! Estoque e financeiro atualizados.');
+  toast('✅','Pedido recebido! Lançamento financeiro registrado.');
 }
 
 function pedDel(id){

@@ -159,7 +159,7 @@ function openModal(type,editId=null,editId2=null){
     // Opções dinâmicas dos cadastros
     const catOpts=(DB.categorias||[]).map(x=>`<option${l?.cat===x?' selected':''}>${x}</option>`).join('');
     const ccOpts='<option value="">— Selecionar —</option>'+(DB.centros||[]).map(x=>`<option${l?.cc===x?' selected':''}>${x}</option>`).join('');
-    const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(x=>{const nome=typeof x==='object'?x.nome:x;return`<option${l?.forn===nome?' selected':''}>${nome}</option>`;}).join('');
+    // Fornecedor agora usa autocomplete (busca inline)
     body=`<div class="g g2">
       <div class="fg"><label class="lbl">Tipo *</label>
         <select class="sel" id="l-tipo">
@@ -187,11 +187,11 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">Etapa</label>
         <select class="sel" id="l-etapa"><option value="">Carregando etapas...</option></select>
       </div>
-      <div class="fg"><label class="lbl">Fornecedor
-        <button type="button" onclick="closeModal();goPage('fornecedores')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer" title="Cadastrar fornecedor">＋ cadastrar</button>
+      <div class="fg" style="position:relative"><label class="lbl">Fornecedor
+        <button type="button" onclick="_lancCriarFornecedorInline()" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--primary);border:1px solid var(--primary);border-radius:3px;color:#fff;cursor:pointer" title="Cadastrar novo fornecedor">＋ novo fornecedor</button>
       </label>
-        <select class="sel" id="l-forn-sel" onchange="document.getElementById('l-forn-txt').value=this.value==='— Selecionar —'?'':this.value">${fornOpts}</select>
-        <input class="inp" id="l-forn-txt" value="${l?.forn||''}" placeholder="Ou digitar manualmente..." style="margin-top:5px;font-size:12px">
+        <input class="inp" id="l-forn-txt" value="${l?.forn||''}" placeholder="🔍 Buscar fornecedor..." autocomplete="off" oninput="_lancFornBusca(this.value)" onfocus="_lancFornBusca(this.value)" style="font-size:12px">
+        <div id="l-forn-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:999;max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
       </div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nota Fiscal / Referência</label>
         <input class="inp" id="l-nf" value="${l?.nf||''}" placeholder="NF 00123">
@@ -202,14 +202,13 @@ function openModal(type,editId=null,editId2=null){
       const valor=parseFloat(document.getElementById('l-valor').value);
       if(!desc||!valor){toast('⚠️','Descrição e valor obrigatórios!');return false;}
       const fornTxt=document.getElementById('l-forn-txt').value.trim();
-      const fornSel=document.getElementById('l-forn-sel').value;
       const dados={
         desc,tipo:document.getElementById('l-tipo').value,
         cat:document.getElementById('l-cat').value,
         etapa:document.getElementById('l-etapa')?.value||'',
         valor,data:document.getElementById('l-data').value,
         obraId:document.getElementById('l-obra').value||null,
-        forn:fornTxt||fornSel||'',
+        forn:fornTxt||'',
         nf:document.getElementById('l-nf').value.trim()
       };
       if(l){
@@ -1000,3 +999,76 @@ document.addEventListener('keydown',function(e){
   }
 });
 function openUserModal(){openModal('user');}
+
+// ═══════════════════════════════════════════
+// BUSCA DE FORNECEDOR NO LANÇAMENTO FINANCEIRO
+// ═══════════════════════════════════════════
+function _lancFornBusca(q){
+  const dd=document.getElementById('l-forn-dropdown');if(!dd)return;
+  const txt=(q||'').toLowerCase().trim();
+  const lista=(DB.fornecedores||[]).map(x=>typeof x==='object'?x:{nome:x}).filter(f=>f.nome);
+  const filtrados=txt?lista.filter(f=>f.nome.toLowerCase().includes(txt)):lista;
+  if(!filtrados.length){
+    dd.style.display=txt?'block':'none';
+    dd.innerHTML=txt?'<div style="padding:10px;font-size:12px;color:var(--txt3)">Nenhum fornecedor encontrado</div>':'';
+    return;
+  }
+  dd.style.display='block';
+  dd.innerHTML=filtrados.slice(0,15).map(f=>`<div onclick="_lancFornSelect('${f.nome.replace(/'/g,"\\'")}')" style="padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='transparent'"><strong>${f.nome}</strong>${f.tipo?'<span style="margin-left:8px;font-size:10px;color:var(--txt3)">'+f.tipo+'</span>':''}</div>`).join('');
+}
+function _lancFornSelect(nome){
+  const inp=document.getElementById('l-forn-txt');if(inp)inp.value=nome;
+  const dd=document.getElementById('l-forn-dropdown');if(dd)dd.style.display='none';
+}
+// Fechar dropdown ao clicar fora
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#l-forn-txt')&&!e.target.closest('#l-forn-dropdown')){
+    const dd=document.getElementById('l-forn-dropdown');if(dd)dd.style.display='none';
+  }
+});
+
+// ═══════════════════════════════════════════
+// CRIAR FORNECEDOR INLINE NO LANÇAMENTO
+// ═══════════════════════════════════════════
+function _lancCriarFornecedorInline(){
+  const dd=document.getElementById('l-forn-dropdown');if(!dd)return;
+  dd.style.display='block';
+  dd.innerHTML=`<div style="padding:12px">
+    <div style="font-weight:600;font-size:12px;margin-bottom:8px">Novo Fornecedor</div>
+    <input class="inp" id="_nf-nome" placeholder="Nome / Razão Social *" style="margin-bottom:6px;font-size:12px">
+    <select class="sel" id="_nf-tipo" style="margin-bottom:6px;font-size:12px">
+      <option value="">— Tipo —</option>
+      <option value="Material">📦 Material</option>
+      <option value="Serviço">🔧 Serviço</option>
+      <option value="Equipamento">🚜 Equipamento</option>
+      <option value="Outro">📌 Outro</option>
+    </select>
+    <input class="inp" id="_nf-cnpj" placeholder="CNPJ / CPF" style="margin-bottom:6px;font-size:12px">
+    <input class="inp" id="_nf-tel" placeholder="Telefone / WhatsApp" style="margin-bottom:8px;font-size:12px">
+    <div style="display:flex;gap:6px;justify-content:flex-end">
+      <button class="btn sm" onclick="document.getElementById('l-forn-dropdown').style.display='none'" type="button">Cancelar</button>
+      <button class="btn sm pri" onclick="_lancSalvarFornecedorInline()" type="button">✅ Salvar</button>
+    </div>
+  </div>`;
+  setTimeout(()=>{const el=document.getElementById('_nf-nome');if(el)el.focus();},50);
+}
+function _lancSalvarFornecedorInline(){
+  const nome=(document.getElementById('_nf-nome')?.value||'').trim();
+  if(!nome){toast('⚠️','Nome do fornecedor obrigatório!');return;}
+  const tipo=document.getElementById('_nf-tipo')?.value||'';
+  const cnpj=(document.getElementById('_nf-cnpj')?.value||'').trim();
+  const telefone=(document.getElementById('_nf-tel')?.value||'').trim();
+  const novoId=uuidv4();
+  const nf={id:novoId,nome,tipo,cnpj,contato:'',telefone,email:'',endereco:'',cidade:'',obs:'',_supa:true};
+  // Substituir string duplicada se existir
+  const idxStr=DB.fornecedores.findIndex(x=>typeof x==='string'&&x===nome);
+  if(idxStr>-1) DB.fornecedores[idxStr]=nf;
+  else DB.fornecedores.push(nf);
+  supaInsert('fornecedores_cadastro',{id:novoId,nome,tipo,cnpj,contato:'',telefone,email:'',endereco:'',cidade:'',obs:''});
+  save();
+  // Preencher o campo de fornecedor com o nome criado
+  const inp=document.getElementById('l-forn-txt');if(inp)inp.value=nome;
+  const dd=document.getElementById('l-forn-dropdown');if(dd)dd.style.display='none';
+  if(typeof fillSelects==='function')fillSelects();
+  toast('✅','Fornecedor cadastrado e disponível na aba Fornecedores!');
+}

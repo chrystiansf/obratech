@@ -420,8 +420,8 @@ function renderFin(){
           <td style="font-size:11px;color:var(--txt2)">${l.forn||'—'}</td>
           <td style="text-align:right;font-weight:600;color:${neg?'var(--red)':'var(--green)'}">${neg?'−':'+'}${fmtR(Number(l.valor))}</td>
           <td><div class="ta-actions">
-            <button class="btn sm ico" onclick="openModal('lanc','${l.id}')">✏️</button>
-            <button class="btn sm ico" onclick="delLanc('${l.id}')">🗑️</button>
+            <button class="btn sm ico" onclick="openModal('lanc','${String(l.id).replace(/'/g,"\\'")}')">✏️</button>
+            <button class="btn sm ico" onclick="delLanc('${String(l.id).replace(/'/g,"\\'")}')">🗑️</button>
           </div></td>
         </tr>`;
       }).join('')+'</table>';
@@ -440,4 +440,14 @@ function renderFin(){
     mkChart('ch-fin-mensal',{type:'bar',data:{labels:ms.map(m=>m.l),datasets:[{label:'Receitas',data:ms.map(m=>lans.filter(l=>l.tipo==='Receita'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.grnA,borderColor:CP.grn,borderWidth:2,borderRadius:3},{label:'Despesas',data:ms.map(m=>lans.filter(l=>l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.redA,borderColor:CP.red,borderWidth:2,borderRadius:3}]},options:BO});
   },50);
 }
-function delLanc(id){if(!confirm('Excluir lançamento?'))return;const lanc=DB.lancs.find(l=>String(l.id)===String(id));if(lanc&&typeof lanc.id==='string'&&lanc.id.includes('-'))supaDelete('lancamentos',lanc.id);DB.lancs=DB.lancs.filter(l=>String(l.id)!==String(id));save();renderFin();toast('🗑️','Excluído.');}
+function delLanc(id){
+  if(!confirm('Excluir lançamento?'))return;
+  const idStr=String(id);
+  const idx=DB.lancs.findIndex(l=>String(l.id)===idStr);
+  if(idx===-1){toast('⚠️','Lançamento não encontrado.');return;}
+  const lanc=DB.lancs[idx];
+  // Deletar no Supabase se for UUID
+  try{if(lanc&&typeof lanc.id==='string'&&lanc.id.includes('-'))supaDelete('lancamentos',lanc.id);}catch(e){}
+  DB.lancs.splice(idx,1);
+  save();renderFin();toast('🗑️','Lançamento excluído.');
+}
