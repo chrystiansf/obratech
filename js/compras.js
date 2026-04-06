@@ -57,7 +57,7 @@ function renderSolicitacoes(){
   const STATUS_BADGE={aberta:'<span class="b bb">Aberta</span>',cotando:'<span class="b by">Cotando</span>',aprovada:'<span class="b bg">Aprovada</span>',recebida:'<span class="b" style="background:var(--green);color:#fff">Recebida</span>',cancelada:'<span class="b bn">Cancelada</span>'};
 
   if(!sols.length){
-    el.innerHTML='<div class="t-empty">Nenhuma solicitacao. <button class="btn pri sm" onclick="openModal(\'solicitacao\')" style="margin-left:8px">+ Nova</button></div>';
+    el.innerHTML='<div class="t-empty">Nenhuma solicitacao. <button class="btn pri sm" onclick="openModalSolicitacao()" style="margin-left:8px">+ Nova</button></div>';
     return;
   }
 
