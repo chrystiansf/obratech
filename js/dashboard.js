@@ -206,9 +206,12 @@ function renderDashCharts(obras){
     const deps=ms.map(m=>DB.lancs.filter(l=>obras.some(o=>o.id===l.obraId)&&l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0));
     mkChart('ch-fluxo',{type:'line',data:{labels:ms.map(m=>m.l),datasets:[{label:'Receitas',data:recs,borderColor:CP.grn,backgroundColor:CP.grnA,fill:true,tension:.4},{label:'Despesas',data:deps,borderColor:CP.red,backgroundColor:CP.redA,fill:true,tension:.4}]},options:BO});
     mkChart('ch-avancos',{type:'bar',data:{labels:obras.map(o=>o.nome.split(' ').slice(0,2).join(' ')),datasets:[{label:'Avanço %',data:obras.map(obraPct),backgroundColor:obras.map(o=>obraColor(o)==='r'?CP.redA:obraColor(o)==='g'?CP.grnA:CP.priA),borderColor:obras.map(o=>obraColor(o)==='r'?CP.red:obraColor(o)==='g'?CP.grn:CP.pri),borderWidth:2,borderRadius:3}]},options:{...BO,scales:{...BO.scales,y:{...BO.scales.y,max:100}}}});
-    const cats=['Mão de Obra','Materiais','Equipamentos','Serviços','Admin'];
+    const cats=(DB.categorias||['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros']);
+    const catColors=['rgba(91,143,249,.7)','rgba(34,211,99,.7)','rgba(246,201,14,.7)','rgba(242,92,92,.7)','rgba(155,116,245,.7)','rgba(34,212,212,.7)','rgba(255,159,64,.7)'];
+    const catBorders=[CP.pri,CP.grn,CP.yel,CP.red,CP.pur,CP.cya,'rgba(255,159,64,1)'];
     const cvals=cats.map(cat=>DB.lancs.filter(l=>obras.some(o=>o.id===l.obraId)&&l.cat===cat&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0));
-    mkChart('ch-categorias',{type:'doughnut',data:{labels:cats,datasets:[{data:cvals.some(v=>v>0)?cvals:[1,1,1,1,1],backgroundColor:[CP.priA,CP.grnA,CP.yelA,CP.redA,'rgba(155,116,245,.25)'],borderColor:[CP.pri,CP.grn,CP.yel,CP.red,CP.pur],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:CP.t,font:{size:9},boxWidth:8}}}}});
+    const catsFilt=cats.map((c,i)=>({nome:c,val:cvals[i],bg:catColors[i%catColors.length],border:catBorders[i%catBorders.length]})).filter(c=>c.val>0);
+    mkChart('ch-categorias',{type:'doughnut',data:{labels:catsFilt.length?catsFilt.map(c=>c.nome):cats,datasets:[{data:catsFilt.length?catsFilt.map(c=>c.val):[1,1,1,1,1,1,1],backgroundColor:catsFilt.length?catsFilt.map(c=>c.bg):catColors,borderColor:catsFilt.length?catsFilt.map(c=>c.border):catBorders,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:CP.t,font:{size:9},boxWidth:8}}}}});
   },50);
 }
 
