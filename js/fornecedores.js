@@ -15,11 +15,12 @@ function renderFornecedores(){
   const total=(DB.fornecedores||[]).length;
   const comEmail=(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.email).length;
   const tipos=['Material','Serviço','Equipamento','Outro'];
+  const _fkAct2=(v)=>tipoF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('forn-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">🏭 Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>
-    <div class="kpi"><div class="kl">📧 Com email</div><div class="kv">${comEmail}</div><div class="kd neu">contatos</div></div>
-    <div class="kpi"><div class="kl">🔧 Serviços</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Serviço').length}</div><div class="kd neu">fornecedores</div></div>
-    <div class="kpi"><div class="kl">📦 Materiais</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Material').length}</div><div class="kd neu">fornecedores</div></div>`;
+    <div class="kpi" onclick="fornFiltroKpi('')" style="cursor:pointer;${_fkAct2('')}"><div class="kl">🏭 Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>
+    <div class="kpi" onclick="fornFiltroKpi('Serviço')" style="cursor:pointer;${_fkAct2('Serviço')}"><div class="kl">🔧 Serviços</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Serviço').length}</div><div class="kd neu">fornecedores</div></div>
+    <div class="kpi" onclick="fornFiltroKpi('Material')" style="cursor:pointer;${_fkAct2('Material')}"><div class="kl">📦 Materiais</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Material').length}</div><div class="kd neu">fornecedores</div></div>
+    <div class="kpi" onclick="fornFiltroKpi('Equipamento')" style="cursor:pointer;${_fkAct2('Equipamento')}"><div class="kl">🚜 Equipamentos</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Equipamento').length}</div><div class="kd neu">fornecedores</div></div>`;
 
   const el=document.getElementById('forn-tbl');
   if(!forns.length){
@@ -53,6 +54,11 @@ function renderFornecedores(){
     </tr>`).join('')+'</table>';
 }
 
+function fornFiltroKpi(tipo){
+  const sel=document.getElementById('forn-tipo-filter');
+  if(sel){sel.value=sel.value===tipo?'':tipo;}
+  renderFornecedores();
+}
 function delFornecedor(id){
   if(!confirm('Excluir fornecedor?')) return;
   const f=DB.fornecedores.find(x=>typeof x==='object'&&String(x.id)===String(id));

@@ -369,10 +369,12 @@ function renderFin(){
   });
   const rec=lans.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
   const dep=lans.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
+  const _fkAct=(v)=>_finFiltros.tipo!==null&&_finFiltros.tipo.size===1&&_finFiltros.tipo.has(v)?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
+  const _fkAll=_finFiltros.tipo===null?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('fin-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">💰 Receitas</div><div class="kv" style="color:var(--green)">${fmtR(rec)}</div><div class="kd up">${lans.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
-    <div class="kpi"><div class="kl">💸 Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${lans.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="kpi"><div class="kl">⚖️ Saldo</div><div class="kv" style="color:${rec>=dep?'var(--green)':'var(--red)'}">${fmtR(rec-dep)}</div><div class="kd ${rec>=dep?'up':'dn'}">${rec>=dep?'Superávit':'Déficit'}</div></div>
+    <div class="kpi" onclick="finFiltroKpi('Receita')" style="cursor:pointer;${_fkAct('Receita')}"><div class="kl">💰 Receitas</div><div class="kv" style="color:var(--green)">${fmtR(rec)}</div><div class="kd up">${lans.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
+    <div class="kpi" onclick="finFiltroKpi('Despesa')" style="cursor:pointer;${_fkAct('Despesa')}"><div class="kl">💸 Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${lans.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
+    <div class="kpi" onclick="finFiltroKpi('')" style="cursor:pointer;${_fkAll}"><div class="kl">⚖️ Saldo</div><div class="kv" style="color:${rec>=dep?'var(--green)':'var(--red)'}">${fmtR(rec-dep)}</div><div class="kd ${rec>=dep?'up':'dn'}">${rec>=dep?'Superávit':'Déficit'}</div></div>
     <div class="kpi"><div class="kl">📊 Total</div><div class="kv">${lans.length}</div><div class="kd neu">Lançamentos</div></div>`;
   // Chips de filtros ativos
   const temFiltro=Object.entries(_finFiltros).some(([k,v])=>k==='dataIni'||k==='dataFim'?v!=='':v!==null)||!!_finBuscaDesc||!!_finBuscaValor;
@@ -439,6 +441,12 @@ function renderFin(){
     const ms=meses6();
     mkChart('ch-fin-mensal',{type:'bar',data:{labels:ms.map(m=>m.l),datasets:[{label:'Receitas',data:ms.map(m=>lans.filter(l=>l.tipo==='Receita'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.grnA,borderColor:CP.grn,borderWidth:2,borderRadius:3},{label:'Despesas',data:ms.map(m=>lans.filter(l=>l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.redA,borderColor:CP.red,borderWidth:2,borderRadius:3}]},options:BO});
   },50);
+}
+function finFiltroKpi(tipo){
+  if(!tipo){_finFiltros.tipo=null;}
+  else if(_finFiltros.tipo!==null&&_finFiltros.tipo.size===1&&_finFiltros.tipo.has(tipo)){_finFiltros.tipo=null;}
+  else{_finFiltros.tipo=new Set([tipo]);}
+  renderFin();
 }
 function delLanc(id){
   if(!confirm('Excluir lançamento?'))return;

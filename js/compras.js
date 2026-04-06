@@ -45,11 +45,12 @@ function renderSolicitacoes(){
   const cotando=(DB.solicitacoes||[]).filter(s=>s.status==='cotando').length;
   const aprovadas=(DB.solicitacoes||[]).filter(s=>s.status==='aprovada').length;
 
+  const _skAct=(v)=>statusF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('sol-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">Total</div><div class="kv">${total}</div><div class="kd neu">solicitacoes</div></div>
-    <div class="kpi"><div class="kl">Abertas</div><div class="kv" style="color:var(--primary)">${abertas}</div><div class="kd neu">aguardando</div></div>
-    <div class="kpi"><div class="kl">Em Cotacao</div><div class="kv" style="color:var(--yellow)">${cotando}</div><div class="kd neu">cotando</div></div>
-    <div class="kpi"><div class="kl">Aprovadas</div><div class="kv" style="color:var(--green)">${aprovadas}</div><div class="kd up">prontas</div></div>`;
+    <div class="kpi" onclick="solFiltroKpi('')" style="cursor:pointer;${_skAct('')}"><div class="kl">Total</div><div class="kv">${total}</div><div class="kd neu">solicitacoes</div></div>
+    <div class="kpi" onclick="solFiltroKpi('aberta')" style="cursor:pointer;${_skAct('aberta')}"><div class="kl">Abertas</div><div class="kv" style="color:var(--primary)">${abertas}</div><div class="kd neu">aguardando</div></div>
+    <div class="kpi" onclick="solFiltroKpi('cotando')" style="cursor:pointer;${_skAct('cotando')}"><div class="kl">Em Cotacao</div><div class="kv" style="color:var(--yellow)">${cotando}</div><div class="kd neu">cotando</div></div>
+    <div class="kpi" onclick="solFiltroKpi('aprovada')" style="cursor:pointer;${_skAct('aprovada')}"><div class="kl">Aprovadas</div><div class="kv" style="color:var(--green)">${aprovadas}</div><div class="kd up">prontas</div></div>`;
 
   const el=document.getElementById('sol-tbl');
   const URG_BADGE={normal:'<span class="b bn">Normal</span>',urgente:'<span class="b by">Urgente</span>',critico:'<span class="b br">Critico</span>'};
@@ -83,6 +84,12 @@ function renderSolicitacoes(){
       </tr>`;
     }).join('')}
   </table>`;
+}
+
+function solFiltroKpi(status){
+  const sel=document.getElementById('sol-status-filter');
+  if(sel){sel.value=sel.value===status?'':status;}
+  renderSolicitacoes();
 }
 
 function solExcluir(id){

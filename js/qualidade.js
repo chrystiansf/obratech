@@ -176,11 +176,18 @@ function renderQual(){
     qof.innerHTML='<option value="">Todas as obras</option>'+DB.obras.map(o=>`<option value="${o.id}"${curVal===String(o.id)?' selected':''}>${o.nome}</option>`).join('');
   }
   const qualObraFiltro=qof?.value||'';
-  const ncs=qualObraFiltro?DB.ncs.filter(n=>String(n.obraId)===String(qualObraFiltro)):DB.ncs;const ab=ncs.filter(n=>n.status!=='Fechada').length;const vc=ncs.filter(n=>n.status!=='Fechada'&&n.prazo&&new Date(n.prazo)<new Date()).length;
+  let ncs=qualObraFiltro?DB.ncs.filter(n=>String(n.obraId)===String(qualObraFiltro)):DB.ncs.slice();
+  const ab=ncs.filter(n=>n.status!=='Fechada').length;const vc=ncs.filter(n=>n.status!=='Fechada'&&n.prazo&&new Date(n.prazo)<new Date()).length;
+  // Filtro por KPI clicado
+  const _qkF=window._qualFiltroKpi||'';
+  if(_qkF==='abertas') ncs=ncs.filter(n=>n.status!=='Fechada');
+  else if(_qkF==='vencidas') ncs=ncs.filter(n=>n.status!=='Fechada'&&n.prazo&&new Date(n.prazo)<new Date());
+  const _qkF=window._qualFiltroKpi||'';
+  const _qkAct=(v)=>_qkF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('qual-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">📋 Total NCs</div><div class="kv">${ncs.length}</div><div class="kd neu">Registradas</div></div>
-    <div class="kpi"><div class="kl">🔴 Abertas</div><div class="kv" style="color:${ab?'var(--yellow)':'var(--green)'}">${ab}</div><div class="kd ${ab?'dn':'up'}">${ab?'Pendentes':'Tudo OK'}</div></div>
-    <div class="kpi"><div class="kl">⏰ Vencidas</div><div class="kv" style="color:${vc?'var(--red)':'var(--green)'}">${vc}</div><div class="kd ${vc?'dn':'up'}">${vc?'Urgente':'Nenhuma'}</div></div>`;
+    <div class="kpi" onclick="qualFiltroKpi('')" style="cursor:pointer;${_qkAct('')}"><div class="kl">📋 Total NCs</div><div class="kv">${ncs.length}</div><div class="kd neu">Registradas</div></div>
+    <div class="kpi" onclick="qualFiltroKpi('abertas')" style="cursor:pointer;${_qkAct('abertas')}"><div class="kl">🔴 Abertas</div><div class="kv" style="color:${ab?'var(--yellow)':'var(--green)'}">${ab}</div><div class="kd ${ab?'dn':'up'}">${ab?'Pendentes':'Tudo OK'}</div></div>
+    <div class="kpi" onclick="qualFiltroKpi('vencidas')" style="cursor:pointer;${_qkAct('vencidas')}"><div class="kl">⏰ Vencidas</div><div class="kv" style="color:${vc?'var(--red)':'var(--green)'}">${vc}</div><div class="kd ${vc?'dn':'up'}">${vc?'Urgente':'Nenhuma'}</div></div>`;
   const el=document.getElementById('nc-tbl');
   if(!ncs.length){el.innerHTML='<div class="t-empty">Nenhuma NC. <button class="btn pri sm" onclick="openModal(&apos;nc&apos;)" style="margin-left:8px">＋ Registrar</button></div>';}
   else el.innerHTML=`<table class="tbl"><tr><th>Nº</th><th>Obra</th><th>Etapa</th><th>Descrição</th><th>Prazo</th><th>Grau</th><th>Status</th><th></th></tr>`+ncs.sort((a,b)=>String(b.id).localeCompare(String(a.id))).map((n,i)=>{const o=DB.obras.find(x=>String(x.id)===String(n.obraId));const vend=n.prazo&&new Date(n.prazo)<new Date()&&n.status!=='Fechada';return`<tr><td style="font-weight:600;color:var(--primary)">#${n.numero||String(i+1).padStart(2,'0')}</td><td>${o?.nome||'—'}</td><td>${n.etapa||'—'}</td><td class="n">${n.desc}</td><td style="color:${vend?'var(--red)':'inherit'}">${n.prazo?fmtDt(n.prazo):'—'}${vend?' ⚠':''}</td><td><span class="b ${n.grau==='Alta'?'br':n.grau==='Média'?'by':'bn'}">${n.grau||'Baixa'}</span></td><td><span class="b ${n.status==='Fechada'?'bg':'by'}">${n.status}</span></td><td><div class="ta-actions">${n.status!=='Fechada'?`<button class="btn sm" onclick="fecharNC('${n.id}')" title="Fechar NC">✓</button>`:''}<button class="btn sm ico" onclick="openModal('nc','${n.id}')">✏️</button><button class="btn sm ico" onclick="delNC('${n.id}')">🗑️</button></div></td></tr>`;}).join('')+'</table>';
@@ -189,6 +196,10 @@ function renderQual(){
     const vals=ets.map(et=>{const t=ncs.filter(n=>n.etapa===et).length;const f=ncs.filter(n=>n.etapa===et&&n.status==='Fechada').length;return t?Math.round(f/t*100):100;});
     mkChart('ch-qual',{type:'radar',data:{labels:ets.length?ets:['Nenhuma'],datasets:[{label:'% Resolvido',data:ets.length?vals:[100],backgroundColor:CP.grnA,borderColor:CP.grn,borderWidth:2,pointBackgroundColor:CP.grn}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:CP.t,font:{size:10}}}},scales:{r:{grid:{color:CP.g},ticks:{color:CP.t,backdropColor:'transparent',font:{size:9}},pointLabels:{color:CP.t,font:{size:10}}}}}});
   },50);
+}
+function qualFiltroKpi(filtro){
+  window._qualFiltroKpi=window._qualFiltroKpi===filtro?'':filtro;
+  renderQual();
 }
 function fecharNC(id){const n=DB.ncs.find(x=>x.id===id);if(n){n.status='Fechada';save();if(typeof id==='string'&&id.includes('-'))supaUpdate('nao_conformidades',id,{status:'Fechada'});renderQual();toast('✅','NC fechada!');}}
 function delNC(id){if(!confirm('Excluir NC?'))return;if(typeof id==='string'&&id.includes('-'))supaDelete('nao_conformidades',id);DB.ncs=DB.ncs.filter(n=>String(n.id)!==String(id));save();renderQual();toast('🗑️','NC excluída.');}

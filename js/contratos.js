@@ -23,11 +23,13 @@ function renderContratos(){
   const totalPago=cts.reduce((a,c)=>a+_contPago(c.id),0);
   const devedor=totalValor-totalPago;
   const atrasados=cts.filter(c=>contStatus(c)==='atrasado').length;
+  const _ckF=document.getElementById('cont-status-filter')?.value||'';
+  const _ckAct=(v)=>_ckF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('cont-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">📑 Contratos</div><div class="kv">${cts.length}</div><div class="kd neu">cadastrados</div></div>
-    <div class="kpi"><div class="kl">💰 Valor Total</div><div class="kv" style="font-size:15px">${fmtR(totalValor)}</div><div class="kd neu">contratado</div></div>
-    <div class="kpi"><div class="kl">✅ Total Pago</div><div class="kv" style="color:var(--green);font-size:15px">${fmtR(totalPago)}</div><div class="kd up">${totalValor?Math.round(totalPago/totalValor*100):0}% quitado</div></div>
-    <div class="kpi"><div class="kl">⏳ Saldo Devedor</div><div class="kv" style="color:${devedor>0?'var(--red)':'var(--green)'};font-size:15px">${fmtR(devedor)}</div><div class="kd ${atrasados?'dn':'neu'}">${atrasados?atrasados+' atrasado(s)':'Tudo OK'}</div></div>`;
+    <div class="kpi" onclick="contFiltroKpi('')" style="cursor:pointer;${_ckAct('')}"><div class="kl">📑 Contratos</div><div class="kv">${cts.length}</div><div class="kd neu">cadastrados</div></div>
+    <div class="kpi" onclick="contFiltroKpi('quitado')" style="cursor:pointer;${_ckAct('quitado')}"><div class="kl">✅ Total Pago</div><div class="kv" style="color:var(--green);font-size:15px">${fmtR(totalPago)}</div><div class="kd up">${totalValor?Math.round(totalPago/totalValor*100):0}% quitado</div></div>
+    <div class="kpi" onclick="contFiltroKpi('atrasado')" style="cursor:pointer;${_ckAct('atrasado')}"><div class="kl">⚠️ Atrasados</div><div class="kv" style="color:${atrasados?'var(--red)':'var(--green)'};font-size:15px">${atrasados}</div><div class="kd ${atrasados?'dn':'neu'}">${atrasados?'com atraso':'Tudo OK'}</div></div>
+    <div class="kpi" onclick="contFiltroKpi('andamento')" style="cursor:pointer;${_ckAct('andamento')}"><div class="kl">⏳ Em andamento</div><div class="kv" style="color:var(--primary);font-size:15px">${cts.filter(c=>contStatus(c)==='andamento').length}</div><div class="kd neu">contratos</div></div>`;
 
   // Filtros
   const q=(document.getElementById('cont-search')?.value||'').toLowerCase();
@@ -476,6 +478,11 @@ function _buildBoletimPDF(medicaoId){
 
 
 
+function contFiltroKpi(status){
+  const sel=document.getElementById('cont-status-filter');
+  if(sel){sel.value=sel.value===status?'':status;}
+  renderContratos();
+}
 function delContrato(id){
   if(!confirm('Excluir contrato? Os pagamentos associados também serão removidos.'))return;
   if(typeof id==='string'&&id.includes('-')) supaDelete('contratos',id);
