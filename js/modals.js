@@ -187,12 +187,13 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">Etapa</label>
         <select class="sel" id="l-etapa"><option value="">Carregando etapas...</option></select>
       </div>
-      <div class="fg" style="position:relative"><label class="lbl">Fornecedor
+      <div class="fg"><label class="lbl">Fornecedor
         <button type="button" onclick="_lancCriarFornecedorInline()" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--primary);border:1px solid var(--primary);border-radius:3px;color:#fff;cursor:pointer" title="Cadastrar novo fornecedor">＋ novo fornecedor</button>
       </label>
         <input class="inp" id="l-forn-txt" value="${l?.forn||''}" placeholder="🔍 Buscar fornecedor..." autocomplete="off" oninput="_lancFornBusca(this.value)" onfocus="_lancFornBusca(this.value)" style="font-size:12px">
-        <div id="l-forn-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:999;max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+        <div id="l-forn-dropdown" style="display:none;max-height:150px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-top:4px"></div>
       </div>
+      <div id="l-forn-novo-area" style="display:none;grid-column:span 2"></div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nota Fiscal / Referência</label>
         <input class="inp" id="l-nf" value="${l?.nf||''}" placeholder="NF 00123">
       </div>
@@ -1031,23 +1032,28 @@ document.addEventListener('click',e=>{
 // CRIAR FORNECEDOR INLINE NO LANÇAMENTO
 // ═══════════════════════════════════════════
 function _lancCriarFornecedorInline(){
-  const dd=document.getElementById('l-forn-dropdown');if(!dd)return;
-  dd.style.display='block';
-  dd.innerHTML=`<div style="padding:12px">
-    <div style="font-weight:600;font-size:12px;margin-bottom:8px">Novo Fornecedor</div>
-    <input class="inp" id="_nf-nome" placeholder="Nome / Razão Social *" style="margin-bottom:6px;font-size:12px">
-    <select class="sel" id="_nf-tipo" style="margin-bottom:6px;font-size:12px">
-      <option value="">— Tipo —</option>
-      <option value="Material">📦 Material</option>
-      <option value="Serviço">🔧 Serviço</option>
-      <option value="Equipamento">🚜 Equipamento</option>
-      <option value="Outro">📌 Outro</option>
-    </select>
-    <input class="inp" id="_nf-cnpj" placeholder="CNPJ / CPF" style="margin-bottom:6px;font-size:12px">
-    <input class="inp" id="_nf-tel" placeholder="Telefone / WhatsApp" style="margin-bottom:8px;font-size:12px">
-    <div style="display:flex;gap:6px;justify-content:flex-end">
-      <button class="btn sm" onclick="document.getElementById('l-forn-dropdown').style.display='none'" type="button">Cancelar</button>
-      <button class="btn sm pri" onclick="_lancSalvarFornecedorInline()" type="button">✅ Salvar</button>
+  const area=document.getElementById('l-forn-novo-area');
+  if(!area)return;
+  // Fechar dropdown de busca se aberto
+  const dd=document.getElementById('l-forn-dropdown');if(dd)dd.style.display='none';
+  area.style.display='block';
+  area.innerHTML=`<div style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px">🏭 Novo Fornecedor</div>
+    <div class="g g2" style="gap:8px">
+      <div class="fg" style="grid-column:span 2"><input class="inp" id="_nf-nome" placeholder="Nome / Razão Social *" style="font-size:12px"></div>
+      <div class="fg"><select class="sel" id="_nf-tipo" style="font-size:12px">
+        <option value="">— Tipo —</option>
+        <option value="Material">📦 Material</option>
+        <option value="Serviço">🔧 Serviço</option>
+        <option value="Equipamento">🚜 Equipamento</option>
+        <option value="Outro">📌 Outro</option>
+      </select></div>
+      <div class="fg"><input class="inp" id="_nf-cnpj" placeholder="CNPJ / CPF" style="font-size:12px"></div>
+      <div class="fg"><input class="inp" id="_nf-tel" placeholder="Telefone / WhatsApp" style="font-size:12px"></div>
+      <div class="fg" style="display:flex;align-items:end;justify-content:flex-end;gap:6px">
+        <button class="btn sm" onclick="document.getElementById('l-forn-novo-area').style.display='none'" type="button">Cancelar</button>
+        <button class="btn sm pri" onclick="_lancSalvarFornecedorInline()" type="button">✅ Salvar Fornecedor</button>
+      </div>
     </div>
   </div>`;
   setTimeout(()=>{const el=document.getElementById('_nf-nome');if(el)el.focus();},50);
@@ -1068,7 +1074,7 @@ function _lancSalvarFornecedorInline(){
   save();
   // Preencher o campo de fornecedor com o nome criado
   const inp=document.getElementById('l-forn-txt');if(inp)inp.value=nome;
-  const dd=document.getElementById('l-forn-dropdown');if(dd)dd.style.display='none';
+  const area=document.getElementById('l-forn-novo-area');if(area)area.style.display='none';
   if(typeof fillSelects==='function')fillSelects();
   toast('✅','Fornecedor cadastrado e disponível na aba Fornecedores!');
 }
