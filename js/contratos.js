@@ -369,8 +369,8 @@ function _buildBoletimPDF(medicaoId){
         if(d.row.index===2) d.cell.styles.fontStyle='bold';
         // Linha "Total acumulado" em destaque
         if(d.row.index===3){d.cell.styles.fillColor=[235,240,248];d.cell.styles.fontStyle='bold';}
-        // Linha "Saldo" em destaque
-        if(d.row.index===4){d.cell.styles.fillColor=corEmpresa();d.cell.styles.textColor=[255,255,255];d.cell.styles.fontStyle='bold';}
+        // Linha "Saldo remanescente" — mesma cor dos títulos da tabela (cinza escuro)
+        if(d.row.index===4){d.cell.styles.fillColor=[70,75,90];d.cell.styles.textColor=[255,255,255];d.cell.styles.fontStyle='bold';}
       }
     },
     margin:{left:M,right:M},

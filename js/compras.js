@@ -54,7 +54,7 @@ function renderSolicitacoes(){
 
   const el=document.getElementById('sol-tbl');
   const URG_BADGE={normal:'<span class="b bn">Normal</span>',urgente:'<span class="b by">Urgente</span>',critico:'<span class="b br">Critico</span>'};
-  const STATUS_BADGE={aberta:'<span class="b bb">Aberta</span>',cotando:'<span class="b by">Cotando</span>',aprovada:'<span class="b bg">Aprovada</span>',recebida:'<span class="b bg" style="background:var(--green)">Recebida</span>',cancelada:'<span class="b bn">Cancelada</span>'};
+  const STATUS_BADGE={aberta:'<span class="b bb">Aberta</span>',cotando:'<span class="b by">Cotando</span>',aprovada:'<span class="b bg">Aprovada</span>',recebida:'<span class="b" style="background:var(--green);color:#fff">Recebida</span>',cancelada:'<span class="b bn">Cancelada</span>'};
 
   if(!sols.length){
     el.innerHTML='<div class="t-empty">Nenhuma solicitacao. <button class="btn pri sm" onclick="openModal(\'solicitacao\')" style="margin-left:8px">+ Nova</button></div>';
@@ -261,7 +261,7 @@ function renderPedidos(){
         <td style="font-size:11px">${sol?.item||'—'}</td>
         <td style="font-size:11px">${o?.nome||'—'}</td>
         <td style="text-align:right;font-weight:600">${fmtR(p.valorTotal||0)}</td>
-        <td style="font-size:11px">${p.previsaoEntrega?fmtDt(p.previsaoEntrega):'—'}</td>
+        <td style="font-size:11px">${p.previsaoEntrega||'—'}</td>
         <td>${STATUS_BADGE[p.status]||STATUS_BADGE.pendente}</td>
         <td><div class="ta-actions">
           ${p.status==='pendente'?`<button class="btn sm" onclick="pedMudarStatus('${p.id}','enviado')">Enviar</button>`:''}
@@ -432,8 +432,8 @@ function gerarMapaCotacaoPDF(solId){
     startY:y,
     head:[['Item','Unidade','Quantidade','Obra','Urgencia']],
     body:[[sol.item,sol.unidade||'—',sol.quantidade||'—',o?.nome||'—',sol.urgencia||'normal']],
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:8,cellPadding:{top:2.2,bottom:2.2,left:4,right:4}},
-    bodyStyles:bStyle(),
+    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     margin:{left:M,right:M},
   });
   y=doc.lastAutoTable.finalY+6;
@@ -452,10 +452,10 @@ function gerarMapaCotacaoPDF(solId){
       (c.obs||'—').substring(0,30),
       c.vencedor?'VENCEDOR':c.valorTotal===menorValor?'Menor preco':'—'
     ]),
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7.5,cellPadding:{top:2.2,bottom:2.2,left:4,right:4}},
-    bodyStyles:bStyle(),
+    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7.5,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     alternateRowStyles:altRow(),
-    columnStyles:{0:{cellWidth:40},1:{cellWidth:26,halign:'right'},2:{cellWidth:28,halign:'right',fontStyle:'bold'},3:{cellWidth:28},4:{cellWidth:35},5:{cellWidth:28,halign:'center'}},
+    columnStyles:{0:{cellWidth:40,halign:'left'},1:{cellWidth:26,halign:'center'},2:{cellWidth:28,halign:'center',fontStyle:'bold'},3:{cellWidth:28,halign:'center'},4:{cellWidth:35,halign:'center'},5:{cellWidth:28,halign:'center'}},
     didParseCell(d){
       if(d.section==='body'){
         if(d.column.index===5){
@@ -509,10 +509,10 @@ function gerarOrdemCompraPDF(pedId){
       ['Fornecedor',p.fornecedor||'—'],
       ['CNPJ',fornObj?.cnpj||'—'],
       ['Contato',fornObj?.contato||fornObj?.telefone||'—'],
-      ['Previsao de Entrega',p.previsaoEntrega?fmtDt(p.previsaoEntrega):'—'],
+      ['Previsao de Entrega',p.previsaoEntrega||'—'],
     ],
-    bodyStyles:{...bStyle(),fontSize:8},
-    columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:[70,75,90]},1:{cellWidth:142}},
+    bodyStyles:{...bStyle(),fontSize:8,cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:[70,75,90],halign:'center'},1:{cellWidth:142,halign:'center'}},
     margin:{left:M,right:M},
   });
   y=doc.lastAutoTable.finalY+6;
@@ -524,10 +524,10 @@ function gerarOrdemCompraPDF(pedId){
     head:[['Item','Unidade','Quantidade','Valor Unit.','Valor Total']],
     body:[[sol?.item||'—',sol?.unidade||'un',sol?.quantidade||'—',fmtR(cot?.valorUnit||0),fmtR(p.valorTotal||0)]],
     foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(p.valorTotal||0)}]],
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:8,cellPadding:{top:2.2,bottom:2.2,left:4,right:4}},
-    bodyStyles:bStyle(),
+    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     footStyles:totRow(),
-    columnStyles:{0:{cellWidth:65},1:{cellWidth:22,halign:'center'},2:{cellWidth:28,halign:'center'},3:{cellWidth:35,halign:'right'},4:{cellWidth:42,halign:'right',fontStyle:'bold'}},
+    columnStyles:{0:{cellWidth:65,halign:'center'},1:{cellWidth:22,halign:'center'},2:{cellWidth:28,halign:'center'},3:{cellWidth:35,halign:'center'},4:{cellWidth:42,halign:'center',fontStyle:'bold'}},
     margin:{left:M,right:M},
   });
   y=doc.lastAutoTable.finalY+6;
