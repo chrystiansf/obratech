@@ -325,92 +325,40 @@ async function visualizarRDO(id){
   const obra=DB.obras.find(o=>String(o.id)===String(rdo.obraId));
   const nomeArq='RDO_'+(obra?.nome||'obra').replace(/\s/g,'_')+'_'+rdo.data+'.pdf';
 
-  // HTML preview instantâneo (sem gerar PDF)
+  // Mostrar overlay com loading imediatamente
   let ov=document.getElementById('rdo-preview-overlay');
   if(!ov){
     ov=document.createElement('div');
     ov.id='rdo-preview-overlay';
     document.body.appendChild(ov);
   }
-  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;padding:12px;overflow-y:auto';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;padding:12px';
+  ov.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;width:100%;max-width:900px;justify-content:space-between">
+      <span style="font-weight:700;font-size:14px;color:#fff">${fmtDt(rdo.data)} — ${obra?.nome||'Obra'}${rdo.autor?' (por '+rdo.autor+')':''}</span>
+      <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff">✕ Fechar</button>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px">
+      <div style="text-align:center"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite">⏳</div>Gerando relatório...</div>
+    </div>
+    <style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>`;
 
-  const climaIcoMap={Ensolarado:'☀️',Nublado:'🌤️',Chuva:'🌧️',Temporal:'⛈️'};
-  const climaIc=climaIcoMap[rdo.clima]||'☀️';
-
-  // Presença de colaboradores
-  const presencas=(DB.pontos||[]).filter(p=>String(p.rdoId)===String(rdo.id)||(String(p.obraId)===String(rdo.obraId)&&p.data===rdo.data));
-  const colabsPresentes=presencas.map(p=>{
-    const c=(DB.colabs||[]).find(c=>String(c.id)===String(p.colabId));
-    return c?{nome:c.nome,cargo:c.cargo,tipo:p.meia?'1/2':'Dia'}:null;
-  }).filter(Boolean);
-
-  // Fotos (URL ou base64)
-  const fotos=(rdo.fotos||[]).filter(f=>f.url||f.data);
+  // Gerar PDF em modo preview (background)
+  await new Promise(r=>setTimeout(r,50));
+  const doc=await gerarRDOPDF(rdo,{preview:true});
+  if(!doc){ov.style.display='none';return;}
+  const blobUrl=doc.output('bloburl');
 
   ov.innerHTML=`
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;width:100%;max-width:900px;justify-content:space-between;flex-shrink:0;position:sticky;top:0;background:rgba(0,0,0,.7);padding:8px 4px;backdrop-filter:blur(8px);z-index:10">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;width:100%;max-width:900px;justify-content:space-between">
       <span style="font-weight:700;font-size:14px;color:#fff">${fmtDt(rdo.data)} — ${obra?.nome||'Obra'}${rdo.autor?' (por '+rdo.autor+')':''}</span>
       <div style="display:flex;gap:6px">
-        <button class="btn pri sm" onclick="_baixarRDOPDF('${id}')" style="font-size:12px">⬇ Baixar PDF</button>
+        <a href="${blobUrl}" download="${nomeArq}" class="btn pri sm" style="text-decoration:none;font-size:12px">⬇ Baixar PDF</a>
         <button class="btn sm" onclick="carregarRDO('${id}');document.getElementById('rdo-preview-overlay').style.display='none'" style="font-size:12px">✏️ Editar</button>
         <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff">✕ Fechar</button>
       </div>
     </div>
-    <div style="width:100%;max-width:900px;background:#fff;border-radius:8px;padding:24px;color:#1a2040;font-family:'Inter',sans-serif">
-      <h2 style="margin:0 0 4px 0;font-size:20px;color:#1a2040">Relatório Diário de Obra</h2>
-      <div style="font-size:12px;color:#666;margin-bottom:16px">${obra?.nome||'—'} • ${fmtDt(rdo.data)} • ${climaIc} ${rdo.clima||'—'}</div>
-
-      ${rdo.prev?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:4px">Previsto</div><div style="font-size:13px;line-height:1.5;white-space:pre-wrap">${rdo.prev}</div></div>`:''}
-
-      ${rdo.real?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:4px">Realizado</div><div style="font-size:13px;line-height:1.5;white-space:pre-wrap">${rdo.real}</div></div>`:''}
-
-      ${rdo.serv?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:4px">Serviços</div><div style="font-size:13px;line-height:1.5;white-space:pre-wrap">${rdo.serv}</div></div>`:''}
-
-      ${rdo.mat?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:4px">Materiais</div><div style="font-size:13px;line-height:1.5;white-space:pre-wrap">${rdo.mat}</div></div>`:''}
-
-      ${rdo.obs?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:4px">Observações</div><div style="font-size:13px;line-height:1.5;white-space:pre-wrap">${rdo.obs}</div></div>`:''}
-
-      ${colabsPresentes.length?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:6px">Equipe Presente (${colabsPresentes.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px">${colabsPresentes.map(c=>`<span style="font-size:11px;padding:3px 8px;background:#eef2ff;border:1px solid #ccd5f0;border-radius:4px">${c.nome}${c.cargo?' • '+c.cargo:''}${c.tipo==='1/2'?' (1/2)':''}</span>`).join('')}</div></div>`:''}
-
-      ${fotos.length?`<div style="margin-top:18px"><div style="font-weight:700;font-size:12px;color:#3060d0;text-transform:uppercase;margin-bottom:8px">Registro Fotográfico (${fotos.length})</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
-        ${fotos.map((f,i)=>`<div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;cursor:pointer" onclick="_rdoFotoLightbox(${i},'${id}')">
-          <img src="${f.url||f.data}" style="width:100%;height:140px;object-fit:cover;display:block" loading="lazy">
-          ${f.desc?`<div style="padding:5px 7px;font-size:10px;color:#666;background:#f7f8fc">${f.desc}</div>`:''}
-        </div>`).join('')}
-        </div></div>`:''}
-    </div>`;
-}
-
-function _baixarRDOPDF(id){
-  const rdo=DB.rdos.find(x=>x.id===id);
-  if(!rdo)return;
-  gerarRDOPDF(rdo);
-}
-
-function _rdoFotoLightbox(idx,rdoId){
-  const rdo=DB.rdos.find(x=>x.id===rdoId);
-  if(!rdo||!rdo.fotos)return;
-  const fotos=rdo.fotos.filter(f=>f.url||f.data);
-  let cur=idx;
-  let lb=document.getElementById('rdo-foto-lightbox');
-  if(!lb){lb=document.createElement('div');lb.id='rdo-foto-lightbox';document.body.appendChild(lb);}
-  const render=()=>{
-    const f=fotos[cur];
-    lb.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px';
-    lb.innerHTML=`
-      <div style="position:absolute;top:16px;right:16px;display:flex;gap:8px">
-        <span style="color:#fff;font-size:13px;padding:6px 12px;background:rgba(255,255,255,.1);border-radius:6px">${cur+1} / ${fotos.length}</span>
-        <button onclick="document.getElementById('rdo-foto-lightbox').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:6px;cursor:pointer;font-size:16px">✕</button>
-      </div>
-      ${cur>0?`<button onclick="event.stopPropagation();window._rdoLbPrev()" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px">‹</button>`:''}
-      ${cur<fotos.length-1?`<button onclick="event.stopPropagation();window._rdoLbNext()" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px">›</button>`:''}
-      <img src="${f.url||f.data}" style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:8px">
-      ${f.desc?`<div style="margin-top:12px;color:#fff;font-size:13px;background:rgba(0,0,0,.5);padding:8px 14px;border-radius:6px;max-width:80vw;text-align:center">${f.desc}</div>`:''}`;
-  };
-  window._rdoLbPrev=()=>{if(cur>0){cur--;render();}};
-  window._rdoLbNext=()=>{if(cur<fotos.length-1){cur++;render();}};
-  render();
+    <iframe src="${blobUrl}" style="flex:1;width:100%;max-width:900px;border:none;border-radius:8px;background:#fff"></iframe>`;
 }
 function carregarRDO(id){
   const rdo=DB.rdos.find(x=>x.id===id);if(!rdo)return;
