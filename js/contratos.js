@@ -283,15 +283,44 @@ function delMedicao(id){
 }
 
 function previewBoletimPDF(medicaoId){
-  const doc=_buildBoletimPDF(medicaoId);
-  if(!doc) return;
-  const blob=doc.output('blob');
-  const url=URL.createObjectURL(blob);
+  // Preview HTML instantâneo (sem gerar PDF)
+  const m=DB.medicoes.find(x=>x.id===medicaoId);
+  if(!m){toast('⚠️','Medição não encontrada.');return;}
+  const ct=DB.contratos.find(c=>c.id===m.contratoId);
+  const o=DB.obras.find(x=>String(x.id)===String(m.obraId));
+  const pctAcum=ct?.valor?Math.round(Number(m.valorAcumulado)/Number(ct.valor)*100):0;
+  const pctEsta=ct?.valor?Math.round(Number(m.valorMedido)/Number(ct.valor)*100):0;
+  const saldo=Math.max(0,Number(ct?.valor||0)-Number(m.valorAcumulado||0));
+  const periodoStr=m.periodo?fmtDt(m.periodo).substring(3):'—';
+
   const root=document.getElementById('modal-root');
-  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside){document.getElementById('modal-root').innerHTML='';URL.revokeObjectURL('${url}')}">
+  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:95vw;max-height:95vh;padding:0;width:800px;display:flex;flex-direction:column">
-      <div class="moh" style="flex-shrink:0"><div class="mot">📄 Boletim de Medição</div><div class="mox" onclick="closeModal();URL.revokeObjectURL('${url}')">✕</div></div>
-      <iframe src="${url}" style="flex:1;border:none;min-height:70vh;border-radius:0 0 12px 12px"></iframe>
+      <div class="moh" style="flex-shrink:0"><div class="mot">📄 Boletim de Medição Nº ${String(m.numero||'1').padStart(3,'0')}</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="mob" style="flex:1;overflow-y:auto;background:#f7f8fc">
+        <div style="background:#fff;padding:24px;border-radius:8px;color:#1a2040;font-family:'Inter',sans-serif">
+          <h3 style="margin:0 0 14px 0;font-size:16px;border-bottom:2px solid #464b5a;padding-bottom:8px">Dados do Contrato</h3>
+          <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:18px">
+            <thead><tr style="background:#464b5a;color:#fff"><th style="padding:8px;text-align:center">Contrato</th><th style="padding:8px;text-align:center">Fornecedor</th><th style="padding:8px;text-align:center">Valor do Contrato</th><th style="padding:8px;text-align:center">Período</th></tr></thead>
+            <tbody><tr style="border:1px solid #ddd"><td style="padding:7px;text-align:center;font-weight:600">${ct?.numero||'—'}</td><td style="padding:7px;text-align:center;font-weight:600">${ct?.forn||'—'}</td><td style="padding:7px;text-align:center;font-weight:600">${fmtR(Number(ct?.valor||0))}</td><td style="padding:7px;text-align:center;font-weight:600">${periodoStr}</td></tr></tbody>
+          </table>
+
+          <h3 style="margin:0 0 14px 0;font-size:16px;border-bottom:2px solid #464b5a;padding-bottom:8px">Resumo Financeiro da Medição</h3>
+          <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:18px">
+            <thead><tr style="background:#464b5a;color:#fff"><th style="padding:8px;text-align:left">Descrição</th><th style="padding:8px;text-align:right">Valor (R$)</th><th style="padding:8px;text-align:center">%</th></tr></thead>
+            <tbody>
+              <tr style="border:1px solid #ddd"><td style="padding:7px">Valor do contrato</td><td style="padding:7px;text-align:right">${fmtR(Number(ct?.valor||0))}</td><td style="padding:7px;text-align:center">100%</td></tr>
+              <tr style="border:1px solid #ddd;background:#f7f8fc"><td style="padding:7px">Medições anteriores</td><td style="padding:7px;text-align:right">${fmtR(Number(m.valorAcumulado||0)-Number(m.valorMedido||0))}</td><td style="padding:7px;text-align:center">${pctAcum-pctEsta}%</td></tr>
+              <tr style="border:1px solid #ddd"><td style="padding:7px;font-weight:700">Esta medição (Nº ${String(m.numero||'1').padStart(2,'0')})</td><td style="padding:7px;text-align:right;font-weight:700">${fmtR(Number(m.valorMedido||0))}</td><td style="padding:7px;text-align:center;font-weight:700">${pctEsta}%</td></tr>
+              <tr style="border:1px solid #ddd;background:#ebf0f8"><td style="padding:7px;font-weight:700">Total acumulado</td><td style="padding:7px;text-align:right;font-weight:700">${fmtR(Number(m.valorAcumulado||0))}</td><td style="padding:7px;text-align:center;font-weight:700">${pctAcum}%</td></tr>
+              <tr style="background:#464b5a;color:#fff"><td style="padding:7px;font-weight:700">Saldo remanescente</td><td style="padding:7px;text-align:right;font-weight:700">${fmtR(saldo)}</td><td style="padding:7px;text-align:center;font-weight:700">${100-pctAcum}%</td></tr>
+            </tbody>
+          </table>
+
+          ${m.descricao?`<h3 style="margin:0 0 10px 0;font-size:16px;border-bottom:2px solid #464b5a;padding-bottom:8px">Descrição da Medição</h3><div style="font-size:13px;line-height:1.5;white-space:pre-wrap;margin-bottom:18px">${m.descricao}</div>`:''}
+          ${m.obs?`<h3 style="margin:0 0 10px 0;font-size:16px;border-bottom:2px solid #464b5a;padding-bottom:8px">Observações</h3><div style="font-size:13px;line-height:1.5;white-space:pre-wrap">${m.obs}</div>`:''}
+        </div>
+      </div>
       <div class="mof" style="flex-shrink:0">
         <button class="btn" onclick="closeModal()">Fechar</button>
         <button class="btn pri" onclick="gerarBoletimPDF('${medicaoId}')">⬇️ Baixar PDF</button>

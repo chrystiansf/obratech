@@ -250,7 +250,7 @@ function openModal(type,editId=null,editId2=null){
       </label>
         <select class="sel" id="mat-un">${unOpts}</select>
       </div>
-      <div class="fg"><label class="lbl">Estoque Mínimo</label><input type="number" class="inp" id="mat-min" value="${m?.min||0}" min="0"></div>
+      <div class="fg"><label class="lbl">Estoque Mínimo <small style="color:var(--txt3);font-weight:400">(opcional, deixe 0 se não tiver)</small></label><input type="number" class="inp" id="mat-min" value="${m?.min!==undefined&&m?.min!==null?m.min:0}" min="0" step="any" placeholder="0"></div>
       <div class="fg"><label class="lbl">Preço Unitário (R$)</label><input type="number" class="inp" id="mat-preco" value="${m?.preco||0}" min="0" step="0.01"></div>
       <div class="fg"><label class="lbl">Fornecedor
         <button type="button" onclick="closeModal();goPage('fornecedores')" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--txt3);cursor:pointer">＋ cadastrar</button>
@@ -265,7 +265,9 @@ function openModal(type,editId=null,editId2=null){
     onSave=()=>{
       const material=document.getElementById('mat-nome').value.trim();if(!material){toast('⚠️','Nome obrigatório!');return false;}
       const fornTxt=document.getElementById('mat-forn-txt').value.trim()||document.getElementById('mat-forn-sel').value||'';
-      const dados={material,un:document.getElementById('mat-un').value,qtd:0,min:parseFloat(document.getElementById('mat-min').value)||0,preco:parseFloat(document.getElementById('mat-preco').value)||0,obraId:null,forn:fornTxt};
+      const minVal=document.getElementById('mat-min').value;
+      const minNum=minVal===''||minVal===null?0:Number(minVal);
+      const dados={material,un:document.getElementById('mat-un').value,qtd:0,min:isNaN(minNum)?0:Math.max(0,minNum),preco:parseFloat(document.getElementById('mat-preco').value)||0,obraId:null,forn:fornTxt};
       if(m){
         Object.assign(m,dados);
         supaUpdate('estoque',m.id,{material:dados.material,unidade:dados.un,estoque_min:dados.min,preco:dados.preco,fornecedor:dados.forn});
