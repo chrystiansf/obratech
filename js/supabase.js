@@ -30,7 +30,18 @@ function initSupabase(){
     });
     console.log('✓ Supabase conectado');
   } else {
-    console.warn('Supabase CDN não carregou — modo offline');
+    console.warn('Supabase CDN não carregou — tentando reconectar...');
+    // Tentar recarregar a lib do Supabase após 3s
+    setTimeout(()=>{
+      if(window.supabase&&!supa){
+        initSupabase();
+      } else if(!window.supabase){
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+        s.onload=()=>{if(window.supabase)initSupabase();};
+        document.head.appendChild(s);
+      }
+    },3000);
   }
 }
 
@@ -39,20 +50,47 @@ async function fazerLogin(){
   const email = document.getElementById('auth-email').value.trim();
   const senha = document.getElementById('auth-senha').value;
   if(!email||!senha){ authMsg('Preencha email e senha.','error'); return; }
+
+  if(!navigator.onLine){
+    authMsg('Sem conexão com a internet. Verifique sua rede e tente novamente.','error');
+    return;
+  }
+
+  if(!supa){
+    authMsg('Servidor indisponível. Recarregue a página (Ctrl+Shift+R).','error');
+    return;
+  }
+
   authMsg('Entrando...','info');
-  try{
-    const {data,error} = await supa.auth.signInWithPassword({email,password:senha});
-    if(error) throw error;
-    authMsg('Bem-vindo!','success');
-    // Iniciar sessão diretamente para evitar depender apenas do listener
-    if(data.session && !window._sessaoAtiva){
-      window._sessaoAtiva=true;
-      await iniciarSessao(data.session);
-      iniciarRealtime();
-      adicionarBotaoLogout();
+  const maxTentativas=3;
+  for(let tentativa=1;tentativa<=maxTentativas;tentativa++){
+    try{
+      const {data,error} = await Promise.race([
+        supa.auth.signInWithPassword({email,password:senha}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))
+      ]);
+      if(error) throw error;
+      authMsg('Bem-vindo!','success');
+      if(data.session && !window._sessaoAtiva){
+        window._sessaoAtiva=true;
+        await iniciarSessao(data.session);
+        iniciarRealtime();
+        adicionarBotaoLogout();
+      }
+      return;
+    } catch(e){
+      const isRede=e.message==='timeout'||e.message.includes('fetch')||e.message.includes('network')||e.message.includes('Failed')||e.message.includes('ERR_');
+      if(isRede&&tentativa<maxTentativas){
+        authMsg(`Conexão lenta... tentativa ${tentativa+1}/${maxTentativas}`,'info');
+        await new Promise(r=>setTimeout(r,2000*tentativa));
+        continue;
+      }
+      if(isRede){
+        authMsg('Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.','error');
+      } else {
+        authMsg(e.message.includes('Invalid')?'Email ou senha incorretos.':e.message,'error');
+      }
     }
-  } catch(e){
-    authMsg(e.message.includes('Invalid')?'Email ou senha incorretos.':e.message,'error');
   }
 }
 
@@ -442,7 +480,8 @@ async function iniciarSessao(session){
   } catch(e){
     console.error('Erro em iniciarSessao:', e.message);
     // Timeout ou erro de rede — NUNCA mostrar login se sessão é válida
-    if(e.message==='timeout'||e.message?.includes('fetch')||e.message?.includes('network')){
+    const _isRedeErr=e.message==='timeout'||e.message?.includes('fetch')||e.message?.includes('network')||e.message?.includes('Failed')||e.message?.includes('ERR_')||e.message?.includes('RESOLVED')||e.message?.includes('load');
+    if(_isRedeErr){
       // Tentar usar cache local antes de desistir
       const cachedEmpresa = localStorage.getItem('_ot_empresa_id');
       const cachedPapel = localStorage.getItem('_ot_papel');
