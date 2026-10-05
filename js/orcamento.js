@@ -470,13 +470,14 @@ async function orcGerarPDF(){
   let logoX=9;
   if(_empresaLogo){
     try{
-      const props=doc.getImageProperties(_empresaLogo);
+      const lp=(typeof _logoPdf!=='undefined'&&_logoPdf&&_logoPdf.src===_empresaLogo)?_logoPdf:null;
+      const props=lp?{width:lp.w,height:lp.h}:doc.getImageProperties(_empresaLogo);
       const ratio=props.width/props.height;
       const maxH=20,maxW=40;
       let dw,dh;
       if(ratio>=1){dw=Math.min(maxW,maxH*ratio);dh=dw/ratio;}
       else{dh=maxH;dw=dh*ratio;}
-      doc.addImage(_empresaLogo,'PNG',9,y+(22-dh)/2,dw,dh,'','FAST');
+      doc.addImage(lp?lp.data:_empresaLogo,'PNG',9,y+(22-dh)/2,dw,dh,'emp_logo','FAST');
       logoX=9+dw+4;
     }catch(e){logoX=9;}
   }

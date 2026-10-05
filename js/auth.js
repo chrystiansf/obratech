@@ -62,6 +62,7 @@ async function _carregarBrandingEmpresa(){
       localStorage.setItem('_ot_logo',_empresaLogo||'');
       localStorage.setItem('_ot_cor',_empresaCor);
     }
+    if(typeof prepararLogoPDF==='function') prepararLogoPDF();
   }catch(e){
     // Fallback: cache local
     _empresaLogo=localStorage.getItem('_ot_logo')||null;
@@ -198,6 +199,7 @@ async function uploadLogoEmpresa(e){
     const logoUrl=urlData.publicUrl+'?t='+Date.now();
     _empresaLogo=logoUrl;
     localStorage.setItem('_ot_logo',logoUrl);
+    if(typeof prepararLogoPDF==='function') prepararLogoPDF();
     await supa.from('empresas').update({logo_url:logoUrl}).eq('id',_empresaId);
     renderBrandingEmpresa();
     toast('✅','Logo atualizada!');

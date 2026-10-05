@@ -32,6 +32,60 @@ const PX = {
 Object.defineProperty(PX,'navy',{get:function(){return corEmpresa();},enumerable:true});
 Object.defineProperty(PX,'dark',{get:function(){return corEmpresa();},enumerable:true});
 
+// ── Cache de imagens para PDF (evita downloads síncronos repetidos a cada página)
+let _logoPdf = null; // {src, data, w, h}
+let _logoPdfLoading = null;
+const _pdfFotoCache = new Map(); // fotos do RDO já processadas (URL -> dataURL)
+try { const c = JSON.parse(localStorage.getItem('_ot_logo_pdf') || 'null'); if (c && c.data) _logoPdf = c; } catch (e) {}
+
+// Carrega imagem (URL ou dataURL), reduz para maxPx e devolve {data,w,h}
+function _pdfCarregarImg(src, maxPx, fmt, q) {
+  return new Promise((resolve, reject) => {
+    const desenhar = (img, revoke) => {
+      try {
+        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (!w || !h) throw new Error('Imagem vazia');
+        const esc = Math.min(1, maxPx / Math.max(w, h));
+        const cw = Math.max(1, Math.round(w * esc)), ch = Math.max(1, Math.round(h * esc));
+        const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+        const ctx = cv.getContext('2d');
+        if (fmt === 'jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch); }
+        ctx.drawImage(img, 0, 0, cw, ch);
+        resolve({ data: cv.toDataURL(fmt === 'jpeg' ? 'image/jpeg' : 'image/png', q || 0.8), w: cw, h: ch });
+      } catch (e) { reject(e); } finally { if (revoke) URL.revokeObjectURL(revoke); }
+    };
+    const viaImg = (url, cors, revoke) => {
+      const img = new Image();
+      if (cors) img.crossOrigin = 'anonymous';
+      img.onload = () => desenhar(img, revoke);
+      img.onerror = () => { if (revoke) URL.revokeObjectURL(revoke); reject(new Error('Falha ao carregar imagem')); };
+      img.src = url;
+    };
+    if (src.startsWith('data:') || src.startsWith('blob:')) { viaImg(src, false); return; }
+    fetch(src).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+      .then(b => { const u = URL.createObjectURL(b); viaImg(u, false, u); })
+      .catch(() => viaImg(src, true));
+  });
+}
+
+// Prepara a logo da empresa uma única vez (reduzida) para uso rápido nos PDFs
+function prepararLogoPDF() {
+  const src = (typeof _empresaLogo !== 'undefined') ? _empresaLogo : null;
+  if (!src) { _logoPdf = null; return Promise.resolve(null); }
+  if (_logoPdf && _logoPdf.src === src) return Promise.resolve(_logoPdf);
+  if (_logoPdfLoading && _logoPdfLoading.src === src) return _logoPdfLoading.p;
+  const p = _pdfCarregarImg(src, 400, 'png').then(r => {
+    _logoPdf = { src, data: r.data, w: r.w, h: r.h };
+    try { localStorage.setItem('_ot_logo_pdf', JSON.stringify(_logoPdf)); } catch (e) {}
+    return _logoPdf;
+  }).catch(e => { console.warn('Logo PDF:', e); return null; })
+    .finally(() => { _logoPdfLoading = null; });
+  _logoPdfLoading = { src, p };
+  return p;
+}
+setTimeout(prepararLogoPDF, 2500);
+setTimeout(prepararLogoPDF, 8000);
+
 // ── Cabeçalho corporativo — cor da empresa, logo se disponivel
 function pHdr(doc, title, sub, _accent) {
   title=title||'Relatório'; sub=sub||'';
@@ -50,8 +104,10 @@ function pHdr(doc, title, sub, _accent) {
   let textStartX = 10;
   if (_empresaLogo) {
     try {
-      // Carregar dimensões reais da imagem
-      const props = doc.getImageProperties(_empresaLogo);
+      // Usar logo pré-processada (rápido). Se ainda não estiver pronta, prepara para a próxima vez
+      const lp = (_logoPdf && _logoPdf.src === _empresaLogo) ? _logoPdf : null;
+      if (!lp) prepararLogoPDF();
+      const props = lp ? { width: lp.w, height: lp.h } : doc.getImageProperties(_empresaLogo);
       const ratio = props.width / props.height;
       let drawW, drawH;
       if (ratio >= 1) {
@@ -64,7 +120,7 @@ function pHdr(doc, title, sub, _accent) {
         drawW = drawH * ratio;
       }
       const drawY = (hdrH - drawH) / 2 + 0.5;
-      doc.addImage(_empresaLogo, 'PNG', 10, drawY, drawW, drawH, '', 'FAST');
+      doc.addImage(lp ? lp.data : _empresaLogo, 'PNG', 10, drawY, drawW, drawH, 'emp_logo', 'FAST');
       textStartX = 10 + drawW + 5;
     } catch(e) { textStartX = 10; }
   }
@@ -368,31 +424,15 @@ async function gerarRDOPDF(rdo, opts) {
   // ═══════════════════════════════════════════════════════════════
   if (rdo.fotos && rdo.fotos.length) {
     // Pré-carregar fotos (converter URL para base64 se necessário)
-    const fotosCarregadas = [];
-    for (const foto of rdo.fotos) {
+    // Carregar todas em paralelo, reduzidas (muito mais rápido e PDF menor)
+    const fotosCarregadas = await Promise.all(rdo.fotos.map(foto => {
       const imgSrc = foto.data || foto.url || '';
-      if (!imgSrc) { fotosCarregadas.push(null); continue; }
-      if (imgSrc.startsWith('data:')) {
-        fotosCarregadas.push(imgSrc);
-      } else {
-        // URL — carregar como Image e converter para base64
-        try {
-          const imgData = await new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = img.width; canvas.height = img.height;
-              canvas.getContext('2d').drawImage(img, 0, 0);
-              resolve(canvas.toDataURL('image/jpeg', 0.85));
-            };
-            img.onerror = () => reject(new Error('Falha ao carregar'));
-            img.src = imgSrc;
-          });
-          fotosCarregadas.push(imgData);
-        } catch (e) { fotosCarregadas.push(null); }
-      }
-    }
+      if (!imgSrc) return null;
+      if (_pdfFotoCache.has(imgSrc)) return _pdfFotoCache.get(imgSrc);
+      return _pdfCarregarImg(imgSrc, 1000, 'jpeg', 0.75)
+        .then(r => { if (_pdfFotoCache.size > 80) _pdfFotoCache.clear(); _pdfFotoCache.set(imgSrc, r.data); return r.data; })
+        .catch(() => null);
+    }));
 
     checkPage(60);
     y = pSec(doc, y, 'Registro Fotografico (' + rdo.fotos.length + ' foto' + (rdo.fotos.length > 1 ? 's' : '') + ')');
@@ -626,8 +666,8 @@ function exportFolhaPDF() {
 // ─────────────────────────────────────────────────────────────────
 // 4. DRE — DEMONSTRATIVO FINANCEIRO
 // ─────────────────────────────────────────────────────────────────
-function exportFinPDF() {
-  const lans = DB.lancs.filter(l => {
+function _finLancsFiltrados() {
+  return DB.lancs.filter(l => {
     if (_finFiltros.obra !== null && !_finFiltros.obra.has(String(l.obraId))) return false;
     if (_finFiltros.tipo !== null && !_finFiltros.tipo.has(l.tipo||'—'))       return false;
     if (_finFiltros.cat  !== null && !_finFiltros.cat.has(l.cat||'—'))         return false;
@@ -637,6 +677,58 @@ function exportFinPDF() {
     if (_finFiltros.dataFim && l.data > _finFiltros.dataFim) return false;
     return true;
   });
+}
+
+// ── Exportar lançamentos financeiros (filtros atuais) para Excel
+function exportFinXLS() {
+  if (typeof XLSX === 'undefined') { toast('⚠️', 'Biblioteca de Excel ainda carregando. Tente novamente.'); return; }
+  const lans = _finLancsFiltrados();
+  if (!lans.length) { toast('⚠️', 'Nenhum lancamento nos filtros atuais!'); return; }
+  const obraNome = id => (DB.obras.find(o => o.id == id)?.nome) || '—';
+  const ordenados = [...lans].sort((a, b) => String(b.data||'').localeCompare(String(a.data||'')));
+  const wb = XLSX.utils.book_new();
+
+  const head = ['Data', 'Tipo', 'Descrição', 'Obra', 'Categoria', 'Centro de Custo', 'Fornecedor', 'NF', 'Valor (R$)'];
+  const body = ordenados.map(l => [
+    l.data ? fmtDt(l.data) : '—', l.tipo || '—', l.desc || '—', obraNome(l.obraId),
+    l.cat || '—', l.cc || '—', l.forn || '—', l.nf || '—', Number(l.valor || 0)
+  ]);
+  const totDesp = lans.filter(l => l.tipo === 'Despesa').reduce((a, l) => a + Number(l.valor || 0), 0);
+  const totRec  = lans.filter(l => l.tipo === 'Receita').reduce((a, l) => a + Number(l.valor || 0), 0);
+  const rodape = [[], ['', '', 'TOTAL DESPESAS', '', '', '', '', '', totDesp]];
+  if (totRec) rodape.push(['', '', 'TOTAL RECEITAS', '', '', '', '', '', totRec]);
+  const ws = XLSX.utils.aoa_to_sheet([head, ...body, ...rodape]);
+  ws['!cols'] = [{wch:12},{wch:10},{wch:40},{wch:25},{wch:20},{wch:18},{wch:28},{wch:12},{wch:15}];
+  ws['!autofilter'] = { ref: 'A1:I' + (body.length + 1) };
+  for (let r = 1; r < body.length + rodape.length + 1; r++) {
+    const c = ws[XLSX.utils.encode_cell({ r, c: 8 })];
+    if (c && typeof c.v === 'number') c.z = '#,##0.00';
+  }
+  XLSX.utils.book_append_sheet(wb, ws, 'Lancamentos');
+
+  const cats = {};
+  lans.filter(l => l.tipo === 'Despesa').forEach(l => { const k = l.cat || 'Sem Categoria'; cats[k] = (cats[k] || 0) + Number(l.valor || 0); });
+  const catRows = Object.entries(cats).sort((a, b) => b[1] - a[1])
+    .map(([c, v]) => [c, v, totDesp > 0 ? +(v / totDesp * 100).toFixed(2) : 0]);
+  const wsCat = XLSX.utils.aoa_to_sheet([['Categoria', 'Valor (R$)', '% do Total'], ...catRows, [], ['TOTAL', totDesp, 100]]);
+  wsCat['!cols'] = [{wch:30},{wch:16},{wch:12}];
+  for (let r = 1; r <= catRows.length + 2; r++) { const c = wsCat[XLSX.utils.encode_cell({ r, c: 1 })]; if (c) c.z = '#,##0.00'; }
+  XLSX.utils.book_append_sheet(wb, wsCat, 'Resumo por Categoria');
+
+  const obras = {};
+  lans.filter(l => l.tipo === 'Despesa').forEach(l => { const k = obraNome(l.obraId); obras[k] = (obras[k] || 0) + Number(l.valor || 0); });
+  const obraRows = Object.entries(obras).sort((a, b) => b[1] - a[1]);
+  const wsObra = XLSX.utils.aoa_to_sheet([['Obra', 'Despesas (R$)'], ...obraRows]);
+  wsObra['!cols'] = [{wch:30},{wch:16}];
+  for (let r = 1; r <= obraRows.length; r++) { const c = wsObra[XLSX.utils.encode_cell({ r, c: 1 })]; if (c) c.z = '#,##0.00'; }
+  XLSX.utils.book_append_sheet(wb, wsObra, 'Resumo por Obra');
+
+  XLSX.writeFile(wb, 'Financeiro_ObraTech_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  toast('📊', 'Planilha financeira exportada (' + lans.length + ' lancamentos)!');
+}
+
+function exportFinPDF() {
+  const lans = _finLancsFiltrados();
   if (!lans.length) { toast('⚠️', 'Nenhum lancamento nos filtros atuais!'); return; }
 
   const dep   = lans.filter(l => l.tipo==='Despesa').reduce((a,l) => a+Number(l.valor), 0);
