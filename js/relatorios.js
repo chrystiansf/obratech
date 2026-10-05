@@ -108,7 +108,7 @@ async function exportarSelecionados(){
       console.warn('Erro no relatório '+id+':',e);
       erros++;
     }
-    await new Promise(r=>setTimeout(r,600));
+    await new Promise(r=>setTimeout(r,250));
   }
   DB.sel=prevSel;
   if(erros===0) toast('✅',ok+' relatório(s) exportado(s) com sucesso!');
