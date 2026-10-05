@@ -682,7 +682,7 @@ function _finLancsFiltrados() {
 // ── Exportar lançamentos financeiros (filtros atuais) para Excel
 function exportFinXLS() {
   if (typeof XLSX === 'undefined') { toast('⚠️', 'Biblioteca de Excel ainda carregando. Tente novamente.'); return; }
-  const lans = _finLancsFiltrados();
+  const lans = _finLancsFiltrados().filter(l => l.tipo === 'Despesa');
   if (!lans.length) { toast('⚠️', 'Nenhum lancamento nos filtros atuais!'); return; }
   const obraNome = id => (DB.obras.find(o => o.id == id)?.nome) || '—';
   const ordenados = [...lans].sort((a, b) => String(b.data||'').localeCompare(String(a.data||'')));
@@ -694,9 +694,7 @@ function exportFinXLS() {
     l.cat || '—', l.cc || '—', l.forn || '—', l.nf || '—', Number(l.valor || 0)
   ]);
   const totDesp = lans.filter(l => l.tipo === 'Despesa').reduce((a, l) => a + Number(l.valor || 0), 0);
-  const totRec  = lans.filter(l => l.tipo === 'Receita').reduce((a, l) => a + Number(l.valor || 0), 0);
   const rodape = [[], ['', '', 'TOTAL DESPESAS', '', '', '', '', '', totDesp]];
-  if (totRec) rodape.push(['', '', 'TOTAL RECEITAS', '', '', '', '', '', totRec]);
   const ws = XLSX.utils.aoa_to_sheet([head, ...body, ...rodape]);
   ws['!cols'] = [{wch:12},{wch:10},{wch:40},{wch:25},{wch:20},{wch:18},{wch:28},{wch:12},{wch:15}];
   ws['!autofilter'] = { ref: 'A1:I' + (body.length + 1) };
@@ -728,7 +726,7 @@ function exportFinXLS() {
 }
 
 function exportFinPDF() {
-  const lans = _finLancsFiltrados();
+  const lans = _finLancsFiltrados().filter(l => l.tipo === 'Despesa');
   if (!lans.length) { toast('⚠️', 'Nenhum lancamento nos filtros atuais!'); return; }
 
   const dep   = lans.filter(l => l.tipo==='Despesa').reduce((a,l) => a+Number(l.valor), 0);
@@ -1764,10 +1762,9 @@ function gerarRelGerencial() {
   const obras = DB.obras;
   if (!obras.length) { toast('⚠️','Nenhuma obra cadastrada!'); return; }
 
-  const rec    = DB.lancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
   const dep    = DB.lancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-  const saldo  = rec - dep;
   const orc    = obras.reduce((a,o)=>a+Number(o.orc||0),0);
+  const saldo  = orc - dep;
   const avMed  = obras.length ? Math.round(obras.reduce((a,o)=>a+obraPct(o),0)/obras.length) : 0;
   const ncsAb  = DB.ncs.filter(n=>n.status!=='Fechada').length;
 
@@ -1782,8 +1779,8 @@ function gerarRelGerencial() {
     { l:'Avanco Medio',      v:avMed+'%',                       s:'todas as obras' },
     { l:'Orcamento Total',   v:fmtR(orc),                       s:'soma dos orcamentos' },
     { l:'Total Despesas',    v:fmtR(dep),                       s: dep>orc ? 'acima orcado' : 'dentro orcado' },
-    { l:'Total Receitas',    v:fmtR(rec),                       s:'lancadas' },
-    { l:'Saldo Financeiro',  v:fmtR(saldo),                     s: saldo>=0 ? 'positivo' : 'negativo' },
+    { l:'Saldo Orcamentario',v:fmtR(saldo),                     s: saldo>=0 ? 'dentro do orcado' : 'acima do orcado' },
+    { l:'% Orcamento Gasto', v:(orc>0?Math.round(dep/orc*100):0)+'%', s:'despesas / orcamento' },
     { l:'Colaboradores',     v:String(DB.colabs.length),        s:'equipe ativa' },
     { l:'NCs Abertas',       v:String(ncsAb),                   s: ncsAb ? 'requerem atencao' : 'nenhuma pendente' },
   ];
@@ -1841,32 +1838,24 @@ function gerarRelGerencial() {
   if (DB.lancs.length) {
     if (y > 215) { doc.addPage(); y = pHdr(doc, 'Gerencial — Financeiro', 'Continuacao') + 8; }
     y = pSec(doc, y, 'Resumo Financeiro por Categoria');
-    const cats = [...new Set(DB.lancs.map(l=>l.cat||'Sem Categoria'))].sort();
+    const cats = [...new Set(DB.lancs.filter(l=>l.tipo==='Despesa').map(l=>l.cat||'Sem Categoria'))]
+      .map(cat => ({ cat, v: DB.lancs.filter(l=>(l.cat||'Sem Categoria')===cat&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0) }))
+      .sort((a,b) => b.v - a.v);
     doc.autoTable({
       startY: y,
-      head: [['Categoria','Receitas (R$)','Despesas (R$)','Saldo (R$)']],
+      head: [['Categoria','Despesas (R$)','% do Total']],
       body: [
-        ...cats.map(cat => {
-          const r  = DB.lancs.filter(l=>l.cat===cat&&l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
-          const d2 = DB.lancs.filter(l=>l.cat===cat&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-          return [cat, fmtR(r), fmtR(d2), fmtR(r-d2)];
-        }),
-        ['TOTAL GERAL', fmtR(rec), fmtR(dep), fmtR(saldo)]
+        ...cats.map(c => [c.cat, fmtR(c.v), dep>0 ? (c.v/dep*100).toFixed(2)+'%' : '0.00%']),
+        ['TOTAL GERAL', fmtR(dep), '100.00%']
       ],
       theme: 'striped', headStyles: hStyle(), bodyStyles: bStyle(), alternateRowStyles: altRow(),
       columnStyles: {
-        0: { cellWidth: 76 },
-        1: { cellWidth: 38, halign:'right' },
-        2: { cellWidth: 38, halign:'right' },
-        3: { cellWidth: 40, halign:'right', fontStyle:'bold' }
+        0: { cellWidth: 102 },
+        1: { cellWidth: 50, halign:'right', fontStyle:'bold' },
+        2: { cellWidth: 40, halign:'center' }
       },
       didParseCell: (d) => {
         if (d.section==='body') {
-          if (d.column.index===3) {
-            const raw = typeof d.cell.raw==='number' ? d.cell.raw
-              : parseFloat((d.cell.raw||'').toString().replace(/[^0-9\-.,]/g,'').replace(',','.')) || 0;
-            d.cell.styles.textColor = raw < 0 ? PX.red : PX.green;
-          }
           if (d.row.index===cats.length) {
             d.cell.styles.fillColor = PX.navy; d.cell.styles.textColor = [255,255,255]; d.cell.styles.fontStyle = 'bold';
           }

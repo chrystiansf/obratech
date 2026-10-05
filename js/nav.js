@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════
 // NAV
 // ═══════════════════════════════════════════
-const TITLES={empresa:'Empresa',dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe / Folha',estoque:'Estoque',financeiro:'Financeiro',qualidade:'Qualidade',relatorios:'Relatórios',demandas:'Demandas',compras:'Compras',fornecedores:'Fornecedores',contratos:'Contratos',orcamento:'Orçamento'};
-const NEW_ACTIONS={obras:()=>openMocModal(),cronograma:()=>openModal('etapa'),rdo:null,equipe:()=>{const tercsEl=document.getElementById('t-tercs');if(tercsEl&&tercsEl.style.display!=='none'){openModal('terceirizado')}else{openModal('colab')}},estoque:()=>{estSwTab('catalogo');openModal('material');},financeiro:()=>openModal('lanc'),qualidade:()=>openModal('nc'),contratos:()=>openModal('contrato'),compras:()=>openModalSolicitacao()};
+const TITLES={empresa:'Empresa',dashboard:'Dashboard',obras:'Obras',cronograma:'Cronograma',rdo:'RDO Diário',equipe:'Equipe / Folha',estoque:'Estoque',financeiro:'Financeiro',qualidade:'Qualidade',relatorios:'Relatórios',demandas:'Demandas',compras:'Compras',fornecedores:'Fornecedores',contratos:'Contratos',orcamento:'Orçamento',caixa:'Caixa'};
+const NEW_ACTIONS={obras:()=>openMocModal(),cronograma:()=>openModal('etapa'),rdo:null,equipe:()=>{const tercsEl=document.getElementById('t-tercs');if(tercsEl&&tercsEl.style.display!=='none'){openModal('terceirizado')}else{openModal('colab')}},estoque:()=>{estSwTab('catalogo');openModal('material');},financeiro:()=>openModal('lanc'),qualidade:()=>openModal('nc'),contratos:()=>openModal('contrato'),compras:()=>openModalSolicitacao(),caixa:()=>cxAbrirAporte()};
 
 function goPage(id){
   // Bloquear se usuário não tem permissão para este módulo
@@ -18,7 +18,7 @@ function goPage(id){
   document.querySelector(`.mni[data-p="${id}"]`)?.classList.add('on');
   document.getElementById('ptitle').textContent=TITLES[id]||id;
   updateSbObra();fillSelects();
-  const _renderFns={dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,qualidade:renderQual,contratos:renderContratos,relatorios:()=>{},demandas:renderDemandas,compras:renderCompras,fornecedores:renderFornecedores,empresa:renderClientes,orcamento:renderOrcamento};
+  const _renderFns={dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,qualidade:renderQual,contratos:renderContratos,relatorios:()=>{},demandas:renderDemandas,compras:renderCompras,fornecedores:renderFornecedores,empresa:renderClientes,orcamento:renderOrcamento,caixa:renderCaixa};
   _renderFns[id]?.();
   window._paginaAtual=id;
 }
@@ -29,7 +29,7 @@ function renderPaginaAtual(){
   fillSelects();
   const fns={dashboard:renderDash,obras:renderObras,cronograma:renderCron,rdo:renderRDO,
     equipe:renderEquipe,estoque:renderEstoque,financeiro:renderFin,qualidade:renderQual,
-    contratos:renderContratos,demandas:renderDemandas,fornecedores:renderFornecedores,empresa:renderClientes,orcamento:renderOrcamento};
+    contratos:renderContratos,demandas:renderDemandas,fornecedores:renderFornecedores,empresa:renderClientes,orcamento:renderOrcamento,caixa:renderCaixa};
   fns[id]?.();
 }
 function mainNew(){const p=document.querySelector('.ni.on')?.dataset.p;NEW_ACTIONS[p]?.();}

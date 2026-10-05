@@ -647,7 +647,7 @@ async function carregarDadosSupabase(){
     const safe = async (query) => { try { const r = await query; return r; } catch(e) { return {data:null}; }};
     // Filtrar EXPLICITAMENTE por empresa_id — não depender só do RLS
     const eid = _empresaId;
-    const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns, dems, medicoes, checklists, terceirizados, pontosTercs, pontos, compraSols, compraCots, compraPeds] = await Promise.all([
+    const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns, dems, medicoes, checklists, terceirizados, pontosTercs, pontos, compraSols, compraCots, compraPeds, invs, aps] = await Promise.all([
       safe(supa.from('obras').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('etapas').select('*').eq('empresa_id',eid).order('criado_em')),
       safe(supa.from('colaboradores').select('*').eq('empresa_id',eid).order('nome')),
@@ -670,6 +670,8 @@ async function carregarDadosSupabase(){
       safe(supa.from('compras_solicitacoes').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
       safe(supa.from('compras_cotacoes').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
       safe(supa.from('compras_pedidos').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
+      safe(supa.from('investidores').select('*').eq('empresa_id',eid).order('nome')),
+      safe(supa.from('aportes').select('*').eq('empresa_id',eid).order('data',{ascending:false})),
     ]);
 
     // Mapear para o formato interno do ObraTech
@@ -713,6 +715,8 @@ async function carregarDadosSupabase(){
     if(compraSols.data)    DB.solicitacoes  = compraSols.data.map(mapSolicitacao);
     if(compraCots.data)    DB.cotacoes      = compraCots.data.map(mapCotacao);
     if(compraPeds.data)    DB.pedidosCompra = compraPeds.data.map(mapPedidoCompra);
+    if(invs.data)          DB.investidores  = invs.data.map(mapInvestidor);
+    if(aps.data)           DB.aportes       = aps.data.map(mapAporte);
 
     console.log('✓ Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos,', (DB.demandas||[]).length, 'demandas,', (DB.fornecedores||[]).length, 'fornecedores,', (DB.terceirizados||[]).length, 'terceirizados');
   } catch(e){
@@ -738,6 +742,8 @@ function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,dat
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 function mapSolicitacao(r){return{id:r.id,obraId:r.obra_id,etapaId:r.etapa_id,item:r.item,unidade:r.unidade,quantidade:Number(r.quantidade||0),urgencia:r.urgencia||'normal',status:r.status||'aberta',solicitante:r.solicitante,obs:r.obs,criadoEm:r.criado_em,_supa:true};}
 function mapCotacao(r){return{id:r.id,solicitacaoId:r.solicitacao_id,fornecedor:r.fornecedor,valorUnit:Number(r.valor_unit||0),valorTotal:Number(r.valor_total||0),prazoEntrega:r.prazo_entrega,obs:r.obs,vencedor:r.vencedor||false,_supa:true};}
+function mapInvestidor(r){return{id:r.id,nome:r.nome,documento:r.documento||'',telefone:r.telefone||'',email:r.email||'',obs:r.obs||'',_supa:true};}
+function mapAporte(r){return{id:r.id,investidorId:r.investidor_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),forma:r.forma||'',desc:r.descricao||'',_supa:true};}
 function mapPedidoCompra(r){return{id:r.id,solicitacaoId:r.solicitacao_id,obraId:r.obra_id,fornecedor:r.fornecedor,valorTotal:Number(r.valor_total||0),previsaoEntrega:r.previsao_entrega,status:r.status||'pendente',obs:r.obs,criadoEm:r.criado_em,_supa:true};}
 
 // ── Save: salvar no Supabase ──────────────────────────────────
@@ -886,8 +892,8 @@ function iniciarRealtime(){
         lancamentos:'data',rdos:'data',estoque:'material',movimentacoes:'data',
         contratos:'criado_em',pagamentos:'data',nao_conformidades:'criado_em',pontos:'data',
         demandas:'criado_em',fornecedores_cadastro:'nome',categorias:'nome',centros_custo:'nome',
-        terceirizados:'nome',pontos_terceirizados:'data'};
-      const asc={lancamentos:false,rdos:false,movimentacoes:false,pagamentos:false};
+        terceirizados:'nome',pontos_terceirizados:'data',investidores:'nome',aportes:'data'};
+      const asc={aportes:false,lancamentos:false,rdos:false,movimentacoes:false,pagamentos:false};
       const {data,error}=await supa.from(tabela).select('*').eq('empresa_id',eid)
         .order(orders[tabela]||'criado_em',{ascending:asc[tabela]!==false?true:false});
       if(error||!data) return;
@@ -913,6 +919,8 @@ function iniciarRealtime(){
         compras_solicitacoes:r=>{DB.solicitacoes=r.map(mapSolicitacao);if(typeof renderSolicitacoes==='function')renderSolicitacoes();},
         compras_cotacoes:r=>{DB.cotacoes=r.map(mapCotacao);if(typeof renderCotacoes==='function')renderCotacoes();},
         compras_pedidos:r=>{DB.pedidosCompra=r.map(mapPedidoCompra);if(typeof renderPedidos==='function')renderPedidos();},
+        investidores:r=>{DB.investidores=r.map(mapInvestidor);if(window._paginaAtual==='caixa')renderCaixa();},
+        aportes:r=>{DB.aportes=r.map(mapAporte);if(window._paginaAtual==='caixa')renderCaixa();},
       };
       if(m[tabela]) m[tabela](data);
       save();
@@ -921,7 +929,7 @@ function iniciarRealtime(){
 
   const tabelas=['obras','etapas','colaboradores','lancamentos','rdos','estoque',
     'movimentacoes','contratos','pagamentos','nao_conformidades','pontos','demandas','fornecedores_cadastro','categorias','centros_custo','terceirizados','pontos_terceirizados',
-    'compras_solicitacoes','compras_cotacoes','compras_pedidos'];
+    'compras_solicitacoes','compras_cotacoes','compras_pedidos','investidores','aportes'];
 
   const ch=supa.channel('obratech-realtime-'+eid);
   tabelas.forEach(t=>{
@@ -1012,7 +1020,7 @@ function adicionarBotaoLogout(){
 // BANCO DE DADOS — localStorage
 // ═══════════════════════════════════════════
 const KEY='obratech_v1';
-let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],medicoes:[],checklists:[],terceirizados:[],pontosTercs:[],equipeUsuarios:[],solicitacoes:[],cotacoes:[],pedidosCompra:[],sel:null,nid:1};
+let DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],medicoes:[],checklists:[],terceirizados:[],pontosTercs:[],equipeUsuarios:[],solicitacoes:[],cotacoes:[],pedidosCompra:[],investidores:[],aportes:[],sel:null,nid:1};
 function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},DB,JSON.parse(s));if(!DB.centros)DB.centros=[];if(!Array.isArray(DB.categorias)||!DB.categorias.length)DB.categorias=['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'];if(!DB.fornecedores)DB.fornecedores=[];if(!DB.contratos)DB.contratos=[];if(!DB.medicoes)DB.medicoes=[];if(!DB.checklists)DB.checklists=[];
   if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];if(!DB.pgtos)DB.pgtos=[];}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}

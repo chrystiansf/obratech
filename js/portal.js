@@ -88,7 +88,7 @@ async function pcCarregarObra(obraId){
 
     _pcDados = {
       obra: _pcObras.find(o=>o.id===obraId),
-      etapas: etapas.data||[], lancs: lancs.data||[], rdos: rdos.data||[],
+      etapas: etapas.data||[], lancs: (lancs.data||[]).filter(l=>l.tipo!=='Receita'), rdos: rdos.data||[],
       estoque: estoque.data||[], movs: movs.data||[], ncs: ncs.data||[],
       contratos: contratos.data||[], pgtos: pgtos.data||[], colabs: colabs.data||[]
     };
@@ -313,7 +313,7 @@ function pcRenderResumo(el, d, o){
     <div class="kpi"><div class="kl">⚡ Avanço Físico</div><div class="kv" style="color:var(--primary)">${pct}%</div><div class="kd neu">${d.etapas.length} etapas</div></div>
     <div class="kpi"><div class="kl">💰 Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd ${dep>orc?'dn':'neu'}">${orc?Math.round(dep/orc*100):0}% usado</div></div>
     <div class="kpi"><div class="kl">💸 Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${d.lancs.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="kpi"><div class="kl">💰 Receitas</div><div class="kv" style="color:var(--green)">${fmtR(rec)}</div><div class="kd up">${d.lancs.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
+    <div class="kpi"><div class="kl">⚖️ Saldo do Orçamento</div><div class="kv" style="color:${orc-dep>=0?'var(--green)':'var(--red)'}">${fmtR(orc-dep)}</div><div class="kd ${orc-dep>=0?'up':'dn'}">${orc-dep>=0?'dentro do orçado':'acima do orçado'}</div></div>
     <div class="kpi"><div class="kl">✅ NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--red)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${d.ncs.length} total</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
@@ -434,13 +434,13 @@ function pcGerarPdf(tab){
     const rec=d.lancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
     const dep=d.lancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
     secTitle('Informações da Obra');
-    [['Nome',o.nome],['Local',o.local||'—'],['Responsável',o.responsavel||'—'],['Início',fmtDt(o.data_ini||o.dataIni)],['Prazo',fmtDt(o.data_fim||o.dataFim)],['Avanço',pct+'%'],['Orçamento',fmtR(Number(o.orcamento||0))],['Receitas',fmtR(rec)],['Despesas',fmtR(dep)],['Saldo',fmtR(rec-dep)]].forEach(([k,v])=>{checkPage(7);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GRY);doc.text(k+':',MAR,y);doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v||'—'),MAR+40,y);y+=7;});
+    [['Nome',o.nome],['Local',o.local||'—'],['Responsável',o.responsavel||'—'],['Início',fmtDt(o.data_ini||o.dataIni)],['Prazo',fmtDt(o.data_fim||o.dataFim)],['Avanço',pct+'%'],['Orçamento',fmtR(Number(o.orcamento||0))],['Despesas',fmtR(dep)],['Saldo do Orçamento',fmtR(Number(o.orcamento||0)-dep)]].forEach(([k,v])=>{checkPage(7);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GRY);doc.text(k+':',MAR,y);doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v||'—'),MAR+40,y);y+=7;});
   }
   else if(tab==='financeiro'){
     const rec=d.lancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
     const dep=d.lancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
     secTitle('Resumo Financeiro');
-    [['Receitas',fmtR(rec)],['Despesas',fmtR(dep)],['Saldo',fmtR(rec-dep)]].forEach(([k,v])=>{checkPage(7);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GRY);doc.text(k+':',MAR,y);doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(v,MAR+36,y);y+=7;});
+    [['Despesas',fmtR(dep)],['Saldo do Orçamento',fmtR(Number(o.orcamento||0)-dep)]].forEach(([k,v])=>{checkPage(7);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GRY);doc.text(k+':',MAR,y);doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(v,MAR+36,y);y+=7;});
     y+=4;secTitle('Lançamentos');
     tRow(['DATA','DESCRIÇÃO','CATEGORIA','TIPO','VALOR'],[22,60,32,20,32],true);
     d.lancs.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).forEach(l=>tRow([fmtDt(l.data),l.desc||l.descricao||'—',l.cat||l.categoria||'—',l.tipo,(l.tipo==='Despesa'?'-':'+')+fmtR(l.valor)],[22,60,32,20,32],false));

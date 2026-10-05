@@ -202,9 +202,9 @@ function _dashObraLegacy(obras){
 function renderDashCharts(obras){
   setTimeout(()=>{
     const ms=meses6();
-    const recs=ms.map(m=>DB.lancs.filter(l=>obras.some(o=>o.id===l.obraId)&&l.tipo==='Receita'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0));
+    const recs=ms.map(m=>(DB.aportes||[]).filter(a=>obras.some(o=>String(o.id)===String(a.obraId))&&new Date(a.data+'T12:00').getMonth()===m.m&&new Date(a.data+'T12:00').getFullYear()===m.y).reduce((s,a)=>s+Number(a.valor||0),0));
     const deps=ms.map(m=>DB.lancs.filter(l=>obras.some(o=>o.id===l.obraId)&&l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0));
-    mkChart('ch-fluxo',{type:'line',data:{labels:ms.map(m=>m.l),datasets:[{label:'Receitas',data:recs,borderColor:CP.grn,backgroundColor:CP.grnA,fill:true,tension:.4},{label:'Despesas',data:deps,borderColor:CP.red,backgroundColor:CP.redA,fill:true,tension:.4}]},options:BO});
+    mkChart('ch-fluxo',{type:'line',data:{labels:ms.map(m=>m.l),datasets:[{label:'Aportes',data:recs,borderColor:CP.grn,backgroundColor:CP.grnA,fill:true,tension:.4},{label:'Despesas',data:deps,borderColor:CP.red,backgroundColor:CP.redA,fill:true,tension:.4}]},options:BO});
     mkChart('ch-avancos',{type:'bar',data:{labels:obras.map(o=>o.nome.split(' ').slice(0,2).join(' ')),datasets:[{label:'Avanço %',data:obras.map(obraPct),backgroundColor:obras.map(o=>obraColor(o)==='r'?CP.redA:obraColor(o)==='g'?CP.grnA:CP.priA),borderColor:obras.map(o=>obraColor(o)==='r'?CP.red:obraColor(o)==='g'?CP.grn:CP.pri),borderWidth:2,borderRadius:3}]},options:{...BO,scales:{...BO.scales,y:{...BO.scales.y,max:100}}}});
     // Paleta de 20 cores distintas para nunca repetir
     const _cPal=[
@@ -232,7 +232,7 @@ function renderDash(){
   buildObraDropdown();
   const filtObras=getObrasAtivas();
   const filtLancs=DB.lancs.filter(l=>filtObras.some(o=>o.id===l.obraId));
-  const filtRec=filtLancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
+  const filtRec=(DB.aportes||[]).filter(a=>filtObras.some(o=>String(o.id)===String(a.obraId))).reduce((s,a)=>s+Number(a.valor||0),0);
   const filtDep=filtLancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
   const filtSaldo=filtRec-filtDep;
   const filtPm=filtObras.length?Math.round(filtObras.reduce((a,o)=>a+obraPct(o),0)/filtObras.length):0;
@@ -241,7 +241,7 @@ function renderDash(){
   document.getElementById('d-kpis').innerHTML=`
     <div class="kpi"><div class="kl">🏗️ Obras</div><div class="kv">${filtObras.length}<span style="font-size:12px;color:var(--txt3);font-weight:400">/${obras.length}</span></div><div class="kd neu">Cadastradas</div></div>
     <div class="kpi"><div class="kl">📊 Avanço Médio</div><div class="kv" style="color:var(--primary)">${filtPm}%</div><div class="kd ${filtPm>=50?'up':'neu'}">${filtLbl}</div></div>
-    <div class="kpi"><div class="kl">💰 Saldo Geral</div><div class="kv" style="color:${filtSaldo>=0?'var(--green)':'var(--red)'}">${fmtR(filtSaldo)}</div><div class="kd ${filtSaldo>=0?'up':'dn'}">Receitas − Despesas</div></div>
+    <div class="kpi" onclick="goPage('caixa')" style="cursor:pointer"><div class="kl">💵 Saldo em Caixa</div><div class="kv" style="color:${filtSaldo>=0?'var(--green)':'var(--red)'}">${fmtR(filtSaldo)}</div><div class="kd ${filtSaldo>=0?'up':'dn'}">Aportes − Despesas</div></div>
     <div class="kpi"><div class="kl">⚠️ NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--yellow)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${ncsAb?'Atenção':'Tudo OK'}</div></div>`;
   // Alertas
   const alts=[];

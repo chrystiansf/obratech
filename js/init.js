@@ -210,7 +210,6 @@ function downloadModeloPlanilha(){
     ['Data','Descricao','Categoria','Tipo','Valor (R$)','Etapa','Fornecedor','NF'],
     ['01/03/2025','Argamassa colante','Materiais','Despesa',850.00,'Alvenaria','Leroy Merlin','NF001'],
     ['05/03/2025','Folha semanal pedreiros','Mão de Obra','Despesa',3200.00,'Estrutura','—','—'],
-    ['10/03/2025','Entrada do cliente','Receita','Receita',50000.00,'—','—','—'],
     ['15/03/2025','Cimento CP-II 50kg x 80sc','Materiais','Despesa',3040.00,'Fundação','—','—'],
     ['20/03/2025','Instalação elétrica','Serviços','Despesa',4500.00,'Instalações','Eletro Total','NF045'],
   ]);
@@ -225,7 +224,7 @@ function downloadModeloPlanilha(){
     ['Data','DD/MM/AAAA ou AAAA-MM-DD','Data do lançamento'],
     ['Descricao','Texto livre','Descrição do item ou serviço'],
     ['Categoria','Texto','Ex: Materiais, Mão de Obra, Serviços, Equipamentos, Admin'],
-    ['Tipo','Despesa ou Receita','Apenas estes dois valores são aceitos'],
+    ['Tipo','Despesa','Receitas/aportes devem ser lançados na aba Caixa (linhas com Receita são ignoradas)'],
     ['Valor (R$)','Número (sem R$ ou pontos)','Ex: 1250.50 ou 1250,50'],
     ['Etapa','Texto (opcional)','Ex: Fundação, Alvenaria, Estrutura...'],
     ['Fornecedor','Texto (opcional)','Nome do fornecedor'],
@@ -348,7 +347,7 @@ function parseImportRows(rows){
       forn:String(findCol(row,['fornecedor','forn','supplier','vendor'])||'').trim(),
       nf:String(findCol(row,['nf','nota','invoice','nota fiscal'])||'').trim(),
     };
-  }).filter(r=>r.valor>0||r.desc);
+  }).filter(r=>(r.valor>0||r.desc)&&r.tipo!=='Receita'); // receitas/aportes ficam na aba Caixa
 
   // Mostrar preview
   const prev=document.getElementById('mio-preview');
@@ -581,7 +580,7 @@ function _parseImportLancs(rows){
       forn:String(findCol(row,['fornecedor','forn','supplier','vendor'])||'').trim(),
       nf:String(findCol(row,['nf','nota','invoice','nota fiscal'])||'').trim(),
     };
-  }).filter(r=>r.valor>0||r.desc);
+  }).filter(r=>(r.valor>0||r.desc)&&r.tipo!=='Receita'); // receitas/aportes ficam na aba Caixa
 }
 
 async function executarImportFinanceiro(){

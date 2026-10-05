@@ -164,7 +164,7 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">Tipo *</label>
         <select class="sel" id="l-tipo">
           <option${!l||l.tipo==='Despesa'?' selected':''}>Despesa</option>
-          <option${l?.tipo==='Receita'?' selected':''}>Receita</option>
+          ${l?.tipo==='Receita'?'<option selected>Receita</option>':''}
         </select>
       </div>
       <div class="fg"><label class="lbl">Categoria
@@ -367,7 +367,7 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">Tipo de Despesa</label>
         <select class="sel" id="ct-tipo">
           <option value="Despesa"${!ct||ct.tipo==='Despesa'?' selected':''}>Despesa</option>
-          <option value="Receita"${ct?.tipo==='Receita'?' selected':''}>Receita</option>
+          ${ct?.tipo==='Receita'?'<option value="Receita" selected>Receita</option>':''}
         </select>
       </div>
       <div class="fg"><label class="lbl">Categoria

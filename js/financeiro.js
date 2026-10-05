@@ -367,15 +367,18 @@ function renderFin(){
     if(_finFiltros.dataFim&&l.data>_finFiltros.dataFim) return false;
     return true;
   });
-  const rec=lans.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
   const dep=lans.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
+  // Orçamento das obras no filtro (ou todas)
+  const _obrasOrc=_finFiltros.obra!==null?DB.obras.filter(o=>_finFiltros.obra.has(String(o.id))):DB.obras;
+  const orc=_obrasOrc.reduce((a,o)=>a+Number(o.orc||0),0);
+  const saldoOrc=orc-dep;
   const _fkAct=(v)=>_finFiltros.tipo!==null&&_finFiltros.tipo.size===1&&_finFiltros.tipo.has(v)?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   const _fkAll=_finFiltros.tipo===null?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('fin-kpis').innerHTML=`
-    <div class="kpi" onclick="finFiltroKpi('Receita')" style="cursor:pointer;${_fkAct('Receita')}"><div class="kl">💰 Receitas</div><div class="kv" style="color:var(--green)">${fmtR(rec)}</div><div class="kd up">${lans.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
     <div class="kpi" onclick="finFiltroKpi('Despesa')" style="cursor:pointer;${_fkAct('Despesa')}"><div class="kl">💸 Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${lans.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="kpi" onclick="finFiltroKpi('')" style="cursor:pointer;${_fkAll}"><div class="kl">⚖️ Saldo</div><div class="kv" style="color:${rec>=dep?'var(--green)':'var(--red)'}">${fmtR(rec-dep)}</div><div class="kd ${rec>=dep?'up':'dn'}">${rec>=dep?'Superávit':'Déficit'}</div></div>
-    <div class="kpi"><div class="kl">📊 Total</div><div class="kv">${lans.length}</div><div class="kd neu">Lançamentos</div></div>`;
+    <div class="kpi"><div class="kl">📋 Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd neu">${orc>0?Math.round(dep/orc*100)+'% utilizado':'não informado'}</div></div>
+    <div class="kpi"><div class="kl">⚖️ Saldo Orçamentário</div><div class="kv" style="color:${saldoOrc>=0?'var(--green)':'var(--red)'}">${fmtR(saldoOrc)}</div><div class="kd ${saldoOrc>=0?'up':'dn'}">${saldoOrc>=0?'Dentro do orçado':'Acima do orçado'}</div></div>
+    <div class="kpi" onclick="finFiltroKpi('')" style="cursor:pointer;${_fkAll}"><div class="kl">📊 Total</div><div class="kv">${lans.length}</div><div class="kd neu">Lançamentos</div></div>`;
   // Chips de filtros ativos
   const temFiltro=Object.entries(_finFiltros).some(([k,v])=>k==='dataIni'||k==='dataFim'?v!=='':v!==null)||!!_finBuscaDesc||!!_finBuscaValor;
   const limparBtn=document.getElementById('fin-limpar-btn');
@@ -437,9 +440,9 @@ function renderFin(){
   document.getElementById('fin-resumo').innerHTML='<div class="ct" style="margin-bottom:9px">Por Categoria</div>'
     +catVals.map(c=>`<div style="margin-bottom:7px"><div class="pl"><span style="font-size:11px">${c.nome}</span><span style="font-size:11px;font-weight:600">${fmtR(c.valor)}</span></div><div class="pw"><div class="pb" style="width:${dep?Math.round(c.valor/dep*100):0}%;background:var(--primary)"></div></div></div>`).join('');
   setTimeout(()=>{
-    mkChart('ch-rv',{type:'doughnut',data:{labels:['Receitas','Despesas'],datasets:[{data:[rec||0.01,dep||0.01],backgroundColor:[CP.grnA,CP.redA],borderColor:[CP.grn,CP.red],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:CP.t,font:{size:9}}}}}});
+    mkChart('ch-rv',{type:'doughnut',data:{labels:['Gasto','Saldo do orçamento'],datasets:[{data:[dep||0.01,Math.max(saldoOrc,0)||0.01],backgroundColor:[CP.redA,CP.grnA],borderColor:[CP.red,CP.grn],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:CP.t,font:{size:9}}}}}});
     const ms=meses6();
-    mkChart('ch-fin-mensal',{type:'bar',data:{labels:ms.map(m=>m.l),datasets:[{label:'Receitas',data:ms.map(m=>lans.filter(l=>l.tipo==='Receita'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.grnA,borderColor:CP.grn,borderWidth:2,borderRadius:3},{label:'Despesas',data:ms.map(m=>lans.filter(l=>l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.redA,borderColor:CP.red,borderWidth:2,borderRadius:3}]},options:BO});
+    mkChart('ch-fin-mensal',{type:'bar',data:{labels:ms.map(m=>m.l),datasets:[{label:'Despesas',data:ms.map(m=>lans.filter(l=>l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.redA,borderColor:CP.red,borderWidth:2,borderRadius:3}]},options:BO});
   },50);
 }
 function finFiltroKpi(tipo){

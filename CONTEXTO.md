@@ -33,7 +33,8 @@ empresas, perfis, obras, etapas, colaboradores, pontos,
 lancamentos, rdos, estoque, movimentacoes, contratos, pagamentos,
 nao_conformidades, drive_arquivos, categorias, centros_custo,
 fornecedores_cadastro, demandas, cliente_obras, medicoes,
-checklists, terceirizados, pontos_terceirizados
+checklists, terceirizados, pontos_terceirizados,
+investidores, aportes   -- aba Caixa (sql/caixa_investidores_aportes.sql)
 ```
 
 ### Colunas importantes não óbvias

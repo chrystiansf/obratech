@@ -126,6 +126,7 @@
     <div class="ni" data-p="equipe" draggable="true" onclick="goPage('equipe')"><span class="ic">👷</span><span class="sb-txt">Equipe / Folha</span></div>
     <div class="ni" data-p="estoque" draggable="true" onclick="goPage('estoque')"><span class="ic">📦</span><span class="sb-txt">Estoque</span></div>
     <div class="ni" data-p="financeiro" draggable="true" onclick="goPage('financeiro')"><span class="ic">💰</span><span class="sb-txt">Financeiro</span></div>
+    <div class="ni" data-p="caixa" draggable="true" onclick="goPage('caixa')"><span class="ic">💵</span><span class="sb-txt">Caixa</span></div>
     <div class="ni" data-p="contratos" draggable="true" onclick="goPage('contratos')"><span class="ic">📑</span><span class="sb-txt">Contratos</span></div>
     <div class="ni" data-p="orcamento" draggable="true" onclick="goPage('orcamento')"><span class="ic">💲</span><span class="sb-txt">Orçamento</span></div>
     <div class="ni" data-p="qualidade" draggable="true" onclick="goPage('qualidade')"><span class="ic">✅</span><span class="sb-txt">Qualidade</span></div>
@@ -153,6 +154,7 @@
     <div class="mni-more-item" data-p="cronograma" onclick="goPage('cronograma');closeMobileMore()"><div class="ic">📅</div><div class="lb">Cronograma</div></div>
     <div class="mni-more-item" data-p="estoque" onclick="goPage('estoque');closeMobileMore()"><div class="ic">📦</div><div class="lb">Estoque</div></div>
     <div class="mni-more-item" data-p="qualidade" onclick="goPage('qualidade');closeMobileMore()"><div class="ic">✅</div><div class="lb">Qualidade</div></div>
+    <div class="mni-more-item" data-p="caixa" onclick="goPage('caixa');closeMobileMore()"><div class="ic">💵</div><div class="lb">Caixa</div></div>
     <div class="mni-more-item" data-p="contratos" onclick="goPage('contratos');closeMobileMore()"><div class="ic">📑</div><div class="lb">Contratos</div></div>
     <div class="mni-more-item" data-p="orcamento" onclick="goPage('orcamento');closeMobileMore()"><div class="ic">💲</div><div class="lb">Orçamento</div></div>
     <div class="mni-more-item" data-p="demandas" onclick="goPage('demandas');closeMobileMore()"><div class="ic">📋</div><div class="lb">Demandas</div></div>
@@ -573,7 +575,7 @@
         <div id="fin-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="lanc-tbl"></div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:11px">
-        <div class="card"><div class="ct" style="margin-bottom:9px">Receitas vs Despesas</div><div class="cw" style="height:150px"><canvas id="ch-rv"></canvas></div></div>
+        <div class="card"><div class="ct" style="margin-bottom:9px">Orçado vs Gasto</div><div class="cw" style="height:150px"><canvas id="ch-rv"></canvas></div></div>
         <div class="card" id="fin-resumo"></div>
       </div>
     </div>
@@ -603,7 +605,7 @@
       <!-- Categorias -->
       <div class="card">
         <div class="ch" style="margin-bottom:10px">
-          <div><div class="ct">🗂️ Categorias</div><div class="cs" style="font-size:10px;color:var(--txt3)">Tipo de despesa ou receita</div></div>
+          <div><div class="ct">🗂️ Categorias</div><div class="cs" style="font-size:10px;color:var(--txt3)">Tipo de despesa</div></div>
           <button class="btn sm pri" onclick="cadastroAdd('categoria')">＋ Nova</button>
         </div>
         <div id="cad-categorias-list"></div>
@@ -866,6 +868,38 @@
 </div>
 
 <!-- FORNECEDORES -->
+<!-- CAIXA -->
+<div class="page" id="p-caixa">
+  <div class="g g4" style="margin-bottom:13px" id="cx-kpis"></div>
+  <div class="card" style="margin-bottom:13px">
+    <div class="ch">
+      <div><div class="ct">💵 Fluxo de Caixa</div><div class="cs">Aportes dos investidores × despesas das obras</div></div>
+      <div class="ca" style="gap:8px;flex-wrap:wrap">
+        <select class="sel" id="cx-obra" style="height:34px;font-size:12px;width:170px" onchange="renderCaixa()"><option value="">🏗️ Todas as obras</option></select>
+        <input type="date" class="inp" id="cx-de" style="height:34px;font-size:12px;width:135px" title="De" onchange="renderCaixa()">
+        <input type="date" class="inp" id="cx-ate" style="height:34px;font-size:12px;width:135px" title="Até" onchange="renderCaixa()">
+        <button class="btn sm" onclick="cxLimparFiltros()" title="Limpar filtros">✕</button>
+        <button class="btn sm" onclick="cxAbrirInvestidores()">🤝 Investidores</button>
+        <button class="btn sm" onclick="exportCaixaPDF()">📄 PDF</button>
+        <button class="btn sm" onclick="exportCaixaXLS()">📊 Excel</button>
+        <button class="btn sm pri" onclick="cxAbrirAporte()">＋ Aporte</button>
+      </div>
+    </div>
+  </div>
+  <div class="g g21" style="margin-bottom:13px">
+    <div class="card"><div class="ct" style="margin-bottom:9px">📈 Entradas × Saídas (6 meses)</div><div class="cw" style="height:220px"><canvas id="ch-cx-fluxo"></canvas></div></div>
+    <div class="card"><div class="ct" style="margin-bottom:9px">🤝 Participação por Investidor</div><div id="cx-participacao" style="max-height:220px;overflow-y:auto"></div></div>
+  </div>
+  <div class="card">
+    <div class="tabs" style="margin-bottom:12px">
+      <div class="tab cx-tab on" data-t="aportes" onclick="cxTab('aportes')">💵 Aportes</div>
+      <div class="tab cx-tab" data-t="extrato" onclick="cxTab('extrato')">📒 Extrato</div>
+    </div>
+    <div id="cx-aportes"></div>
+    <div id="cx-extrato" style="display:none"></div>
+  </div>
+</div>
+
 <div class="page" id="p-fornecedores">
   <div class="g g4" style="margin-bottom:13px" id="forn-kpis"></div>
   <div class="card">
@@ -1061,7 +1095,7 @@
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--txt3);margin-bottom:12px;line-height:1.6">
           <strong style="color:var(--txt2)">Colunas esperadas na planilha:</strong><br>
-          Data · Descrição · Categoria · Tipo (Despesa/Receita) · Valor (R$) · Etapa · Fornecedor · NF
+          Data · Descrição · Categoria · Tipo (Despesa) · Valor (R$) · Etapa · Fornecedor · NF
         </div>
 
         <!-- Zona de drop -->
@@ -1139,27 +1173,28 @@
 
 <!-- JavaScript Modules -->
 <script src="js/utils.js?v=20260329b"></script>
-<script src="js/supabase.js?v=20260329b"></script>
-<script src="js/auth.js?v=20261005a"></script>
-<script src="js/nav.js?v=20260329b"></script>
-<script src="js/dashboard.js?v=20260329b"></script>
+<script src="js/supabase.js?v=20261005b"></script>
+<script src="js/auth.js?v=20261005b"></script>
+<script src="js/nav.js?v=20261005b"></script>
+<script src="js/dashboard.js?v=20261005b"></script>
 <script src="js/obras.js?v=20260329b"></script>
 <script src="js/cronograma.js?v=20260329b"></script>
 <script src="js/rdo.js?v=20260329b"></script>
 <script src="js/equipe.js?v=20260329b"></script>
 <script src="js/estoque.js?v=20260329b"></script>
-<script src="js/financeiro.js?v=20260329b"></script>
+<script src="js/financeiro.js?v=20261005b"></script>
 <script src="js/contratos.js?v=20260329b"></script>
 <script src="js/orcamento.js?v=20261005a"></script>
 <script src="js/demandas.js?v=20260329b"></script>
 <script src="js/compras.js?v=20260404"></script>
+<script src="js/caixa.js?v=20261005b"></script>
 <script src="js/fornecedores.js?v=20260329b"></script>
 <script src="js/qualidade.js?v=20260329b"></script>
-<script src="js/modals.js?v=20260329b"></script>
-<script src="js/pdf.js?v=20261005a"></script>
+<script src="js/modals.js?v=20261005b"></script>
+<script src="js/pdf.js?v=20261005b"></script>
 <script src="js/relatorios.js?v=20261005a"></script>
-<script src="js/init.js?v=20260329b"></script>
-<script src="js/portal.js?v=20260329b"></script>
+<script src="js/init.js?v=20261005b"></script>
+<script src="js/portal.js?v=20261005b"></script>
 <script src="js/pwa.js?v=20260329b"></script>
 
 </body>
