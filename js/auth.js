@@ -411,10 +411,7 @@ async function enviarConviteEquipe(){
 
   try{
     // Gerar senha provisória
-    const palavras=["Obra","Torre","Vila","Casa","Bloco","Piso","Muro","Viga"];
-    const palavra=palavras[Math.floor(Math.random()*palavras.length)];
-    const num=Math.floor(100+Math.random()*900);
-    const senha=palavra+num+"!";
+    const senha=gerarSenhaForte();
 
     // Criar usuário via SDK signUp — salvar sessão atual antes para restaurar depois
     const {data:sessaoAtual} = await supa.auth.getSession();
@@ -863,10 +860,7 @@ async function enviarConviteCliente(){
 
   try{
     // Gerar senha provisória legível
-    const palavras=['Obra','Casa','Torre','Plaza','Vila','Rio','Sol','Mar'];
-    const palavra=palavras[Math.floor(Math.random()*palavras.length)];
-    const num=Math.floor(Math.random()*900)+100;
-    const senhaTemp=palavra+num+'!';
+    const senhaTemp=gerarSenhaForte();
     const url=window.location.origin;
 
     // ETAPA 1: Criar usuário no Supabase Auth

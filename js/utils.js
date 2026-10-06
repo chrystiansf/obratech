@@ -21,3 +21,24 @@ function escHtml(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replac
 // Debounce genérico
 let _debounceTimers={};
 function debounce(key,fn,ms){clearTimeout(_debounceTimers[key]);_debounceTimers[key]=setTimeout(fn,ms||300);}
+
+// ── Segurança ─────────────────────────────────────────────────
+// Senha provisória aleatória (criptográfica), 12 caracteres, fácil de digitar
+function gerarSenhaForte(){
+  const L='ABCDEFGHJKLMNPQRSTUVWXYZ',l='abcdefghijkmnopqrstuvwxyz',N='23456789',S='!@#$%*';
+  const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n;};
+  const pick=t=>t[rnd(t.length)];
+  const ch=[pick(L),pick(l),pick(N),pick(S)];
+  const todos=L+l+N;
+  while(ch.length<12) ch.push(pick(todos));
+  for(let i=ch.length-1;i>0;i--){const j=rnd(i+1);[ch[i],ch[j]]=[ch[j],ch[i]];}
+  return ch.join('');
+}
+// Remove < e > de textos para impedir que alguém injete código (HTML/script) pelos campos
+function _semTags(v){
+  if(typeof v==='string') return v.indexOf('<')<0&&v.indexOf('>')<0?v:v.replace(/[<>]/g,'');
+  if(Array.isArray(v)) return v.map(_semTags);
+  if(v&&typeof v==='object'&&!(v instanceof Date)&&!(typeof Blob!=='undefined'&&v instanceof Blob)){
+    const o={};for(const k in v)o[k]=typeof v[k]==='string'&&/^(data:|https?:|blob:)/.test(v[k])?v[k]:_semTags(v[k]);return o;}
+  return v;
+}
