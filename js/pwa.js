@@ -23,15 +23,15 @@ function mostrarBannerPWA(){
   if(document.getElementById('pwa-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'pwa-banner';
-  banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(91,143,249,.4);max-width:360px;width:calc(100% - 32px);animation:slideUp .3s ease';
+  banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(43,92,138,.4);max-width:360px;width:calc(100% - 32px);animation:slideUp .3s ease';
   banner.innerHTML = `
-    <span style="font-size:24px">🏗️</span>
+    <span style="font-size:24px"><svg class=ot-i><use href=#i-hard-hat></use></svg></span>
     <div style="flex:1">
       <div style="font-weight:700;font-size:13px">Instalar ObraTech</div>
       <div style="font-size:11px;opacity:.85">Acesse offline direto do celular</div>
     </div>
     <button onclick="instalarPWA()" style="background:white;color:var(--primary);border:none;border-radius:8px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer">Instalar</button>
-    <button onclick="dispensarPWA()" style="background:transparent;border:none;color:white;font-size:18px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+    <button onclick="dispensarPWA()" style="background:transparent;border:none;color:white;font-size:18px;cursor:pointer;padding:0 4px;line-height:1"><svg class=ot-i><use href=#i-x></use></svg></button>
   `;
   document.body.appendChild(banner);
 }
@@ -56,7 +56,7 @@ function dispensarPWA(){
 // Detectar se já está instalado como PWA
 if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
   document.documentElement.classList.add('pwa-mode');
-  console.log('✓ Rodando como PWA instalado');
+  console.log('Rodando como PWA instalado');
 }
 
 (function(){

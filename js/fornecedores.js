@@ -17,10 +17,10 @@ function renderFornecedores(){
   const tipos=['Material','Serviço','Equipamento','Outro'];
   const _fkAct2=(v)=>tipoF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('forn-kpis').innerHTML=`
-    <div class="kpi" onclick="fornFiltroKpi('')" style="cursor:pointer;${_fkAct2('')}"><div class="kl">🏭 Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>
-    <div class="kpi" onclick="fornFiltroKpi('Serviço')" style="cursor:pointer;${_fkAct2('Serviço')}"><div class="kl">🔧 Serviços</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Serviço').length}</div><div class="kd neu">fornecedores</div></div>
-    <div class="kpi" onclick="fornFiltroKpi('Material')" style="cursor:pointer;${_fkAct2('Material')}"><div class="kl">📦 Materiais</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Material').length}</div><div class="kd neu">fornecedores</div></div>
-    <div class="kpi" onclick="fornFiltroKpi('Equipamento')" style="cursor:pointer;${_fkAct2('Equipamento')}"><div class="kl">🚜 Equipamentos</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Equipamento').length}</div><div class="kd neu">fornecedores</div></div>`;
+    <div class="kpi" onclick="fornFiltroKpi('')" style="cursor:pointer;${_fkAct2('')}"><div class="kl"><svg class=ot-i><use href=#i-factory></use></svg> Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>
+    <div class="kpi" onclick="fornFiltroKpi('Serviço')" style="cursor:pointer;${_fkAct2('Serviço')}"><div class="kl"><svg class=ot-i><use href=#i-wrench></use></svg> Serviços</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Serviço').length}</div><div class="kd neu">fornecedores</div></div>
+    <div class="kpi" onclick="fornFiltroKpi('Material')" style="cursor:pointer;${_fkAct2('Material')}"><div class="kl"><svg class=ot-i><use href=#i-package></use></svg> Materiais</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Material').length}</div><div class="kd neu">fornecedores</div></div>
+    <div class="kpi" onclick="fornFiltroKpi('Equipamento')" style="cursor:pointer;${_fkAct2('Equipamento')}"><div class="kl"><svg class=ot-i><use href=#i-tractor></use></svg> Equipamentos</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Equipamento').length}</div><div class="kd neu">fornecedores</div></div>`;
 
   const el=document.getElementById('forn-tbl');
   if(!forns.length){
@@ -47,8 +47,8 @@ function renderFornecedores(){
       <td style="font-size:11px;color:var(--txt3)">${f.cidade||'—'}</td>
       <td>
         <div class="ta-actions">
-          <button class="btn sm ico" onclick="openModal('fornecedor','${f.id}')" title="Editar">✏️</button>
-          <button class="btn sm ico" onclick="delFornecedor('${f.id}')" title="Excluir">🗑️</button>
+          <button class="btn sm ico" onclick="openModal('fornecedor','${f.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delFornecedor('${f.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>
       </td>
     </tr>`).join('')+'</table>';

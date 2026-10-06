@@ -18,7 +18,7 @@ function renderColabs(){
   const el=document.getElementById('colab-tbl');
   if(!DB.colabs.length){el.innerHTML='<div class="t-empty">Nenhum colaborador. <button class="btn pri sm" style="margin-left:8px" onclick="openModal(&apos;colab&apos;)">＋ Cadastrar</button></div>';return;}
   el.innerHTML=`<table class="tbl">
-    <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Admissão</th><th>💰 Diária</th><th>Obs</th><th></th></tr>`
+    <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Admissão</th><th><svg class=ot-i><use href=#i-wallet></use></svg> Diária</th><th>Obs</th><th></th></tr>`
     +DB.colabs.map(c=>`<tr>
       <td class="n">${c.nome}</td>
       <td>${c.funcao||'—'}</td>
@@ -27,8 +27,8 @@ function renderColabs(){
       <td style="font-weight:700;color:var(--green)">${fmtR(c.diaria||c.salario||0)}</td>
       <td style="font-size:11px;color:var(--txt3)">${c.obs||'—'}</td>
       <td><div class="ta-actions">
-        <button class="btn sm ico" onclick="openModal('colab','${c.id}')">✏️</button>
-        <button class="btn sm ico" onclick="delColab('${c.id}')">🗑️</button>
+        <button class="btn sm ico" onclick="openModal('colab','${c.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+        <button class="btn sm ico" onclick="delColab('${c.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
       </div></td>
     </tr>`).join('')+'</table>';
 }
@@ -89,7 +89,7 @@ function renderGradePresenca(){
         const fds=i>=5;
         const pt=DB.pontos.find(p=>p.colabId===col.id&&p.data===d&&(!obraId||p.obraId===obraId)&&p.presente);
         const val=pt?(pt.tipo==='meia_diaria'?'M':'P'):'';
-        const bg=val==='P'?'#16a34a':val==='M'?'#d97706':'var(--bg3)';
+        const bg=val==='P'?'#1F7A50':val==='M'?'#8A5A00':'var(--bg3)';
         const clr=val?'#fff':'var(--txt3)';
         return`<td style="text-align:center;background:${fds?'rgba(255,255,255,.02)':''}">
           <select data-colab="${col.id}" data-data="${d}"
@@ -197,9 +197,9 @@ function renderPontos(){
         <td><span class="b bn" style="font-size:10px">${diaSem}</span></td>
         <td class="n">${col?.nome||'—'}</td>
         <td>${o?.nome||'—'}</td>
-        <td style="color:${p.tipo==='meia_diaria'?'#d97706':'var(--green)'};font-weight:600">${p.tipo==='meia_diaria'?'½ '+fmtR(diaria/2):fmtR(diaria)}</td>
+        <td style="color:${p.tipo==='meia_diaria'?'#8A5A00':'var(--green)'};font-weight:600">${p.tipo==='meia_diaria'?'½ '+fmtR(diaria/2):fmtR(diaria)}</td>
         <td><span class="b ${p.tipo==='meia_diaria'?'by':'bg'}" style="font-size:9px">${p.tipo==='meia_diaria'?'½ Diária':'Dia'}</span></td>
-        <td><button class="btn sm ico" onclick="delPonto('${p.id}')">🗑️</button></td>
+        <td><button class="btn sm ico" onclick="delPonto('${p.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button></td>
       </tr>`;
     }).join('')+'</table>';
 }
@@ -260,7 +260,7 @@ function calcFolha(){
           <span style="font-size:10px;color:var(--txt3)"> d</span>
         </td>
         <td style="text-align:center">
-          ${r.meias?`<span style="font-size:13px;font-weight:700;color:#d97706">${r.meias}</span><span style="font-size:10px;color:var(--txt3)">x</span>`:'<span style="color:var(--txt3)">—</span>'}
+          ${r.meias?`<span style="font-size:13px;font-weight:700;color:#8A5A00">${r.meias}</span><span style="font-size:10px;color:var(--txt3)">x</span>`:'<span style="color:var(--txt3)">—</span>'}
         </td>
         <td style="font-size:11px;color:var(--txt3)">${r.obrasStr||'—'}</td>
         <td style="text-align:right;font-size:14px;font-weight:700;color:var(--green)">${fmtR(r.total)}</td>

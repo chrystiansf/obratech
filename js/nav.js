@@ -63,8 +63,8 @@ function obraLabel(o){
 }
 function obraStatusBadge(o){
   const s=obraStatus(o);
-  if(s==='concluida') return '<span class="status-badge sb-fin">✅ Finalizada</span>';
-  if(s==='atrasada')  return '<span class="status-badge sb-atr">🔴 Atrasada</span>';
+  if(s==='concluida') return '<span class="status-badge sb-fin"><svg class=ot-i><use href=#i-circle-check></use></svg> Finalizada</span>';
+  if(s==='atrasada')  return '<span class="status-badge sb-atr"><svg class=ot-i><use href=#i-circle-dot></use></svg> Atrasada</span>';
   if(s==='andamento') return '<span class="status-badge sb-and">▶ Em andamento</span>';
   return '<span class="status-badge sb-ni">○ Não iniciada</span>';
 }

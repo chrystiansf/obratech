@@ -454,7 +454,7 @@ function abrirImportFinanceiro(){
   const obrasOpts=DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:520px">
-      <div class="moh"><div class="mot">📥 Importar Lançamentos</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-download></use></svg> Importar Lançamentos</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
       <div class="mob">
         <div style="background:var(--pglow);border:1px solid var(--primary);border-radius:10px;padding:14px;margin-bottom:14px">
           <div style="font-size:12px;color:var(--txt2);line-height:1.7">
@@ -467,10 +467,10 @@ function abrirImportFinanceiro(){
             <select class="sel" id="impfin-obra">${obrasOpts||'<option value="">Nenhuma obra</option>'}</select>
           </div>
           <div class="fg"><label class="lbl">Arquivo (.xlsx ou .csv) *</label>
-            <button class="btn" onclick="document.getElementById('import-fin-file').click()" id="impfin-btn-file" style="width:100%;text-align:left">📁 Selecionar arquivo...</button>
+            <button class="btn" onclick="document.getElementById('import-fin-file').click()" id="impfin-btn-file" style="width:100%;text-align:left"><svg class=ot-i><use href=#i-folder></use></svg> Selecionar arquivo...</button>
           </div>
           <div class="fg"><label class="lbl">Planilha modelo</label>
-            <button class="btn sm" onclick="baixarPlanilhaModelo()" style="font-size:11px">📋 Baixar modelo .xlsx</button>
+            <button class="btn sm" onclick="baixarPlanilhaModelo()" style="font-size:11px"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Baixar modelo .xlsx</button>
           </div>
           <div id="impfin-preview" style="display:none">
             <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--txt)" id="impfin-count"></div>
@@ -480,7 +480,7 @@ function abrirImportFinanceiro(){
       </div>
       <div class="mof">
         <button class="btn" onclick="closeModal()">Cancelar</button>
-        <button class="btn pri" id="impfin-btn-exec" onclick="executarImportFinanceiro()" disabled>📥 Importar Lançamentos</button>
+        <button class="btn pri" id="impfin-btn-exec" onclick="executarImportFinanceiro()" disabled><svg class=ot-i><use href=#i-download></use></svg> Importar Lançamentos</button>
       </div>
     </div></div>`;
 }
@@ -527,7 +527,7 @@ function handleImportFinFile(e){
       const btn=document.getElementById('impfin-btn-exec');
       if(btn){btn.disabled=false;}
       const btnFile=document.getElementById('impfin-btn-file');
-      if(btnFile){btnFile.textContent='📁 '+file.name;}
+      if(btnFile){btnFile.textContent=''+file.name;}
       toast('📄',_importFinLancs.length+' lançamentos lidos');
     }catch(err){
       toast('⚠️','Erro ao ler arquivo: '+err.message);

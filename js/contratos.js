@@ -13,7 +13,7 @@ function _contPago(ctId){
 }
 function contStatusBadge(ct){
   const s=contStatus(ct);
-  return s==='quitado'?'<span class="b bg">✓ Quitado</span>':s==='atrasado'?'<span class="b br">⚠ Atrasado</span>':'<span class="b bn">Em andamento</span>';
+  return s==='quitado'?'<span class="b bg"><svg class=ot-i><use href=#i-check></use></svg> Quitado</span>':s==='atrasado'?'<span class="b br"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Atrasado</span>':'<span class="b bn">Em andamento</span>';
 }
 
 function renderContratos(){
@@ -26,10 +26,10 @@ function renderContratos(){
   const _ckF=document.getElementById('cont-status-filter')?.value||'';
   const _ckAct=(v)=>_ckF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('cont-kpis').innerHTML=`
-    <div class="kpi" onclick="contFiltroKpi('')" style="cursor:pointer;${_ckAct('')}"><div class="kl">📑 Contratos</div><div class="kv">${cts.length}</div><div class="kd neu">cadastrados</div></div>
-    <div class="kpi" onclick="contFiltroKpi('quitado')" style="cursor:pointer;${_ckAct('quitado')}"><div class="kl">✅ Total Pago</div><div class="kv" style="color:var(--green);font-size:15px">${fmtR(totalPago)}</div><div class="kd up">${totalValor?Math.round(totalPago/totalValor*100):0}% quitado</div></div>
-    <div class="kpi" onclick="contFiltroKpi('atrasado')" style="cursor:pointer;${_ckAct('atrasado')}"><div class="kl">⚠️ Atrasados</div><div class="kv" style="color:${atrasados?'var(--red)':'var(--green)'};font-size:15px">${atrasados}</div><div class="kd ${atrasados?'dn':'neu'}">${atrasados?'com atraso':'Tudo OK'}</div></div>
-    <div class="kpi" onclick="contFiltroKpi('andamento')" style="cursor:pointer;${_ckAct('andamento')}"><div class="kl">⏳ Em andamento</div><div class="kv" style="color:var(--primary);font-size:15px">${cts.filter(c=>contStatus(c)==='andamento').length}</div><div class="kd neu">contratos</div></div>`;
+    <div class="kpi" onclick="contFiltroKpi('')" style="cursor:pointer;${_ckAct('')}"><div class="kl"><svg class=ot-i><use href=#i-file-pen-line></use></svg> Contratos</div><div class="kv">${cts.length}</div><div class="kd neu">cadastrados</div></div>
+    <div class="kpi" onclick="contFiltroKpi('quitado')" style="cursor:pointer;${_ckAct('quitado')}"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Total Pago</div><div class="kv" style="color:var(--green);font-size:15px">${fmtR(totalPago)}</div><div class="kd up">${totalValor?Math.round(totalPago/totalValor*100):0}% quitado</div></div>
+    <div class="kpi" onclick="contFiltroKpi('atrasado')" style="cursor:pointer;${_ckAct('atrasado')}"><div class="kl"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Atrasados</div><div class="kv" style="color:${atrasados?'var(--red)':'var(--green)'};font-size:15px">${atrasados}</div><div class="kd ${atrasados?'dn':'neu'}">${atrasados?'com atraso':'Tudo OK'}</div></div>
+    <div class="kpi" onclick="contFiltroKpi('andamento')" style="cursor:pointer;${_ckAct('andamento')}"><div class="kl"><svg class=ot-i><use href=#i-hourglass></use></svg> Em andamento</div><div class="kv" style="color:var(--primary);font-size:15px">${cts.filter(c=>contStatus(c)==='andamento').length}</div><div class="kd neu">contratos</div></div>`;
 
   // Filtros
   const q=(document.getElementById('cont-search')?.value||'').toLowerCase();
@@ -69,10 +69,10 @@ function renderContratos(){
           <td style="text-align:right;color:${dev>0?'var(--red)':'var(--green)'};font-weight:600">${fmtR(dev)}</td>
           <td style="text-align:center">${contStatusBadge(ct)}</td>
           <td><div class="ta-actions">
-            <button class="btn sm" onclick="openModal('medicao',null,'${ct.id}')" title="Nova medição">📐 Medir</button>
-            <button class="btn sm" onclick="openModal('pgto','${ct.id}')" title="Registrar pagamento">💳 Pagar</button>
-            <button class="btn sm ico" onclick="openModal('contrato','${ct.id}')">✏️</button>
-            <button class="btn sm ico" onclick="delContrato('${ct.id}')">🗑️</button>
+            <button class="btn sm" onclick="openModal('medicao',null,'${ct.id}')" title="Nova medição"><svg class=ot-i><use href=#i-ruler></use></svg> Medir</button>
+            <button class="btn sm" onclick="openModal('pgto','${ct.id}')" title="Registrar pagamento"><svg class=ot-i><use href=#i-credit-card></use></svg> Pagar</button>
+            <button class="btn sm ico" onclick="openModal('contrato','${ct.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+            <button class="btn sm ico" onclick="delContrato('${ct.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
           </div></td>
         </tr>
         <tr style="background:var(--bg2)"><td colspan="10" style="padding:4px 12px 8px">
@@ -102,8 +102,8 @@ function renderContratos(){
         <td>${p.cc?`<span class="b bn">${p.cc}</span>`:'—'}</td>
         <td style="text-align:right;font-weight:600;color:var(--red)">−${fmtR(Number(p.valor||0))}</td>
         <td><div class="ta-actions">
-          <button class="btn sm ico" onclick="openModal('pgto-edit','${p.id}')">✏️</button>
-          <button class="btn sm ico" onclick="delPgto('${p.id}')">🗑️</button>
+          <button class="btn sm ico" onclick="openModal('pgto-edit','${p.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delPgto('${p.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div></td>
       </tr>`;
     }).join('')+'</table>';
@@ -136,9 +136,9 @@ function renderMedicoes(){
   }
 
   const statusBadge=s=>({
-    pendente:'<span class="b by">⏳ Pendente</span>',
-    aprovado:'<span class="b bg">✓ Aprovado</span>',
-    reprovado:'<span class="b br">✕ Reprovado</span>'
+    pendente:'<span class="b by"><svg class=ot-i><use href=#i-hourglass></use></svg> Pendente</span>',
+    aprovado:'<span class="b bg"><svg class=ot-i><use href=#i-check></use></svg> Aprovado</span>',
+    reprovado:'<span class="b br"><svg class=ot-i><use href=#i-x></use></svg> Reprovado</span>'
   }[s]||'<span class="b bn">—</span>');
 
   el.innerHTML=`<table class="tbl">
@@ -160,11 +160,11 @@ function renderMedicoes(){
         </td>
         <td>${statusBadge(m.status)}</td>
         <td onclick="event.stopPropagation()"><div class="ta-actions">
-          ${m.status==='pendente'?`<button class="btn sm" onclick="aprovarMedicao('${m.id}')" title="Aprovar">✓</button>`:''}
-          ${m.status==='pendente'?`<button class="btn sm ico" onclick="reprovarMedicao('${m.id}')" title="Reprovar" style="color:var(--red)">✕</button>`:''}
-          <button class="btn sm ico" onclick="openModal('medicao','${m.id}')" title="Editar">✏️</button>
-          <button class="btn sm ico" onclick="delMedicao('${m.id}')" title="Excluir">🗑️</button>
-          <button class="btn sm" onclick="gerarBoletimPDF('${m.id}')" title="Baixar PDF">⬇️</button>
+          ${m.status==='pendente'?`<button class="btn sm" onclick="aprovarMedicao('${m.id}')" title="Aprovar"><svg class=ot-i><use href=#i-check></use></svg></button>`:''}
+          ${m.status==='pendente'?`<button class="btn sm ico" onclick="reprovarMedicao('${m.id}')" title="Reprovar" style="color:var(--red)"><svg class=ot-i><use href=#i-x></use></svg></button>`:''}
+          <button class="btn sm ico" onclick="openModal('medicao','${m.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delMedicao('${m.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
+          <button class="btn sm" onclick="gerarBoletimPDF('${m.id}')" title="Baixar PDF"><svg class=ot-i><use href=#i-download></use></svg></button>
         </div></td>
       </tr>`;
     }).join('')}
@@ -296,7 +296,7 @@ function previewBoletimPDF(medicaoId){
   const root=document.getElementById('modal-root');
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:95vw;max-height:95vh;padding:0;width:800px;display:flex;flex-direction:column">
-      <div class="moh" style="flex-shrink:0"><div class="mot">📄 Boletim de Medição Nº ${String(m.numero||'1').padStart(3,'0')}</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="moh" style="flex-shrink:0"><div class="mot"><svg class=ot-i><use href=#i-file-text></use></svg> Boletim de Medição Nº ${String(m.numero||'1').padStart(3,'0')}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
       <div class="mob" style="flex:1;overflow-y:auto;background:#f7f8fc">
         <div style="background:#fff;padding:24px;border-radius:8px;color:#1a2040;font-family:var(--ot-font-sans)">
           <h3 style="margin:0 0 14px 0;font-size:16px;border-bottom:2px solid #464b5a;padding-bottom:8px">Dados do Contrato</h3>
@@ -323,7 +323,7 @@ function previewBoletimPDF(medicaoId){
       </div>
       <div class="mof" style="flex-shrink:0">
         <button class="btn" onclick="closeModal()">Fechar</button>
-        <button class="btn pri" onclick="gerarBoletimPDF('${medicaoId}')">⬇️ Baixar PDF</button>
+        <button class="btn pri" onclick="gerarBoletimPDF('${medicaoId}')"><svg class=ot-i><use href=#i-download></use></svg> Baixar PDF</button>
       </div>
     </div></div>`;
 }

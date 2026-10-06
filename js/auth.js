@@ -10,22 +10,22 @@ let _clientes = [];
 // ═══════════════════════════════════════════════════════════
 
 const MODULOS_SISTEMA=[
-  {id:"dashboard",   label:"Dashboard",       ic:"📊"},
-  {id:"obras",       label:"Obras",           ic:"🏗️"},
-  {id:"cronograma",  label:"Cronograma",      ic:"📅"},
-  {id:"rdo",         label:"RDO Diário",      ic:"📋"},
-  {id:"equipe",      label:"Equipe / Folha",  ic:"👷"},
-  {id:"estoque",     label:"Estoque",         ic:"📦"},
-  {id:"financeiro",  label:"Financeiro",      ic:"💰"},
-  {id:"caixa",       label:"Caixa",           ic:"💵"},
-  {id:"contratos",   label:"Contratos",       ic:"📑"},
-  {id:"orcamento",   label:"Orçamento",       ic:"💲"},
-  {id:"qualidade",   label:"Qualidade",       ic:"✅"},
-  {id:"demandas",    label:"Demandas",        ic:"📋"},
-  {id:"compras",     label:"Compras",         ic:"🛒"},
-  {id:"fornecedores",label:"Fornecedores",    ic:"🏭"},
-  {id:"empresa",    label:"Empresa",         ic:"🏢"},
-  {id:"relatorios",  label:"Relatórios",      ic:"📈"},
+  {id:"dashboard",   label:"Dashboard",       ic:"layout-dashboard"},
+  {id:"obras",       label:"Obras",           ic:"hard-hat"},
+  {id:"cronograma",  label:"Cronograma",      ic:"calendar-range"},
+  {id:"rdo",         label:"RDO Diário",      ic:"clipboard-list"},
+  {id:"equipe",      label:"Equipe / Folha",  ic:"users"},
+  {id:"estoque",     label:"Estoque",         ic:"package"},
+  {id:"financeiro",  label:"Financeiro",      ic:"wallet"},
+  {id:"caixa",       label:"Caixa",           ic:"piggy-bank"},
+  {id:"contratos",   label:"Contratos",       ic:"file-pen-line"},
+  {id:"orcamento",   label:"Orçamento",       ic:"calculator"},
+  {id:"qualidade",   label:"Qualidade",       ic:"badge-check"},
+  {id:"demandas",    label:"Demandas",        ic:"list-checks"},
+  {id:"compras",     label:"Compras",         ic:"shopping-cart"},
+  {id:"fornecedores",label:"Fornecedores",    ic:"factory"},
+  {id:"empresa",    label:"Empresa",         ic:"building-2"},
+  {id:"relatorios",  label:"Relatórios",      ic:"chart-column"},
 ];
 
 const PAPEIS_PRESET={
@@ -241,7 +241,7 @@ function renderEquipeUsuarios(usuarios){
   const el=document.getElementById("equipe-usuarios-lista");
   if(!el)return;
   if(!usuarios?.length){
-    el.innerHTML='<div class="t-empty">Nenhum usuário cadastrado além de você. Clique em "✉️ Convidar Funcionário" para começar.</div>';
+    el.innerHTML='<div class="t-empty">Nenhum usuário cadastrado além de você. Clique em "<svg class=ot-i><use href=#i-mail></use></svg> Convidar Funcionário" para começar.</div>';
     return;
   }
   const papelLabel={admin:"Administrador",gestor:"Gestor",financeiro:"Financeiro",operacional:"Operacional",visualizador:"Visualizador",cliente:"Cliente"};
@@ -270,17 +270,17 @@ function renderEquipeUsuarios(usuarios){
           const obrasStr=obIds===null?'Todas as obras':
             obIds.length===0?'<span style="color:var(--red);font-size:10px">Nenhuma obra liberada</span>':
             obIds.map(id=>DB.obras.find(o=>o.id===id)?.nome||'—').join(', ');
-          return '<div style="font-size:10px;color:var(--txt3);margin-bottom:4px">🏗️ Obras: <span style="color:var(--txt2)">'+(obrasStr)+'</span></div>';
+          return '<div style="font-size:10px;color:var(--txt3);margin-bottom:4px"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras: <span style="color:var(--txt2)">'+(obrasStr)+'</span></div>';
         })()+
-        '<div style="font-size:10px;color:var(--txt3);margin-bottom:8px">🔐 Módulos:</div>'+
+        '<div style="font-size:10px;color:var(--txt3);margin-bottom:8px"><svg class=ot-i><use href=#i-lock></use></svg> Módulos:</div>'+
         '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'+
-          modAtivos.map(m=>'<span style="font-size:10px;padding:2px 6px;background:var(--bg3);border-radius:4px;border:1px solid var(--border)">'+m.ic+" "+m.label+'</span>').join("")+
+          modAtivos.map(m=>'<span style="font-size:10px;padding:2px 6px;background:var(--bg3);border-radius:4px;border:1px solid var(--border)">'+ic(m.ic,'sm')+" "+m.label+'</span>').join("")+
           (modAtivos.length===0?'<span style="font-size:10px;color:var(--txt3);font-style:italic">Sem permissões</span>':'')+
         '</div>'+
         (!isSelf && u.papel!=='admin'?
           '<div style="display:flex;gap:6px">'+
-            '<button class="btn sm" style="flex:1" onclick="abrirEditarPermissoes(\''+u.id+'\')">⚙️ Permissões</button>'+
-            '<button class="btn sm ico" onclick="removerAcessoUsuario(\''+u.id+'\',\''+u.nome+'\')">🗑️</button>'+
+            '<button class="btn sm" style="flex:1" onclick="abrirEditarPermissoes(\''+u.id+'\')"><svg class=ot-i><use href=#i-settings></use></svg> Permissões</button>'+
+            '<button class="btn sm ico" onclick="removerAcessoUsuario(\''+u.id+'\',\''+u.nome+'\')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>'+
           '</div>'
         :(!isSelf&&u.papel==='admin'?'<div style="font-size:10px;color:var(--txt3);text-align:center;padding:4px">Administrador — acesso total</div>':""))+
       '</div>';
@@ -293,13 +293,13 @@ function abrirModalConviteEquipe(){
   const chks=MODULOS_SISTEMA.map(m=>
     `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px;hover:background:var(--bg3)">
       <input type="checkbox" class="perm-chk" value="${m.id}" style="width:15px;height:15px" checked>
-      <span style="font-size:12px">${m.ic} ${m.label}</span>
+      <span style="font-size:12px;display:inline-flex;align-items:center;gap:6px">${ic(m.ic,'sm')} ${m.label}</span>
     </label>`
   ).join("");
 
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:560px">
-      <div class="moh"><div class="mot">👷 Convidar Funcionário</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-users></use></svg> Convidar Funcionário</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
       <div class="mob" style="max-height:75vh;overflow-y:auto">
         <div class="g g2" style="margin-bottom:14px">
           <div class="fg"><label class="lbl">Nome completo *</label>
@@ -320,7 +320,7 @@ function abrirModalConviteEquipe(){
         <!-- Seleção de obras -->
         <div style="margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <label class="lbl" style="margin:0">🏗️ Obras que pode acessar</label>
+            <label class="lbl" style="margin:0"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras que pode acessar</label>
             <div style="display:flex;gap:6px">
               <button class="btn sm" onclick="eqSelecionarObras(true)">Todas</button>
               <button class="btn sm" onclick="eqSelecionarObras(false)">Nenhuma</button>
@@ -332,7 +332,7 @@ function abrirModalConviteEquipe(){
         </div>
         <!-- Módulos -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <label class="lbl" style="margin:0">🔐 Módulos com acesso</label>
+          <label class="lbl" style="margin:0"><svg class=ot-i><use href=#i-lock></use></svg> Módulos com acesso</label>
           <div style="display:flex;gap:6px">
             <button class="btn sm" onclick="eqSelecionarTodos(true)">Todos</button>
             <button class="btn sm" onclick="eqSelecionarTodos(false)">Nenhum</button>
@@ -344,7 +344,7 @@ function abrirModalConviteEquipe(){
       </div>
       <div class="mof">
         <button class="btn" onclick="closeModal()">Cancelar</button>
-        <button class="btn pri" onclick="enviarConviteEquipe()">✉️ Enviar Convite</button>
+        <button class="btn pri" onclick="enviarConviteEquipe()"><svg class=ot-i><use href=#i-mail></use></svg> Enviar Convite</button>
       </div>
     </div></div>`;
   // Aplicar preset inicial
@@ -370,7 +370,7 @@ function abrirModalConviteEquipe(){
     g.innerHTML=obras.map(o=>
       '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px;background:var(--bg2);margin-bottom:2px">'+
         '<input type="checkbox" class="obra-chk" value="'+(o.id||o)+'" style="width:15px;height:15px" checked>'+
-        '<span style="font-size:12px;font-weight:500">🏗️ '+(o.nome||o)+'</span>'+
+        '<span style="font-size:12px;font-weight:500"><svg class=ot-i><use href=#i-hard-hat></use></svg> '+(o.nome||o)+'</span>'+
       '</label>'
     ).join('');
   };
@@ -436,7 +436,7 @@ async function enviarConviteEquipe(){
 
     if(signUpErr && !signUpErr.message?.includes('already registered')){
       toast("❌","Erro ao criar acesso: "+String(signUpErr.message).substring(0,80));
-      if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
+      if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="Enviar Convite";}
       return;
     }
 
@@ -451,7 +451,7 @@ async function enviarConviteEquipe(){
         toast("ℹ️","Usuário já existe — permissões atualizadas.");
       } else {
         toast("⚠️","Não foi possível obter o ID do usuário. Tente novamente.");
-        if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
+        if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="Enviar Convite";}
         return;
       }
     }
@@ -470,16 +470,16 @@ async function enviarConviteEquipe(){
     const rootC=document.getElementById("modal-root");
     rootC.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
       <div class="mo" style="max-width:440px">
-        <div class="moh"><div class="mot">✅ Funcionário Cadastrado!</div><div class="mox" onclick="closeModal()">✕</div></div>
+        <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-circle-check></use></svg> Funcionário Cadastrado!</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
         <div class="mob">
           <p style="font-size:13px;color:var(--txt);margin-bottom:14px">Acesso criado para <strong>${nome}</strong>. Envie as credenciais abaixo:</p>
           <div style="background:var(--bg3);border-radius:8px;padding:14px;font-size:12px;line-height:2;border:1px solid var(--border)">
-            <div>🌐 <strong>Site:</strong> obratech.eng.br</div>
-            <div>📧 <strong>Email:</strong> ${email}</div>
-            <div>🔑 <strong>Senha:</strong> <strong style="color:var(--primary);font-size:15px;letter-spacing:1px">${senha}</strong></div>
+            <div><svg class=ot-i><use href=#i-globe></use></svg> <strong>Site:</strong> obratech.eng.br</div>
+            <div><svg class=ot-i><use href=#i-mail></use></svg> <strong>Email:</strong> ${email}</div>
+            <div><svg class=ot-i><use href=#i-key></use></svg> <strong>Senha:</strong> <strong style="color:var(--primary);font-size:15px;letter-spacing:1px">${senha}</strong></div>
           </div>
-          <div style="margin-top:10px;padding:10px 12px;background:rgba(244,166,35,.12);border-radius:8px;border:1px solid rgba(244,166,35,.3)">
-            <div style="font-size:11px;color:var(--yellow);font-weight:600;margin-bottom:4px">⚠️ Importante — Confirmação de email</div>
+          <div style="margin-top:10px;padding:10px 12px;background:rgba(238,90,36,.12);border-radius:8px;border:1px solid rgba(238,90,36,.3)">
+            <div style="font-size:11px;color:var(--yellow);font-weight:600;margin-bottom:4px"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Importante — Confirmação de email</div>
             <div style="font-size:11px;color:var(--txt2);line-height:1.6">
               O funcionário receberá um <strong>email de confirmação</strong> do Supabase antes de conseguir logar.<br>
               Se quiser que ele acesse sem confirmar o email, vá em:<br>
@@ -487,11 +487,11 @@ async function enviarConviteEquipe(){
             </div>
           </div>
           <div style="margin-top:10px;font-size:11px;color:var(--txt3)">
-            🔐 Módulos: ${permissoes.map(p=>MODULOS_SISTEMA.find(m=>m.id===p)?.label||p).join(" · ")}
+            <svg class=ot-i><use href=#i-lock></use></svg> Módulos: ${permissoes.map(p=>MODULOS_SISTEMA.find(m=>m.id===p)?.label||p).join(" · ")}
           </div>
         </div>
         <div class="mof">
-          <button class="btn pri" onclick="navigator.clipboard.writeText('Acesso ObraTech\nSite: obratech.eng.br\nEmail: ${email}\nSenha: ${senha}\n\nObs: Confirme o email antes de logar.').then(()=>toast('✅','Copiado para WhatsApp!'))">📋 Copiar para WhatsApp</button>
+          <button class="btn pri" onclick="navigator.clipboard.writeText('Acesso ObraTech\nSite: obratech.eng.br\nEmail: ${email}\nSenha: ${senha}\n\nObs: Confirme o email antes de logar.').then(()=>toast('✅','Copiado para WhatsApp!'))"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Copiar para WhatsApp</button>
           <button class="btn" onclick="closeModal()">Fechar</button>
         </div>
       </div></div>`;
@@ -502,7 +502,7 @@ async function enviarConviteEquipe(){
   }catch(err){
     console.error("Erro convite equipe:",err);
     toast("❌","Erro: "+err.message?.substring(0,60));
-    if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="✉️ Enviar Convite";}
+    if(btnEnviar){btnEnviar.disabled=false;btnEnviar.textContent="Enviar Convite";}
   }
 }
 
@@ -516,7 +516,7 @@ async function abrirEditarPermissoes(userId){
   const chks=MODULOS_SISTEMA.map(m=>
     `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">
       <input type="checkbox" class="perm-edit-chk" value="${m.id}" style="width:15px;height:15px" ${permAtivas.includes(m.id)?"checked":""}>
-      <span style="font-size:12px">${m.ic} ${m.label}</span>
+      <span style="font-size:12px;display:inline-flex;align-items:center;gap:6px">${ic(m.ic,'sm')} ${m.label}</span>
     </label>`
   ).join("");
 
@@ -524,7 +524,7 @@ async function abrirEditarPermissoes(userId){
   const obrasChks=DB.obras.length?DB.obras.map(o=>
     '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:6px">'+
       '<input type="checkbox" class="obra-edit-chk" value="'+o.id+'" style="width:15px;height:15px" '+(obrasAtivas.includes(o.id)?"checked":"")+'>'+
-      '<span style="font-size:12px">🏗️ '+o.nome+'</span>'+
+      '<span style="font-size:12px"><svg class=ot-i><use href=#i-hard-hat></use></svg> '+o.nome+'</span>'+
     '</label>'
   ).join(""):'<div style="font-size:11px;color:var(--txt3);padding:6px">Nenhuma obra cadastrada</div>';
 
@@ -532,17 +532,17 @@ async function abrirEditarPermissoes(userId){
     <div class="mo" style="max-width:520px">
       <div class="moh">
         <div>
-          <div class="mot">⚙️ Editar Acesso — ${u.nome}</div>
+          <div class="mot"><svg class=ot-i><use href=#i-settings></use></svg> Editar Acesso — ${u.nome}</div>
           <div style="font-size:11px;color:var(--txt3);margin-top:2px">${u.cargo||u.papel||""} ${u.email?"· "+u.email:""}</div>
         </div>
-        <div class="mox" onclick="closeModal()">✕</div>
+        <div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div>
       </div>
       <div class="mob" style="max-height:72vh;overflow-y:auto">
 
         <!-- Obras -->
         <div style="margin-bottom:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <label class="lbl" style="margin:0;font-size:12px">🏗️ Obras com acesso</label>
+            <label class="lbl" style="margin:0;font-size:12px"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras com acesso</label>
             <div style="display:flex;gap:6px">
               <button class="btn sm" onclick="eqSelecionarObrasEdit(true)">Todas</button>
               <button class="btn sm" onclick="eqSelecionarObrasEdit(false)">Nenhuma</button>
@@ -556,7 +556,7 @@ async function abrirEditarPermissoes(userId){
         <!-- Módulos -->
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <label class="lbl" style="margin:0;font-size:12px">🔐 Módulos com acesso</label>
+            <label class="lbl" style="margin:0;font-size:12px"><svg class=ot-i><use href=#i-lock></use></svg> Módulos com acesso</label>
             <div style="display:flex;gap:6px">
               <select class="sel" id="perm-papel-sel" style="width:160px;height:28px;font-size:11px" onchange="eqAplicarPresetEdit(this.value)">
                 <option value="">— Preset rápido —</option>
@@ -576,9 +576,9 @@ async function abrirEditarPermissoes(userId){
         </div>
       </div>
       <div class="mof">
-        <button class="btn ico" onclick="removerAcessoUsuario('${userId}','${u.nome}')" style="color:var(--red)" title="Remover acesso">🗑️</button>
+        <button class="btn ico" onclick="removerAcessoUsuario('${userId}','${u.nome}')" style="color:var(--red)" title="Remover acesso"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         <button class="btn" onclick="closeModal()">Cancelar</button>
-        <button class="btn pri" onclick="salvarPermissoes('${userId}')">✅ Salvar</button>
+        <button class="btn pri" onclick="salvarPermissoes('${userId}')"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar</button>
       </div>
     </div></div>`;
 }
@@ -680,9 +680,9 @@ async function renderClientes(){
         <div style="font-size:11px;color:var(--txt3);margin-bottom:12px">
           Se você convidou clientes recentemente, clique em Sincronizar para verificar.
         </div>
-        <button class="btn sm" onclick="sincronizarClientes()">🔄 Sincronizar</button>
-      <button class="btn sm pri" onclick="abrirModalConvite()">✉️ Convidar Cliente</button>
-        <button class="btn sm" onclick="sincronizarClientes()" style="margin-left:8px">🔄 Sincronizar</button>
+        <button class="btn sm" onclick="sincronizarClientes()"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Sincronizar</button>
+      <button class="btn sm pri" onclick="abrirModalConvite()"><svg class=ot-i><use href=#i-mail></use></svg> Convidar Cliente</button>
+        <button class="btn sm" onclick="sincronizarClientes()" style="margin-left:8px"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Sincronizar</button>
       </div>`;
       return;
     }
@@ -726,14 +726,14 @@ async function renderClientes(){
                 <div style="font-weight:600;font-size:13px">${c.nome}</div>
                 <div style="font-size:11px;color:var(--txt3);margin-top:2px">
                   ${qtdObras>0
-                    ?'🏗️ '+obras.join(' · ')
-                    :'<span style="color:var(--yellow)">⚠️ Nenhuma obra liberada</span>'}
+                    ?'<svg class=ot-i><use href=#i-hard-hat></use></svg> '+obras.join(' · ')
+                    :'<span style="color:var(--yellow)"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Nenhuma obra liberada</span>'}
                 </div>
               </div>
             </div>
             <div style="display:flex;gap:6px">
-              <button class="btn sm" onclick="openModal('permissoes-cliente','${c.id}')" title="Gerenciar obras">🏗️ Obras</button>
-              <button class="btn sm ico" onclick="revogarCliente('${c.id}')" title="Remover acesso" style="color:var(--red)">🗑️</button>
+              <button class="btn sm" onclick="openModal('permissoes-cliente','${c.id}')" title="Gerenciar obras"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras</button>
+              <button class="btn sm ico" onclick="revogarCliente('${c.id}')" title="Remover acesso" style="color:var(--red)"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
             </div>
           </div>
         </div>`;
@@ -802,7 +802,7 @@ function abrirModalConvite(){
       </label>`).join('');
     root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)document.getElementById('modal-root').innerHTML=''">
       <div class="mo">
-        <div class="moh"><div class="mot">✉️ Convidar Cliente</div><div class="mox" onclick="closeModal()">✕</div></div>
+        <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-mail></use></svg> Convidar Cliente</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
         <div class="mob">
           <div class="g g1" style="gap:12px">
             <div class="fg"><label class="lbl">Nome do Cliente *</label><input class="inp" id="convite-nome" placeholder="Ex: João Silva"></div>
@@ -814,7 +814,7 @@ function abrirModalConvite(){
         </div>
         <div class="mof">
           <button class="btn" onclick="closeModal()">Cancelar</button>
-          <button class="btn pri" onclick="enviarConviteCliente()">✉️ Enviar Convite</button>
+          <button class="btn pri" onclick="enviarConviteCliente()"><svg class=ot-i><use href=#i-mail></use></svg> Enviar Convite</button>
         </div>
       </div></div>`;
     return;
@@ -833,14 +833,14 @@ function abrirModalConvite(){
           </label>`).join('');
         root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)document.getElementById('modal-root').innerHTML=''">
           <div class="mo">
-            <div class="moh"><div class="mot">🏗️ Obras de ${cliente.nome}</div><div class="mox" onclick="closeModal()">✕</div></div>
+            <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras de ${cliente.nome}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
             <div class="mob">
               <p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Selecione quais obras este cliente pode visualizar:</p>
               <div style="background:var(--bg3);border-radius:8px;padding:10px;max-height:260px;overflow-y:auto">${obrasOpts||'Nenhuma obra'}</div>
             </div>
             <div class="mof">
               <button class="btn" onclick="closeModal()">Cancelar</button>
-              <button class="btn pri" onclick="salvarPermissoesCliente('${editId}')">✅ Salvar Permissões</button>
+              <button class="btn pri" onclick="salvarPermissoesCliente('${editId}')"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar Permissões</button>
             </div>
           </div></div>`;
       });
@@ -896,7 +896,7 @@ async function enviarConviteCliente(){
     if(authErr){
       console.error('signUp erro:', authErr.status, authErr.message);
       if(authErr.message?.includes('already registered')||authErr?.status===409){
-        toast('⚠️','Email já cadastrado. Use o botão 🏗️ Obras para gerenciar permissões.');
+        toast('⚠️','Email já cadastrado. Use o botão Obras para gerenciar permissões.');
         renderClientes(); return;
       }
       if(authErr.status===422||authErr.message?.includes('confirm')||authErr.message?.includes('422')){
@@ -904,10 +904,10 @@ async function enviarConviteCliente(){
         const root=document.getElementById('modal-root');
         root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
           <div class="mo" style="max-width:460px">
-            <div class="moh"><div class="mot">⚙️ Configuração Necessária</div><div class="mox" onclick="closeModal()">✕</div></div>
+            <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-settings></use></svg> Configuração Necessária</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
             <div class="mob">
               <div style="background:var(--yglow);border:1px solid var(--yellow);border-radius:10px;padding:16px;margin-bottom:16px">
-                <div style="font-weight:700;margin-bottom:8px;color:var(--txt)">⚠️ Confirmação de email está ativada no Supabase</div>
+                <div style="font-weight:700;margin-bottom:8px;color:var(--txt)"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Confirmação de email está ativada no Supabase</div>
                 <div style="font-size:12px;color:var(--txt2);line-height:1.7">
                   Para que os convites funcionem com senha imediata, você precisa desativar a confirmação de email no Supabase.
                 </div>
@@ -924,7 +924,7 @@ async function enviarConviteCliente(){
               </div>
             </div>
             <div class="mof">
-              <button class="btn pri" onclick="window.open('https://app.supabase.com','_blank')">🔗 Abrir Supabase</button>
+              <button class="btn pri" onclick="window.open('https://app.supabase.com','_blank')"><svg class=ot-i><use href=#i-link></use></svg> Abrir Supabase</button>
               <button class="btn" onclick="closeModal()">Fechar</button>
             </div>
           </div></div>`;
@@ -978,8 +978,8 @@ Após o primeiro acesso, recomendamos trocar a senha em Configurações.`;
     root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
       <div class="mo" style="max-width:500px">
         <div class="moh">
-          <div class="mot">✅ Acesso Criado com Sucesso</div>
-          <div class="mox" onclick="closeModal()">✕</div>
+          <div class="mot"><svg class=ot-i><use href=#i-circle-check></use></svg> Acesso Criado com Sucesso</div>
+          <div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div>
         </div>
         <div class="mob">
           <!-- Credenciais -->
@@ -987,37 +987,37 @@ Após o primeiro acesso, recomendamos trocar a senha em Configurações.`;
             <div style="font-size:11px;opacity:.8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Credenciais de acesso — ${nome}</div>
             <div style="display:grid;gap:8px">
               <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8">🌐 Endereço</span>
+                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-globe></use></svg> Endereço</span>
                 <span style="font-size:12px;font-weight:700">${url}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8">📧 Email</span>
+                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-mail></use></svg> Email</span>
                 <span style="font-size:13px;font-weight:700">${email}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8">🔑 Senha</span>
+                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-key></use></svg> Senha</span>
                 <span style="font-size:16px;font-weight:800;letter-spacing:2px">${senhaTemp}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8">🏗️ Obras</span>
+                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras</span>
                 <span style="font-size:11px;font-weight:600">${obrasSelecionadas}</span>
               </div>
             </div>
           </div>
           <!-- Mensagem pronta -->
           <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
-            <div style="font-size:11px;color:var(--txt3);margin-bottom:6px;font-weight:600">📋 Mensagem pronta para WhatsApp/Email:</div>
+            <div style="font-size:11px;color:var(--txt3);margin-bottom:6px;font-weight:600"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Mensagem pronta para WhatsApp/Email:</div>
             <div id="msg-convite" style="font-size:12px;line-height:1.7;color:var(--txt2);white-space:pre-line">${msgTexto}</div>
           </div>
           <div style="background:var(--yglow);border:1px solid var(--yellow);border-radius:8px;padding:10px;font-size:11px;color:var(--txt2)">
-            ⚠️ <strong>Importante:</strong> Vá em <strong>Supabase → Authentication → Providers → Email</strong> e desmarque <strong>"Confirm email"</strong> para que a senha funcione imediatamente.
+            <svg class=ot-i><use href=#i-triangle-alert></use></svg> <strong>Importante:</strong> Vá em <strong>Supabase → Authentication → Providers → Email</strong> e desmarque <strong>"Confirm email"</strong> para que a senha funcione imediatamente.
           </div>
         </div>
         <div class="mof">
           <button class="btn pri" onclick="(()=>{const t=document.getElementById('msg-convite').innerText;navigator.clipboard?.writeText(t).then(()=>toast('📋','Mensagem copiada! Cole no WhatsApp ou email.'));})()">
-            📋 Copiar Mensagem
+            <svg class=ot-i><use href=#i-clipboard-list></use></svg> Copiar Mensagem
           </button>
-          <button class="btn" onclick="closeModal();renderClientes()">✓ Fechar</button>
+          <button class="btn" onclick="closeModal();renderClientes()"><svg class=ot-i><use href=#i-check></use></svg> Fechar</button>
         </div>
       </div></div>`;
 

@@ -25,8 +25,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="brand/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="css/style.css?v=20261006a">
-<link rel="stylesheet" href="css/brand.css?v=20261006a">
+<link rel="stylesheet" href="css/style.css?v=20261006b">
+<link rel="stylesheet" href="css/brand.css?v=20261006b">
 <script>/* tema antes de pintar a tela: claro é o padrão */try{if(localStorage.getItem('og_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -147,7 +147,7 @@
   <div id="content">
 <!-- DASHBOARD -->
 <div class="page on" id="p-dashboard">
-  <div id="d-empty" class="empty" style="display:none"><div class="eic">🏗️</div><div class="etit">Nenhuma obra cadastrada</div><div class="edesc">Comece cadastrando sua primeira obra</div><button class="btn pri" onclick="goPage('obras');setTimeout(()=>openModal('obra'),50)">＋ Cadastrar Obra</button></div>
+  <div id="d-empty" class="empty" style="display:none"><div class="eic"><svg class=ot-i><use href=#i-hard-hat></use></svg></div><div class="etit">Nenhuma obra cadastrada</div><div class="edesc">Comece cadastrando sua primeira obra</div><button class="btn pri" onclick="goPage('obras');setTimeout(()=>openModal('obra'),50)">＋ Cadastrar Obra</button></div>
   <div id="d-content">
     <!-- Seletor de obra + KPIs globais -->
     <div class="g g4" style="margin-bottom:13px" id="d-kpis"></div>
@@ -179,13 +179,13 @@
     </div>
 
     <div class="g g13" style="margin-bottom:13px">
-      <div class="card"><div class="ch"><div class="ct">⚠️ Alertas</div></div><div id="d-alertas"></div></div>
-      <div class="card"><div class="ch"><div class="ct">🏗️ Status das Obras</div><button class="btn sm" onclick="goPage('obras')">Ver todas</button></div><div id="d-obras-tbl"></div></div>
+      <div class="card"><div class="ch"><div class="ct"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Alertas</div></div><div id="d-alertas"></div></div>
+      <div class="card"><div class="ch"><div class="ct"><svg class=ot-i><use href=#i-hard-hat></use></svg> Status das Obras</div><button class="btn sm" onclick="goPage('obras')">Ver todas</button></div><div id="d-obras-tbl"></div></div>
     </div>
     <div class="g g3">
-      <div class="card"><div class="ct" style="margin-bottom:9px">💰 Fluxo de Caixa</div><div class="cw" style="height:175px"><canvas id="ch-fluxo"></canvas></div></div>
-      <div class="card"><div class="ct" style="margin-bottom:9px">📊 Avanço por Obra</div><div class="cw" style="height:175px"><canvas id="ch-avancos"></canvas></div></div>
-      <div class="card"><div class="ct" style="margin-bottom:9px">💸 Custo por Categoria</div><div class="cw" style="height:175px"><canvas id="ch-categorias"></canvas></div></div>
+      <div class="card"><div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-wallet></use></svg> Fluxo de Caixa</div><div class="cw" style="height:175px"><canvas id="ch-fluxo"></canvas></div></div>
+      <div class="card"><div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-chart-column></use></svg> Avanço por Obra</div><div class="cw" style="height:175px"><canvas id="ch-avancos"></canvas></div></div>
+      <div class="card"><div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-receipt></use></svg> Custo por Categoria</div><div class="cw" style="height:175px"><canvas id="ch-categorias"></canvas></div></div>
     </div>
   </div>
 </div>
@@ -194,10 +194,10 @@
 <div class="page" id="p-obras">
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
     <button class="btn pri" onclick="openModal('obra')">＋ Nova Obra</button>
-    <button class="btn" onclick="openMioModal()">📥 Importar Obra</button>
+    <button class="btn" onclick="openMioModal()"><svg class=ot-i><use href=#i-download></use></svg> Importar Obra</button>
   </div>
   <div class="obras-grid" id="obras-grid"></div>
-  <div id="obras-empty" class="empty" style="display:none"><div class="eic">🏗️</div><div class="etit">Nenhuma obra</div><div class="edesc">Cadastre sua primeira obra para começar</div><button class="btn pri" onclick="openMocModal()">＋ Adicionar Obra</button></div>
+  <div id="obras-empty" class="empty" style="display:none"><div class="eic"><svg class=ot-i><use href=#i-hard-hat></use></svg></div><div class="etit">Nenhuma obra</div><div class="edesc">Cadastre sua primeira obra para começar</div><button class="btn pri" onclick="openMocModal()">＋ Adicionar Obra</button></div>
 </div>
 
 <!-- CRONOGRAMA -->
@@ -208,33 +208,33 @@
     <span style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Obra:</span>
     <select class="cron-obra-sel" id="cron-obra-sel" onchange="renderCron()"></select>
     <div style="flex:1"></div>
-    <button class="btn sm" onclick="exportGanttPDF()">📄 PDF</button>
+    <button class="btn sm" onclick="exportGanttPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
     <button class="btn sm pri" onclick="openModal('etapa')">＋ Etapa</button>
   </div>
   <div class="g g3" style="margin-bottom:13px" id="cron-kpis"></div>
   <div id="cron-orc-section" style="display:none;margin-bottom:13px">
     <div class="g g3" id="cron-orc-kpis" style="margin-bottom:10px"></div>
     <div class="card">
-      <div class="ct" style="margin-bottom:9px">📊 Orçado x Realizado</div>
+      <div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-chart-column></use></svg> Orçado x Realizado</div>
       <div class="cw" style="height:220px"><canvas id="ch-orc-real"></canvas></div>
     </div>
   </div>
   <div class="card" style="margin-bottom:13px">
     <div class="ch">
-      <div><div class="ct">📅 Gantt</div><div class="cs" id="cron-sub"></div></div>
+      <div><div class="ct"><svg class=ot-i><use href=#i-calendar></use></svg> Gantt</div><div class="cs" id="cron-sub"></div></div>
       <div class="ca"></div>
     </div>
     <div id="gantt-area"></div>
-    <div id="gantt-empty" class="empty" style="display:none;padding:20px"><div class="eic" style="font-size:24px">📅</div><div class="etit">Nenhuma etapa</div><div class="edesc">Adicione etapas ao cronograma</div></div>
+    <div id="gantt-empty" class="empty" style="display:none;padding:20px"><div class="eic" style="font-size:24px"><svg class=ot-i><use href=#i-calendar></use></svg></div><div class="etit">Nenhuma etapa</div><div class="edesc">Adicione etapas ao cronograma</div></div>
 
   </div>
   <div class="card">
     <div class="ch" style="margin-bottom:9px">
-      <div class="ct">📈 Curva S — Financeiro</div>
+      <div class="ct"><svg class=ot-i><use href=#i-chart-line></use></svg> Curva S — Financeiro</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#5b8ff9;border-radius:2px"></span>Orçado</span>
-        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#18a84d;border-radius:2px"></span>Realizado</span>
-        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#f4a623;border-radius:2px;border-top:2px dashed #f4a623"></span>Medido</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#2B5C8A;border-radius:2px"></span>Orçado</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#1F7A50;border-radius:2px"></span>Realizado</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="display:inline-block;width:14px;height:3px;background:#EE5A24;border-radius:2px;border-top:2px dashed #EE5A24"></span>Medido</span>
       </div>
     </div>
     <div class="cw" style="height:200px"><canvas id="ch-curvas"></canvas></div>
@@ -250,15 +250,15 @@
   <div class="g g2">
     <div class="card">
       <div id="rdo-edit-status" style="display:none"></div>
-      <div class="ch"><div><div class="ct">📋 Novo RDO</div><div class="cs" id="rdo-date-lbl"></div></div></div>
+      <div class="ch"><div><div class="ct"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Novo RDO</div><div class="cs" id="rdo-date-lbl"></div></div></div>
       <div class="fg" style="margin-bottom:9px"><label class="lbl">Obra</label><select class="sel" id="rdo-obra"></select></div>
       <div class="fg" style="margin-bottom:9px"><label class="lbl">Data</label><input type="date" class="inp" id="rdo-data"></div>
       <div style="margin-bottom:9px"><div class="lbl" style="margin-bottom:5px">Clima</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap" id="wbtns">
-          <button class="btn" style="border-color:var(--primary);color:var(--primary)" onclick="setClima(this,'Ensolarado')">☀️ Sol</button>
-          <button class="btn" onclick="setClima(this,'Nublado')">🌤️ Nublado</button>
-          <button class="btn" onclick="setClima(this,'Chuva')">🌧️ Chuva</button>
-          <button class="btn" onclick="setClima(this,'Temporal')">⛈️ Temporal</button>
+          <button class="btn" style="border-color:var(--primary);color:var(--primary)" onclick="setClima(this,'Ensolarado')"><svg class=ot-i><use href=#i-sun></use></svg> Sol</button>
+          <button class="btn" onclick="setClima(this,'Nublado')"><svg class=ot-i><use href=#i-cloud-sun></use></svg> Nublado</button>
+          <button class="btn" onclick="setClima(this,'Chuva')"><svg class=ot-i><use href=#i-cloud-rain></use></svg> Chuva</button>
+          <button class="btn" onclick="setClima(this,'Temporal')"><svg class=ot-i><use href=#i-cloud-lightning></use></svg> Temporal</button>
         </div>
       </div>
       <div class="g g2" style="margin-bottom:9px">
@@ -269,38 +269,38 @@
       <div class="fg" style="margin-bottom:9px"><label class="lbl">Materiais Recebidos</label><input class="inp" id="rdo-mat" placeholder="Ex: Cimento — 50 sc (NF 0001)"></div>
       <!-- PRESENÇA DO DIA -->
       <div style="margin-bottom:13px">
-        <div class="lbl" style="margin-bottom:6px">👷 Presenças do Dia <span style="font-size:10px;color:var(--txt3);font-weight:400">— sincroniza automaticamente com Equipe & Ponto</span></div>
+        <div class="lbl" style="margin-bottom:6px"><svg class=ot-i><use href=#i-users></use></svg> Presenças do Dia <span style="font-size:10px;color:var(--txt3);font-weight:400">— sincroniza automaticamente com Equipe & Ponto</span></div>
         <div id="rdo-presenca-lista" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px 0"></div>
         <div style="margin-top:5px;display:flex;gap:6px">
-          <button class="btn sm" onclick="rdoMarcarTodos(true)" style="font-size:10px">✅ Todos</button>
-          <button class="btn sm" onclick="rdoMarcarTodos(false)" style="font-size:10px">☐ Nenhum</button>
+          <button class="btn sm" onclick="rdoMarcarTodos(true)" style="font-size:10px"><svg class=ot-i><use href=#i-circle-check></use></svg> Todos</button>
+          <button class="btn sm" onclick="rdoMarcarTodos(false)" style="font-size:10px"><svg class=ot-i><use href=#i-square></use></svg> Nenhum</button>
         </div>
       </div>
       <!-- PRESENÇA TERCEIRIZADOS -->
       <div style="margin-bottom:13px">
-        <div class="lbl" style="margin-bottom:6px">🏢 Presença Terceirizados <span style="font-size:10px;color:var(--txt3);font-weight:400">— empresas parceiras</span></div>
+        <div class="lbl" style="margin-bottom:6px"><svg class=ot-i><use href=#i-building-2></use></svg> Presença Terceirizados <span style="font-size:10px;color:var(--txt3);font-weight:400">— empresas parceiras</span></div>
         <div id="rdo-presenca-tercs" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px 0">
           <div style="padding:10px 13px;font-size:11px;color:var(--txt3)">Nenhum terceirizado cadastrado.</div>
         </div>
         <div style="margin-top:5px;display:flex;gap:6px">
-          <button class="btn sm" onclick="rdoMarcarTodosTercs(true)" style="font-size:10px">✅ Todos</button>
-          <button class="btn sm" onclick="rdoMarcarTodosTercs(false)" style="font-size:10px">☐ Nenhum</button>
+          <button class="btn sm" onclick="rdoMarcarTodosTercs(true)" style="font-size:10px"><svg class=ot-i><use href=#i-circle-check></use></svg> Todos</button>
+          <button class="btn sm" onclick="rdoMarcarTodosTercs(false)" style="font-size:10px"><svg class=ot-i><use href=#i-square></use></svg> Nenhum</button>
         </div>
       </div>
-      <div id="rdo-save-status" style="display:none;text-align:center;padding:8px;font-size:12px;color:var(--primary);font-weight:600">⏳ Salvando RDO...</div>
+      <div id="rdo-save-status" style="display:none;text-align:center;padding:8px;font-size:12px;color:var(--primary);font-weight:600"><svg class=ot-i><use href=#i-hourglass></use></svg> Salvando RDO...</div>
       <div style="display:flex;gap:7px" id="rdo-save-btns">
-        <button class="btn" style="flex:1" onclick="rdoSaveClick('rascunho')">💾 Rascunho</button>
-        <button class="btn pri" style="flex:1" onclick="rdoSaveClick('finalizado')">✅ Finalizar & PDF</button>
+        <button class="btn" style="flex:1" onclick="rdoSaveClick('rascunho')"><svg class=ot-i><use href=#i-save></use></svg> Rascunho</button>
+        <button class="btn pri" style="flex:1" onclick="rdoSaveClick('finalizado')"><svg class=ot-i><use href=#i-circle-check></use></svg> Finalizar & PDF</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:11px">
       <div class="card">
-        <div class="ch"><div class="ct">📸 Fotos do Dia</div><button class="btn sm" onclick="document.getElementById('rdo-foto-in').click()">＋ Foto</button></div>
+        <div class="ch"><div class="ct"><svg class=ot-i><use href=#i-camera></use></svg> Fotos do Dia</div><button class="btn sm" onclick="document.getElementById('rdo-foto-in').click()">＋ Foto</button></div>
         <input type="file" id="rdo-foto-in" accept="image/*" multiple style="display:none" onchange="addFotos(event)">
         <div class="pg" id="rdo-fotos"></div>
       </div>
       <div class="card">
-        <div class="ch"><div class="ct">📂 Histórico</div></div>
+        <div class="ch"><div class="ct"><svg class=ot-i><use href=#i-folder-open></use></svg> Histórico</div></div>
         <div id="rdo-hist"></div>
       </div>
     </div>
@@ -310,10 +310,10 @@
 <!-- EQUIPE & PONTO -->
 <div class="page" id="p-equipe">
   <div class="tabs">
-    <div class="tab on" onclick="swTab(this,'t-colab')">👷 Colaboradores</div>
-    <div class="tab" onclick="swTab(this,'t-ponto')">📅 Presença</div>
-    <div class="tab" onclick="swTab(this,'t-folha')">📊 Folha Semanal</div>
-    <div class="tab" onclick="swTab(this,'t-tercs');renderTerceirizados()">🏢 Terceirizados</div>
+    <div class="tab on" onclick="swTab(this,'t-colab')"><svg class=ot-i><use href=#i-users></use></svg> Colaboradores</div>
+    <div class="tab" onclick="swTab(this,'t-ponto')"><svg class=ot-i><use href=#i-calendar></use></svg> Presença</div>
+    <div class="tab" onclick="swTab(this,'t-folha')"><svg class=ot-i><use href=#i-chart-column></use></svg> Folha Semanal</div>
+    <div class="tab" onclick="swTab(this,'t-tercs');renderTerceirizados()"><svg class=ot-i><use href=#i-building-2></use></svg> Terceirizados</div>
   </div>
 
   <!-- COLABORADORES -->
@@ -329,7 +329,7 @@
     <!-- Lançamento rápido de presença -->
     <div class="card" style="margin-bottom:11px">
       <div class="ch">
-        <div><div class="ct">📅 Lançar Presença</div><div class="cs" style="font-size:10px;color:var(--txt3)">Marque os dias trabalhados de cada colaborador</div></div>
+        <div><div class="ct"><svg class=ot-i><use href=#i-calendar></use></svg> Lançar Presença</div><div class="cs" style="font-size:10px;color:var(--txt3)">Marque os dias trabalhados de cada colaborador</div></div>
         <div class="ca">
           <input type="date" class="inp" id="pt-semana" style="height:34px;font-size:12px;width:145px">
           <select class="sel" style="height:34px;font-size:12px;width:150px" id="pt-obra"></select>
@@ -338,9 +338,9 @@
       <!-- Grade semanal: cada colaborador = 1 linha, cada dia = 1 checkbox -->
       <div id="presenca-grade" style="margin-top:10px"></div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn pri" onclick="salvarPresenca()">✅ Salvar Presenças</button>
-        <button class="btn sm" onclick="marcarTodos(true)" style="font-size:11px">☑ Todos presentes</button>
-        <button class="btn sm" onclick="marcarTodos(false)" style="font-size:11px">☐ Limpar</button>
+        <button class="btn pri" onclick="salvarPresenca()"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar Presenças</button>
+        <button class="btn sm" onclick="marcarTodos(true)" style="font-size:11px"><svg class=ot-i><use href=#i-square-check></use></svg> Todos presentes</button>
+        <button class="btn sm" onclick="marcarTodos(false)" style="font-size:11px"><svg class=ot-i><use href=#i-square></use></svg> Limpar</button>
         <span style="font-size:10px;color:var(--txt3);margin-left:auto">Seg–Dom da semana selecionada</span>
       </div>
     </div>
@@ -366,9 +366,9 @@
         <div class="fg"><label class="lbl">Obra (opcional)</label><select class="sel" id="fol-obra"><option value="">Todas</option></select></div>
       </div>
       <div class="ca">
-        <button class="btn pri" onclick="calcFolha()">🧮 Calcular Folha</button>
-        <button class="btn" onclick="exportFolhaPDF()">📄 PDF</button>
-        <button class="btn" onclick="exportFolhaXLS()">📊 Excel</button>
+        <button class="btn pri" onclick="calcFolha()"><svg class=ot-i><use href=#i-calculator></use></svg> Calcular Folha</button>
+        <button class="btn" onclick="exportFolhaPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
+        <button class="btn" onclick="exportFolhaXLS()"><svg class=ot-i><use href=#i-chart-column></use></svg> Excel</button>
       </div>
     </div>
     <div class="card" id="folha-res" style="display:none">
@@ -382,7 +382,7 @@
   <div id="t-tercs" style="display:none">
     <div class="card">
       <div class="ch">
-        <div><div class="ct">🏢 Equipe Terceirizada</div><div class="cs">Funcionários terceirizados — presença marcada no RDO</div></div>
+        <div><div class="ct"><svg class=ot-i><use href=#i-building-2></use></svg> Equipe Terceirizada</div><div class="cs">Funcionários terceirizados — presença marcada no RDO</div></div>
         <button class="btn pri" onclick="openModal('terceirizado')">＋ Terceirizado</button>
       </div>
       <div id="tercs-tbl"></div>
@@ -394,9 +394,9 @@
 <div class="page" id="p-estoque">
   <!-- TABS -->
   <div class="est-tabs">
-    <div class="est-tab active" id="est-tab-catalogo" onclick="estSwTab('catalogo')">📋 Catálogo de Materiais</div>
-    <div class="est-tab" id="est-tab-saldo" onclick="estSwTab('saldo')">🏗️ Estoque por Obra</div>
-    <div class="est-tab" id="est-tab-movs" onclick="estSwTab('movs')">🔄 Movimentações</div>
+    <div class="est-tab active" id="est-tab-catalogo" onclick="estSwTab('catalogo')"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Catálogo de Materiais</div>
+    <div class="est-tab" id="est-tab-saldo" onclick="estSwTab('saldo')"><svg class=ot-i><use href=#i-hard-hat></use></svg> Estoque por Obra</div>
+    <div class="est-tab" id="est-tab-movs" onclick="estSwTab('movs')"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Movimentações</div>
   </div>
 
   <!-- PAINEL 1: CATÁLOGO GLOBAL -->
@@ -404,11 +404,11 @@
     <div class="g g3" style="margin-bottom:13px" id="est-kpis-cat"></div>
     <div class="card">
       <div class="ch">
-        <div class="ct">📦 Catálogo de Materiais <span style="font-size:10px;color:var(--txt3);font-weight:400">— banco de dados global</span></div>
+        <div class="ct"><svg class=ot-i><use href=#i-package></use></svg> Catálogo de Materiais <span style="font-size:10px;color:var(--txt3);font-weight:400">— banco de dados global</span></div>
         <div class="ca">
-          <input class="inp" id="est-cat-search" placeholder="🔍 Pesquisar material..." style="height:34px;font-size:12px;width:180px" oninput="renderCatalogo()">
-          <button class="btn sm" onclick="exportEstoquePDF()">📄 PDF</button>
-          <button class="btn sm" onclick="exportEstoqueXLS()">📊 Excel</button>
+          <input class="inp" id="est-cat-search" placeholder="Pesquisar material..." style="height:34px;font-size:12px;width:180px" oninput="renderCatalogo()">
+          <button class="btn sm" onclick="exportEstoquePDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
+          <button class="btn sm" onclick="exportEstoqueXLS()"><svg class=ot-i><use href=#i-chart-column></use></svg> Excel</button>
           <button class="btn sm pri" onclick="openModal(&apos;material&apos;)">＋ Novo Material</button>
         </div>
       </div>
@@ -420,9 +420,9 @@
   <div id="est-panel-movs" style="display:none">
     <div class="card">
       <div class="ch">
-        <div class="ct">🔄 Movimentações de Estoque</div>
+        <div class="ct"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Movimentações de Estoque</div>
         <div class="ca" style="gap:8px">
-          <button class="btn sm" onclick="exportMovsPDF()">📄 PDF</button>
+          <button class="btn sm" onclick="exportMovsPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
           <select class="sel" id="mov-filtro-obra" style="height:34px;font-size:12px" onchange="renderMovsPanel()">
             <option value="">Todas as obras</option>
           </select>
@@ -431,7 +431,7 @@
             <option value="Entrada">↑ Entradas</option>
             <option value="Saida">↓ Saídas</option>
           </select>
-          <input class="inp" id="mov-filtro-mat" placeholder="🔍 Material..." style="height:34px;font-size:12px;width:155px" oninput="renderMovsPanel()">
+          <input class="inp" id="mov-filtro-mat" placeholder="Material..." style="height:34px;font-size:12px;width:155px" oninput="renderMovsPanel()">
         </div>
       </div>
       <div id="mov-panel-tbl"></div>
@@ -443,9 +443,9 @@
     <div class="g g4" style="margin-bottom:13px" id="est-kpis-saldo"></div>
     <div class="card" style="margin-bottom:13px">
       <div class="ch">
-        <div class="ct">🏗️ Estoque por Obra</div>
+        <div class="ct"><svg class=ot-i><use href=#i-hard-hat></use></svg> Estoque por Obra</div>
         <div class="ca" style="gap:8px">
-          <button class="btn sm" onclick="exportEstoquePDF()">📄 PDF</button>
+          <button class="btn sm" onclick="exportEstoquePDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
           <!-- Dropdown multi-seleção de obras -->
           <div id="est-obra-filter" onclick="event.stopPropagation()">
             <button id="est-obra-filter-btn" onclick="estToggleObrasDrop(event)">
@@ -459,7 +459,7 @@
               <div id="est-obra-items"></div>
             </div>
           </div>
-          <input class="inp" id="est-saldo-search" placeholder="🔍 Material..." style="height:34px;font-size:12px;width:160px" oninput="renderEstoqueSaldo()">
+          <input class="inp" id="est-saldo-search" placeholder="Material..." style="height:34px;font-size:12px;width:160px" oninput="renderEstoqueSaldo()">
         </div>
       </div>
       <div id="est-saldo-tbl"></div>
@@ -476,9 +476,9 @@
   <div class="g g4" style="margin-bottom:13px" id="cont-kpis"></div>
   <div class="card">
     <div class="ch">
-      <div class="ct">📑 Contratos</div>
+      <div class="ct"><svg class=ot-i><use href=#i-file-pen-line></use></svg> Contratos</div>
       <div class="ca">
-        <input class="inp" id="cont-search" placeholder="🔍 Buscar..." style="height:34px;font-size:12px;width:150px" oninput="renderContratos()">
+        <input class="inp" id="cont-search" placeholder="Buscar..." style="height:34px;font-size:12px;width:150px" oninput="renderContratos()">
         <select class="sel" id="cont-obra-filter" style="height:34px;font-size:12px;width:160px" onchange="renderContratos()">
           <option value="">Todas as obras</option>
         </select>
@@ -488,19 +488,19 @@
           <option value="quitado">Quitado</option>
           <option value="atrasado">Atrasado</option>
         </select>
-        <button class="btn sm" onclick="exportContratosPDF()">📄 PDF</button>
+        <button class="btn sm" onclick="exportContratosPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
         <button class="btn sm pri" onclick="openModal(&apos;contrato&apos;)">＋ Contrato</button>
       </div>
     </div>
     <div id="cont-tbl"></div>
   </div>
   <div class="card" style="margin-top:13px">
-    <div class="ch"><div class="ct">💳 Histórico de Pagamentos</div></div>
+    <div class="ch"><div class="ct"><svg class=ot-i><use href=#i-credit-card></use></svg> Histórico de Pagamentos</div></div>
     <div id="cont-pgtos-tbl"></div>
   </div>
   <div class="card" style="margin-top:13px">
     <div class="ch">
-      <div><div class="ct">📐 Boletins de Medição</div><div class="cs">Medições mensais por contrato — aprovação de empreiteiros</div></div>
+      <div><div class="ct"><svg class=ot-i><use href=#i-ruler></use></svg> Boletins de Medição</div><div class="cs">Medições mensais por contrato — aprovação de empreiteiros</div></div>
       <div class="ca">
         <select class="sel" id="med-obra-filter" style="height:34px;font-size:12px;width:160px" onchange="renderMedicoes()"><option value="">Todas as obras</option></select>
         <select class="sel" id="med-status-filter" style="height:34px;font-size:12px;width:130px" onchange="renderMedicoes()">
@@ -522,24 +522,24 @@
 
   <!-- Tabs -->
   <div style="display:flex;gap:2px;margin-bottom:13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:3px;width:fit-content">
-    <button id="fintab-lanc" class="btn pri" style="height:26px;font-size:11px" onclick="swFinTab('lanc')">💳 Lançamentos</button>
-    <button id="fintab-cad" class="btn" style="height:26px;font-size:11px" onclick="swFinTab('cad')">⚙️ Cadastros</button>
+    <button id="fintab-lanc" class="btn pri" style="height:26px;font-size:11px" onclick="swFinTab('lanc')"><svg class=ot-i><use href=#i-credit-card></use></svg> Lançamentos</button>
+    <button id="fintab-cad" class="btn" style="height:26px;font-size:11px" onclick="swFinTab('cad')"><svg class=ot-i><use href=#i-settings></use></svg> Cadastros</button>
   </div>
 
   <!-- PAINEL: LANÇAMENTOS -->
   <div id="fin-panel-lanc">
     <div class="g g21" style="margin-bottom:13px">
       <div class="card">
-        <div class="ch"><div class="ct">💳 Lançamentos</div>
+        <div class="ch"><div class="ct"><svg class=ot-i><use href=#i-credit-card></use></svg> Lançamentos</div>
           <div class="ca">
             <input type="hidden" id="fin-busca-desc" value="">
             <select class="sel" id="fin-obra-rapido" style="height:34px;font-size:12px;width:170px" onchange="finFiltrarObra(this.value)">
-              <option value="">🏗️ Todas as obras</option>
+              <option value="">Todas as obras</option>
             </select>
-            <button class="btn sm" onclick="finLimparFiltros()" id="fin-limpar-btn" title="Limpar todos os filtros" style="display:none">✕ Limpar</button>
-            <button class="btn sm" onclick="exportFinPDF()">📄 PDF</button>
-            <button class="btn sm" onclick="exportFinXLS()">📊 Excel</button>
-            <button class="btn sm" onclick="abrirImportFinanceiro()">📥 Importar</button>
+            <button class="btn sm" onclick="finLimparFiltros()" id="fin-limpar-btn" title="Limpar todos os filtros" style="display:none"><svg class=ot-i><use href=#i-x></use></svg> Limpar</button>
+            <button class="btn sm" onclick="exportFinPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
+            <button class="btn sm" onclick="exportFinXLS()"><svg class=ot-i><use href=#i-chart-column></use></svg> Excel</button>
+            <button class="btn sm" onclick="abrirImportFinanceiro()"><svg class=ot-i><use href=#i-download></use></svg> Importar</button>
             <button class="btn sm pri" onclick="openModal('lanc')">＋ Lançamento</button>
           </div>
         </div>
@@ -551,7 +551,7 @@
         <div class="card" id="fin-resumo"></div>
       </div>
     </div>
-    <div class="card"><div class="ct" style="margin-bottom:9px">📈 Fluxo Mensal</div><div class="cw" style="height:170px"><canvas id="ch-fin-mensal"></canvas></div></div>
+    <div class="card"><div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-chart-line></use></svg> Fluxo Mensal</div><div class="cw" style="height:170px"><canvas id="ch-fin-mensal"></canvas></div></div>
   </div>
 
   <!-- PAINEL: CADASTROS -->
@@ -561,15 +561,15 @@
       <!-- Centros de Custo -->
       <div class="card">
         <div class="ch" style="margin-bottom:10px">
-          <div><div class="ct">🏷️ Centros de Custo</div><div class="cs" style="font-size:10px;color:var(--txt3)">Agrupamento por área ou projeto</div></div>
+          <div><div class="ct"><svg class=ot-i><use href=#i-tag></use></svg> Centros de Custo</div><div class="cs" style="font-size:10px;color:var(--txt3)">Agrupamento por área ou projeto</div></div>
           <button class="btn sm pri" onclick="cadastroAdd('centro')">＋ Novo</button>
         </div>
         <div id="cad-centros-list"></div>
         <div id="cad-centros-form" style="display:none;margin-top:9px">
           <div style="display:flex;gap:6px">
             <input class="inp" id="cad-centros-inp" placeholder="Nome do centro de custo..." style="flex:1">
-            <button class="btn sm grn" onclick="cadastroSave('centro')">✓</button>
-            <button class="btn sm" onclick="cadastroCancel('centro')">✕</button>
+            <button class="btn sm grn" onclick="cadastroSave('centro')"><svg class=ot-i><use href=#i-check></use></svg></button>
+            <button class="btn sm" onclick="cadastroCancel('centro')"><svg class=ot-i><use href=#i-x></use></svg></button>
           </div>
         </div>
       </div>
@@ -577,15 +577,15 @@
       <!-- Categorias -->
       <div class="card">
         <div class="ch" style="margin-bottom:10px">
-          <div><div class="ct">🗂️ Categorias</div><div class="cs" style="font-size:10px;color:var(--txt3)">Tipo de despesa</div></div>
+          <div><div class="ct"><svg class=ot-i><use href=#i-folder-open></use></svg> Categorias</div><div class="cs" style="font-size:10px;color:var(--txt3)">Tipo de despesa</div></div>
           <button class="btn sm pri" onclick="cadastroAdd('categoria')">＋ Nova</button>
         </div>
         <div id="cad-categorias-list"></div>
         <div id="cad-categorias-form" style="display:none;margin-top:9px">
           <div style="display:flex;gap:6px">
             <input class="inp" id="cad-categorias-inp" placeholder="Nome da categoria..." style="flex:1">
-            <button class="btn sm grn" onclick="cadastroSave('categoria')">✓</button>
-            <button class="btn sm" onclick="cadastroCancel('categoria')">✕</button>
+            <button class="btn sm grn" onclick="cadastroSave('categoria')"><svg class=ot-i><use href=#i-check></use></svg></button>
+            <button class="btn sm" onclick="cadastroCancel('categoria')"><svg class=ot-i><use href=#i-x></use></svg></button>
           </div>
         </div>
       </div>
@@ -601,7 +601,7 @@
   <div class="card">
     <div class="ch">
       <div>
-        <div class="ct">💲 Orçamento de Obra</div>
+        <div class="ct"><svg class=ot-i><use href=#i-calculator></use></svg> Orçamento de Obra</div>
         <div class="cs">Composição de custos por serviço</div>
       </div>
       <div class="ca">
@@ -611,8 +611,8 @@
         <button class="btn sm" onclick="orcAdicionarGrupo()">＋ Grupo</button>
         <button class="btn sm" onclick="orcExpandirTodos()">▼ Expandir</button>
         <button class="btn sm" onclick="orcRecolherTodos()">▲ Recolher</button>
-        <button class="btn sm pri" onclick="orcGerarPDF()">📄 PDF</button>
-        <button class="btn sm" onclick="orcGerarExcel()">📊 Excel</button>
+        <button class="btn sm pri" onclick="orcGerarPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
+        <button class="btn sm" onclick="orcGerarExcel()"><svg class=ot-i><use href=#i-chart-column></use></svg> Excel</button>
       </div>
     </div>
     <div id="orc-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:13px 0"></div>
@@ -624,18 +624,18 @@
 <div class="page" id="p-qualidade">
   <div class="g g3" style="margin-bottom:13px" id="qual-kpis"></div>
   <div style="display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)">
-    <div class="qual-tab on" data-qt="nc" onclick="qualTab('nc')" style="padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">❌ Não Conformidades</div>
-    <div class="qual-tab" data-qt="chk" onclick="qualTab('chk')" style="padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)">✅ Checklists de Inspeção</div>
+    <div class="qual-tab on" data-qt="nc" onclick="qualTab('nc')" style="padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)"><svg class=ot-i><use href=#i-circle-x></use></svg> Não Conformidades</div>
+    <div class="qual-tab" data-qt="chk" onclick="qualTab('chk')" style="padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)"><svg class=ot-i><use href=#i-circle-check></use></svg> Checklists de Inspeção</div>
   </div>
   <div id="qual-panel-nc">
     <div class="g g2">
       <div class="card">
-        <div class="ch"><div class="ct">❌ Não Conformidades</div>
+        <div class="ch"><div class="ct"><svg class=ot-i><use href=#i-circle-x></use></svg> Não Conformidades</div>
           <div class="ca">
             <select class="sel" id="qual-obra-filter" style="height:34px;font-size:12px;width:160px" onchange="renderQual()">
               <option value="">Todas as obras</option>
             </select>
-            <button class="btn sm" onclick="exportQualPDF()">📄 PDF</button>
+            <button class="btn sm" onclick="exportQualPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
             <button class="btn sm pri" onclick="openModal('nc')">＋ NC</button>
           </div>
         </div>
@@ -647,7 +647,7 @@
   <div id="qual-panel-chk" style="display:none">
     <div class="card">
       <div class="ch">
-        <div><div class="ct">✅ Checklists de Inspeção</div><div class="cs">Verificação obrigatória antes de liberar cada etapa</div></div>
+        <div><div class="ct"><svg class=ot-i><use href=#i-circle-check></use></svg> Checklists de Inspeção</div><div class="cs">Verificação obrigatória antes de liberar cada etapa</div></div>
         <div class="ca">
           <select class="sel" id="chk-obra-filter" style="height:34px;font-size:12px;width:160px" onchange="renderChecklist()"><option value="">Todas as obras</option></select>
           <select class="sel" id="chk-status-filter" style="height:34px;font-size:12px;width:130px" onchange="renderChecklist()">
@@ -656,7 +656,7 @@
             <option value="ok">Conforme</option>
             <option value="nok">Não Conforme</option>
           </select>
-          <button class="btn sm" onclick="gerarChecklistPDF()">📄 PDF</button>
+          <button class="btn sm" onclick="gerarChecklistPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
           <button class="btn sm pri" onclick="openModal('checklist')">＋ Item</button>
         </div>
       </div>
@@ -671,7 +671,7 @@
   <div class="card">
     <div class="ch">
       <div>
-        <div class="ct">📋 Demandas</div>
+        <div class="ct"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Demandas</div>
         <div class="cs">Tarefas e pendências por obra</div>
       </div>
       <div class="ca" style="gap:8px">
@@ -701,18 +701,18 @@
 <div class="page" id="p-empresa">
   <!-- Tabs -->
   <div style="display:flex;gap:2px;margin-bottom:14px;border-bottom:1px solid var(--border)">
-    <div class="usr-tab on" data-ut="empresa" onclick="usrTab('empresa')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">🏢 Minha Empresa</div>
-    <div class="usr-tab" data-ut="clientes" onclick="usrTab('clientes')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)">👤 Clientes</div>
-    <div class="usr-tab" data-ut="equipe" onclick="usrTab('equipe')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)">👷 Equipe</div>
+    <div class="usr-tab on" data-ut="empresa" onclick="usrTab('empresa')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)"><svg class=ot-i><use href=#i-building-2></use></svg> Minha Empresa</div>
+    <div class="usr-tab" data-ut="clientes" onclick="usrTab('clientes')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)"><svg class=ot-i><use href=#i-user></use></svg> Clientes</div>
+    <div class="usr-tab" data-ut="equipe" onclick="usrTab('equipe')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--txt3)"><svg class=ot-i><use href=#i-users></use></svg> Equipe</div>
   </div>
 
   <!-- Painel Clientes -->
   <div id="usr-panel-clientes">
     <div class="card">
       <div class="ch">
-        <div><div class="ct">👤 Portal Clientes</div><div class="cs">Convide clientes para acompanhar as obras</div></div>
-        <button class="btn sm" onclick="sincronizarClientes()">🔄 Sincronizar</button>
-        <button class="btn sm pri" onclick="abrirModalConvite()">✉️ Convidar Cliente</button>
+        <div><div class="ct"><svg class=ot-i><use href=#i-user></use></svg> Portal Clientes</div><div class="cs">Convide clientes para acompanhar as obras</div></div>
+        <button class="btn sm" onclick="sincronizarClientes()"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Sincronizar</button>
+        <button class="btn sm pri" onclick="abrirModalConvite()"><svg class=ot-i><use href=#i-mail></use></svg> Convidar Cliente</button>
       </div>
       <div id="clientes-lista" style="margin-top:12px"></div>
     </div>
@@ -722,8 +722,8 @@
   <div id="usr-panel-equipe" style="display:none">
     <div class="card">
       <div class="ch">
-        <div><div class="ct">👷 Equipe / Usuários do Sistema</div><div class="cs">Convide funcionários e gerencie permissões de acesso por módulo</div></div>
-        <button class="btn sm pri" onclick="abrirModalConviteEquipe()">✉️ Convidar Funcionário</button>
+        <div><div class="ct"><svg class=ot-i><use href=#i-users></use></svg> Equipe / Usuários do Sistema</div><div class="cs">Convide funcionários e gerencie permissões de acesso por módulo</div></div>
+        <button class="btn sm pri" onclick="abrirModalConviteEquipe()"><svg class=ot-i><use href=#i-mail></use></svg> Convidar Funcionário</button>
       </div>
       <div id="equipe-usuarios-lista" style="margin-top:12px">
         <div class="t-empty">Carregando usuários...</div>
@@ -735,7 +735,7 @@
   <div id="usr-panel-empresa" style="display:none">
     <div class="card">
       <div class="ch">
-        <div><div class="ct">🏢 Identidade Visual da Empresa</div><div class="cs">Personalize a logomarca e a cor dos seus relatorios PDF</div></div>
+        <div><div class="ct"><svg class=ot-i><use href=#i-building-2></use></svg> Identidade Visual da Empresa</div><div class="cs">Personalize a logomarca e a cor dos seus relatorios PDF</div></div>
       </div>
       <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <!-- Coluna esquerda: Logo -->
@@ -845,27 +845,27 @@
   <div class="g g4" style="margin-bottom:13px" id="cx-kpis"></div>
   <div class="card" style="margin-bottom:13px">
     <div class="ch">
-      <div><div class="ct">💵 Fluxo de Caixa</div><div class="cs">Aportes dos investidores × despesas das obras</div></div>
+      <div><div class="ct"><svg class=ot-i><use href=#i-banknote></use></svg> Fluxo de Caixa</div><div class="cs">Aportes dos investidores × despesas das obras</div></div>
       <div class="ca" style="gap:8px;flex-wrap:wrap">
-        <select class="sel" id="cx-obra" style="height:34px;font-size:12px;width:170px" onchange="renderCaixa()"><option value="">🏗️ Todas as obras</option></select>
+        <select class="sel" id="cx-obra" style="height:34px;font-size:12px;width:170px" onchange="renderCaixa()"><option value="">Todas as obras</option></select>
         <input type="date" class="inp" id="cx-de" style="height:34px;font-size:12px;width:135px" title="De" onchange="renderCaixa()">
         <input type="date" class="inp" id="cx-ate" style="height:34px;font-size:12px;width:135px" title="Até" onchange="renderCaixa()">
-        <button class="btn sm" onclick="cxLimparFiltros()" title="Limpar filtros">✕</button>
-        <button class="btn sm" onclick="cxAbrirInvestidores()">🤝 Investidores</button>
-        <button class="btn sm" onclick="exportCaixaPDF()">📄 PDF</button>
-        <button class="btn sm" onclick="exportCaixaXLS()">📊 Excel</button>
+        <button class="btn sm" onclick="cxLimparFiltros()" title="Limpar filtros"><svg class=ot-i><use href=#i-x></use></svg></button>
+        <button class="btn sm" onclick="cxAbrirInvestidores()"><svg class=ot-i><use href=#i-handshake></use></svg> Investidores</button>
+        <button class="btn sm" onclick="exportCaixaPDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
+        <button class="btn sm" onclick="exportCaixaXLS()"><svg class=ot-i><use href=#i-chart-column></use></svg> Excel</button>
         <button class="btn sm pri" onclick="cxAbrirAporte()">＋ Aporte</button>
       </div>
     </div>
   </div>
   <div class="g g21" style="margin-bottom:13px">
-    <div class="card"><div class="ct" style="margin-bottom:9px">📈 Entradas × Saídas (6 meses)</div><div class="cw" style="height:220px"><canvas id="ch-cx-fluxo"></canvas></div></div>
-    <div class="card"><div class="ct" style="margin-bottom:9px">🤝 Participação por Investidor</div><div id="cx-participacao" style="max-height:220px;overflow-y:auto"></div></div>
+    <div class="card"><div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-chart-line></use></svg> Entradas × Saídas (6 meses)</div><div class="cw" style="height:220px"><canvas id="ch-cx-fluxo"></canvas></div></div>
+    <div class="card"><div class="ct" style="margin-bottom:9px"><svg class=ot-i><use href=#i-handshake></use></svg> Participação por Investidor</div><div id="cx-participacao" style="max-height:220px;overflow-y:auto"></div></div>
   </div>
   <div class="card">
     <div class="tabs" style="margin-bottom:12px">
-      <div class="tab cx-tab on" data-t="aportes" onclick="cxTab('aportes')">💵 Aportes</div>
-      <div class="tab cx-tab" data-t="extrato" onclick="cxTab('extrato')">📒 Extrato</div>
+      <div class="tab cx-tab on" data-t="aportes" onclick="cxTab('aportes')"><svg class=ot-i><use href=#i-banknote></use></svg> Aportes</div>
+      <div class="tab cx-tab" data-t="extrato" onclick="cxTab('extrato')"><svg class=ot-i><use href=#i-book-open></use></svg> Extrato</div>
     </div>
     <div id="cx-aportes"></div>
     <div id="cx-extrato" style="display:none"></div>
@@ -877,11 +877,11 @@
   <div class="card">
     <div class="ch">
       <div>
-        <div class="ct">🏭 Fornecedores</div>
+        <div class="ct"><svg class=ot-i><use href=#i-factory></use></svg> Fornecedores</div>
         <div class="cs">Cadastro completo de fornecedores</div>
       </div>
       <div class="ca" style="gap:8px">
-        <input class="inp" id="forn-search" placeholder="🔍 Buscar fornecedor..." style="height:34px;font-size:12px;width:200px" oninput="renderFornecedores()">
+        <input class="inp" id="forn-search" placeholder="Buscar fornecedor..." style="height:34px;font-size:12px;width:200px" oninput="renderFornecedores()">
         <select class="sel" id="forn-tipo-filter" style="height:34px;font-size:12px;width:130px" onchange="renderFornecedores()">
           <option value="">Todos os tipos</option>
           <option value="Material">Material</option>
@@ -911,56 +911,56 @@
     <button class="btn" onclick="relSelectAll()">Selecionar tudo</button>
     <button class="btn" onclick="relClearAll()">Limpar</button>
     <button class="btn pri" id="rel-export-btn" onclick="exportarSelecionados()" disabled style="opacity:.5">
-      ⬇ Exportar selecionados
+      <svg class=ot-i><use href=#i-download></use></svg> Exportar selecionados
     </button>
   </div>
   <div class="g g3" style="margin-bottom:13px" id="rel-cards-grid">
     <div class="rel-card" id="rc-gerencial" onclick="relToggle('gerencial')">
-      <div class="rc-chk">✓</div>
-      <div style="font-size:26px;margin-bottom:7px">📊</div>
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
+      <div style="font-size:26px;margin-bottom:7px"><svg class=ot-i><use href=#i-chart-column></use></svg></div>
       <div class="ct">Relatório Gerencial</div><div class="cs" style="margin:3px 0 9px">KPIs + obras + financeiro</div>
       <span class="b bb">PDF</span>
       <div style="margin-top:7px"><button class="btn sm" onclick="event.stopPropagation();gerarRelGerencial()">▶ Gerar agora</button></div>
     </div>
     <div class="rel-card" id="rc-dre" onclick="relToggle('dre')">
-      <div class="rc-chk">✓</div>
-      <div style="font-size:26px;margin-bottom:7px">💰</div>
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
+      <div style="font-size:26px;margin-bottom:7px"><svg class=ot-i><use href=#i-wallet></use></svg></div>
       <div class="ct">DRE Financeiro</div><div class="cs" style="margin:3px 0 9px">Lançamentos por obra/período</div>
       <span class="b bb">PDF</span><span class="b bb" style="margin-left:3px">Excel</span>
       <div style="margin-top:7px"><button class="btn sm" onclick="event.stopPropagation();exportFinPDF()">▶ PDF</button> <button class="btn sm" onclick="event.stopPropagation();exportFinXLS()">▶ Excel</button></div>
     </div>
     <div class="rel-card" id="rc-folha" onclick="relToggle('folha')">
-      <div class="rc-chk">✓</div>
-      <div style="font-size:26px;margin-bottom:7px">👷</div>
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
+      <div style="font-size:26px;margin-bottom:7px"><svg class=ot-i><use href=#i-users></use></svg></div>
       <div class="ct">Folha de Pagamento</div><div class="cs" style="margin:3px 0 9px">Calcule na aba Equipe primeiro</div>
       <span class="b bb">PDF</span><span class="b bb" style="margin-left:3px">Excel</span>
       <div style="margin-top:7px"><button class="btn sm" onclick="event.stopPropagation();exportFolhaPDF()">▶ Gerar agora</button></div>
     </div>
     <div class="rel-card" id="rc-cronograma" onclick="relToggle('cronograma')">
-      <div class="rc-chk">✓</div>
-      <div style="font-size:26px;margin-bottom:7px">📅</div>
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
+      <div style="font-size:26px;margin-bottom:7px"><svg class=ot-i><use href=#i-calendar></use></svg></div>
       <div class="ct">Cronograma / Gantt</div><div class="cs" style="margin:3px 0 9px">Etapas e progresso da obra</div>
       <span class="b bb">PDF</span>
       <div style="margin-top:7px"><button class="btn sm" onclick="event.stopPropagation();exportGanttPDF()">▶ Gerar agora</button></div>
     </div>
     <div class="rel-card" id="rc-qualidade" onclick="relToggle('qualidade')">
-      <div class="rc-chk">✓</div>
-      <div style="font-size:26px;margin-bottom:7px">✅</div>
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
+      <div style="font-size:26px;margin-bottom:7px"><svg class=ot-i><use href=#i-circle-check></use></svg></div>
       <div class="ct">Qualidade & NCs</div><div class="cs" style="margin:3px 0 9px">Não conformidades</div>
       <span class="b bb">PDF</span>
       <div style="margin-top:7px"><button class="btn sm" onclick="event.stopPropagation();exportQualPDF()">▶ Gerar agora</button></div>
     </div>
     <div class="rel-card" id="rc-estoque" onclick="relToggle('estoque')">
-      <div class="rc-chk">✓</div>
-      <div style="font-size:26px;margin-bottom:7px">📦</div>
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
+      <div style="font-size:26px;margin-bottom:7px"><svg class=ot-i><use href=#i-package></use></svg></div>
       <div class="ct">Estoque</div><div class="cs" style="margin:3px 0 9px">Materiais e níveis</div>
       <span class="b bb">Excel</span>
       <div style="margin-top:7px"><button class="btn sm" onclick="event.stopPropagation();exportEstoqueXLS()">▶ Gerar agora</button></div>
     </div>
-    <div class="rel-card" id="rc-m2" onclick="relToggle('m2')" style="border-color:rgba(244,166,35,.35);grid-column:span 3">
-      <div class="rc-chk">✓</div>
+    <div class="rel-card" id="rc-m2" onclick="relToggle('m2')" style="border-color:rgba(238,90,36,.35);grid-column:span 3">
+      <div class="rc-chk"><svg class=ot-i><use href=#i-check></use></svg></div>
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="font-size:32px">📐</div>
+        <div style="font-size:32px"><svg class=ot-i><use href=#i-ruler></use></svg></div>
         <div>
           <div class="ct" style="color:var(--accent)">Análise de Custo por m²</div>
           <div class="cs" style="margin:3px 0 5px">Custo por categoria, etapa construtiva e m² — comparativo com orçamento</div>
@@ -974,29 +974,29 @@
   <div class="card" id="rel-m2-painel" style="display:none;margin-bottom:13px">
     <div class="ch" style="margin-bottom:13px">
       <div>
-        <div class="ct" style="color:var(--accent)">📐 Análise de Custo por m²</div>
+        <div class="ct" style="color:var(--accent)"><svg class=ot-i><use href=#i-ruler></use></svg> Análise de Custo por m²</div>
         <div class="cs">Selecione a obra para visualizar o relatório completo</div>
       </div>
       <div class="ca">
         <select class="sel" style="height:34px;font-size:12px;width:200px" id="m2-obra-sel" onchange="renderCustoM2()">
           <option value="">— Selecione a obra —</option>
         </select>
-        <button class="btn sm" onclick="exportCustoM2PDF()">📄 PDF</button>
-        <button class="btn sm" onclick="exportCustoM2XLS()">📊 Excel</button>
-        <button class="btn sm ico" onclick="document.getElementById('rel-m2-painel').style.display='none'">✕</button>
+        <button class="btn sm" onclick="exportCustoM2PDF()"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</button>
+        <button class="btn sm" onclick="exportCustoM2XLS()"><svg class=ot-i><use href=#i-chart-column></use></svg> Excel</button>
+        <button class="btn sm ico" onclick="document.getElementById('rel-m2-painel').style.display='none'"><svg class=ot-i><use href=#i-x></use></svg></button>
       </div>
     </div>
     <div id="m2-content"><div class="t-empty">Selecione uma obra acima para ver a análise.</div></div>
   </div>
 
   <div class="card">
-    <div class="ct" style="margin-bottom:11px">📋 Exportar RDOs em Lote</div>
+    <div class="ct" style="margin-bottom:11px"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Exportar RDOs em Lote</div>
     <div class="g g3" style="margin-bottom:11px">
       <div class="fg"><label class="lbl">Obra</label><select class="sel" id="rel-obra"><option value="">Todas</option></select></div>
       <div class="fg"><label class="lbl">De</label><input type="date" class="inp" id="rel-de"></div>
       <div class="fg"><label class="lbl">Até</label><input type="date" class="inp" id="rel-ate"></div>
     </div>
-    <button class="btn pri" onclick="exportRDOsLote()">📄 Exportar RDOs Selecionados</button>
+    <button class="btn pri" onclick="exportRDOsLote()"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar RDOs Selecionados</button>
   </div>
 </div>
 
@@ -1009,16 +1009,16 @@
 <!-- ── MODAL: Escolha ao clicar em + Novo (Obras) ─────────────── -->
 <div id="modal-obra-choice">
   <div class="moc-box">
-    <div class="moc-title">🏗️ Adicionar Obra</div>
+    <div class="moc-title"><svg class=ot-i><use href=#i-hard-hat></use></svg> Adicionar Obra</div>
     <div class="moc-sub">Como você deseja adicionar a obra?</div>
     <div class="moc-btns">
       <div class="moc-btn" onclick="closeMocAndOpen('nova')">
-        <span class="moc-btn-ic">➕</span>
+        <span class="moc-btn-ic"><svg class=ot-i><use href=#i-plus></use></svg></span>
         <span class="moc-btn-label">Nova Obra</span>
         <span class="moc-btn-desc">Cadastre uma obra do zero com todos os dados</span>
       </div>
       <div class="moc-btn" onclick="closeMocAndOpen('importar')">
-        <span class="moc-btn-ic">📥</span>
+        <span class="moc-btn-ic"><svg class=ot-i><use href=#i-download></use></svg></span>
         <span class="moc-btn-label">Importar Obra</span>
         <span class="moc-btn-desc">Importe dados de uma obra já em andamento via planilha</span>
       </div>
@@ -1032,10 +1032,10 @@
   <div class="mio-box">
     <div class="mio-hdr">
       <div>
-        <div style="font-family:var(--ot-font-sans);font-size:15px;font-weight:700;color:var(--txt)">📥 Importar Obra</div>
+        <div style="font-family:var(--ot-font-sans);font-size:15px;font-weight:700;color:var(--txt)"><svg class=ot-i><use href=#i-download></use></svg> Importar Obra</div>
         <div style="font-size:11px;color:var(--txt3);margin-top:2px">Importe dados de obras já em andamento via planilha Excel</div>
       </div>
-      <button class="mox" onclick="closeMioModal()">✕</button>
+      <button class="mox" onclick="closeMioModal()"><svg class=ot-i><use href=#i-x></use></svg></button>
     </div>
     <div class="mio-body">
       <!-- Etapa 1: campos da obra -->
@@ -1059,10 +1059,10 @@
         <!-- Download modelo -->
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <button class="btn" style="flex:1" onclick="downloadModeloPlanilha()">
-            📋 Baixar Planilha Modelo (.xlsx)
+            <svg class=ot-i><use href=#i-clipboard-list></use></svg> Baixar Planilha Modelo (.xlsx)
           </button>
           <button class="btn pri" style="flex:1" onclick="document.getElementById('import-obra-file').click()">
-            📂 Carregar Planilha
+            <svg class=ot-i><use href=#i-folder-open></use></svg> Carregar Planilha
           </button>
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--txt3);margin-bottom:12px;line-height:1.6">
@@ -1075,7 +1075,7 @@
              ondragover="event.preventDefault();this.classList.add('drag')"
              ondragleave="this.classList.remove('drag')"
              ondrop="event.preventDefault();this.classList.remove('drag');handleImportObraFile({target:{files:event.dataTransfer.files}})">
-          <span class="drop-zone-ic">📄</span>
+          <span class="drop-zone-ic"><svg class=ot-i><use href=#i-file-text></use></svg></span>
           <span class="drop-zone-label">Arraste a planilha aqui ou clique para selecionar</span>
           <span style="font-size:11px">.xlsx, .xls ou .csv</span>
         </div>
@@ -1092,7 +1092,7 @@
     </div>
     <div class="mio-ftr">
       <button class="btn" onclick="closeMioModal()">Cancelar</button>
-      <button class="btn pri" onclick="executarImportObra()">✅ Importar Obra e Custos</button>
+      <button class="btn pri" onclick="executarImportObra()"><svg class=ot-i><use href=#i-circle-check></use></svg> Importar Obra e Custos</button>
     </div>
   </div>
 </div>
@@ -1115,20 +1115,20 @@
         <option value="">Selecionar obra...</option>
       </select>
       <div style="font-size:12px;color:var(--txt2)" id="pc-user-nome"></div>
-      <button class="btn sm" onclick="logout()" style="font-size:11px">🚪 Sair</button>
+      <button class="btn sm" onclick="logout()" style="font-size:11px"><svg class=ot-i><use href=#i-log-out></use></svg> Sair</button>
     </div>
   </div>
 
   <!-- Nav Portal -->
   <div id="pc-nav" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:2px;overflow-x:auto;flex-shrink:0">
-    <div class="pc-tab on" data-tab="resumo" onclick="pcTab('resumo')">📊 Resumo</div>
-    <div class="pc-tab" data-tab="cronograma" onclick="pcTab('cronograma')">📅 Cronograma</div>
-    <div class="pc-tab" data-tab="financeiro" onclick="pcTab('financeiro')">💰 Financeiro</div>
-    <div class="pc-tab" data-tab="rdo" onclick="pcTab('rdo')">📋 RDOs</div>
-    <div class="pc-tab" data-tab="estoque" onclick="pcTab('estoque')">📦 Estoque</div>
-    <div class="pc-tab" data-tab="qualidade" onclick="pcTab('qualidade')">✅ Qualidade</div>
-    <div class="pc-tab" data-tab="equipe" onclick="pcTab('equipe')">👷 Equipe</div>
-    <div class="pc-tab" data-tab="contratos" onclick="pcTab('contratos')">📑 Contratos</div>
+    <div class="pc-tab on" data-tab="resumo" onclick="pcTab('resumo')"><svg class=ot-i><use href=#i-chart-column></use></svg> Resumo</div>
+    <div class="pc-tab" data-tab="cronograma" onclick="pcTab('cronograma')"><svg class=ot-i><use href=#i-calendar></use></svg> Cronograma</div>
+    <div class="pc-tab" data-tab="financeiro" onclick="pcTab('financeiro')"><svg class=ot-i><use href=#i-wallet></use></svg> Financeiro</div>
+    <div class="pc-tab" data-tab="rdo" onclick="pcTab('rdo')"><svg class=ot-i><use href=#i-clipboard-list></use></svg> RDOs</div>
+    <div class="pc-tab" data-tab="estoque" onclick="pcTab('estoque')"><svg class=ot-i><use href=#i-package></use></svg> Estoque</div>
+    <div class="pc-tab" data-tab="qualidade" onclick="pcTab('qualidade')"><svg class=ot-i><use href=#i-circle-check></use></svg> Qualidade</div>
+    <div class="pc-tab" data-tab="equipe" onclick="pcTab('equipe')"><svg class=ot-i><use href=#i-users></use></svg> Equipe</div>
+    <div class="pc-tab" data-tab="contratos" onclick="pcTab('contratos')"><svg class=ot-i><use href=#i-file-pen-line></use></svg> Contratos</div>
   </div>
 
   <!-- Conteúdo Portal -->
@@ -1144,31 +1144,31 @@
 
 
 <!-- JavaScript Modules -->
-<script src="js/utils.js?v=20261006a"></script>
-<script src="js/icons.js?v=20261006a"></script>
-<script src="js/supabase.js?v=20261006a"></script>
-<script src="js/auth.js?v=20261005b"></script>
-<script src="js/nav.js?v=20261005b"></script>
-<script src="js/dashboard.js?v=20261006a"></script>
-<script src="js/obras.js?v=20260329b"></script>
-<script src="js/cronograma.js?v=20260329b"></script>
-<script src="js/rdo.js?v=20260329b"></script>
-<script src="js/equipe.js?v=20260329b"></script>
-<script src="js/estoque.js?v=20260329b"></script>
-<script src="js/financeiro.js?v=20261005b"></script>
-<script src="js/contratos.js?v=20260329b"></script>
-<script src="js/orcamento.js?v=20261005a"></script>
-<script src="js/demandas.js?v=20260329b"></script>
-<script src="js/compras.js?v=20260404"></script>
-<script src="js/caixa.js?v=20261005b"></script>
-<script src="js/fornecedores.js?v=20260329b"></script>
-<script src="js/qualidade.js?v=20260329b"></script>
-<script src="js/modals.js?v=20261005b"></script>
-<script src="js/pdf.js?v=20261005b"></script>
-<script src="js/relatorios.js?v=20261005a"></script>
-<script src="js/init.js?v=20261006a"></script>
-<script src="js/portal.js?v=20261005b"></script>
-<script src="js/pwa.js?v=20261006a"></script>
+<script src="js/utils.js?v=20261006b"></script>
+<script src="js/icons.js?v=20261006b"></script>
+<script src="js/supabase.js?v=20261006b"></script>
+<script src="js/auth.js?v=20261006b"></script>
+<script src="js/nav.js?v=20261006b"></script>
+<script src="js/dashboard.js?v=20261006b"></script>
+<script src="js/obras.js?v=20261006b"></script>
+<script src="js/cronograma.js?v=20261006b"></script>
+<script src="js/rdo.js?v=20261006b"></script>
+<script src="js/equipe.js?v=20261006b"></script>
+<script src="js/estoque.js?v=20261006b"></script>
+<script src="js/financeiro.js?v=20261006b"></script>
+<script src="js/contratos.js?v=20261006b"></script>
+<script src="js/orcamento.js?v=20261006b"></script>
+<script src="js/demandas.js?v=20261006b"></script>
+<script src="js/compras.js?v=20261006b"></script>
+<script src="js/caixa.js?v=20261006b"></script>
+<script src="js/fornecedores.js?v=20261006b"></script>
+<script src="js/qualidade.js?v=20261006b"></script>
+<script src="js/modals.js?v=20261006b"></script>
+<script src="js/pdf.js?v=20261006b"></script>
+<script src="js/relatorios.js?v=20261006b"></script>
+<script src="js/init.js?v=20261006b"></script>
+<script src="js/portal.js?v=20261006b"></script>
+<script src="js/pwa.js?v=20261006b"></script>
 
 </body>
 </html>

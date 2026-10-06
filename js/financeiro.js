@@ -20,13 +20,13 @@ function renderCadastros(){
       ? arr.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
           <span style="font-size:13px">${icon}</span>
           <span style="flex:1;font-size:12px;color:var(--txt)">${x}</span>
-          <button class="btn sm ico" onclick="cadastroEdit('${arrKey}',${i})" title="Editar">✏️</button>
-          <button class="btn sm ico" onclick="cadastroDel('${arrKey}',${i})" title="Excluir">🗑️</button>
+          <button class="btn sm ico" onclick="cadastroEdit('${arrKey}',${i})" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="cadastroDel('${arrKey}',${i})" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>`).join('')
       : `<div class="t-empty" style="padding:16px 0">Nenhum cadastrado ainda.</div>`;
   };
-  renderList('centros',   'cad-centros-list',    '🏷️', 0);
-  renderList('categorias','cad-categorias-list', '🗂️', 7);
+  renderList('centros',   'cad-centros-list',    '<svg class=ot-i><use href=#i-tag></use></svg>', 0);
+  renderList('categorias','cad-categorias-list', '<svg class=ot-i><use href=#i-folder-open></use></svg>', 7);
   // Fornecedores gerenciados na aba Fornecedores — não renderizar aqui
 }
 
@@ -299,7 +299,7 @@ function _finBuildDrop(campo){
       <span>Selecionar Tudo</span>
     </div>
     ${items}
-    <div class="cf-footer"><button onclick="event.stopPropagation();_finAplicarFiltro('${campo}',${isObra});(()=>{const d=document.getElementById('cf-drop-${campo}');if(d)d.classList.remove('open');_finDropAberto=null;})()">✓ Aplicar</button></div>
+    <div class="cf-footer"><button onclick="event.stopPropagation();_finAplicarFiltro('${campo}',${isObra});(()=>{const d=document.getElementById('cf-drop-${campo}');if(d)d.classList.remove('open');_finDropAberto=null;})()"><svg class=ot-i><use href=#i-check></use></svg> Aplicar</button></div>
   </div>`;
 }
 function _finItemClick(el){
@@ -349,7 +349,7 @@ function renderFin(){
   const finObraRapido = document.getElementById('fin-obra-rapido');
   if(finObraRapido){
     const curVal = finObraRapido.value;
-    finObraRapido.innerHTML = '<option value="">🏗️ Todas as obras</option>' +
+    finObraRapido.innerHTML = '<option value="">Todas as obras</option>' +
       DB.obras.map(o=>`<option value="${o.id}"${curVal===String(o.id)?' selected':''}>${o.nome}</option>`).join('');
   }
   const isObra=true;
@@ -375,10 +375,10 @@ function renderFin(){
   const _fkAct=(v)=>_finFiltros.tipo!==null&&_finFiltros.tipo.size===1&&_finFiltros.tipo.has(v)?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   const _fkAll=_finFiltros.tipo===null?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('fin-kpis').innerHTML=`
-    <div class="kpi" onclick="finFiltroKpi('Despesa')" style="cursor:pointer;${_fkAct('Despesa')}"><div class="kl">💸 Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${lans.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="kpi"><div class="kl">📋 Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd neu">${orc>0?Math.round(dep/orc*100)+'% utilizado':'não informado'}</div></div>
-    <div class="kpi"><div class="kl">⚖️ Saldo Orçamentário</div><div class="kv" style="color:${saldoOrc>=0?'var(--green)':'var(--red)'}">${fmtR(saldoOrc)}</div><div class="kd ${saldoOrc>=0?'up':'dn'}">${saldoOrc>=0?'Dentro do orçado':'Acima do orçado'}</div></div>
-    <div class="kpi" onclick="finFiltroKpi('')" style="cursor:pointer;${_fkAll}"><div class="kl">📊 Total</div><div class="kv">${lans.length}</div><div class="kd neu">Lançamentos</div></div>`;
+    <div class="kpi" onclick="finFiltroKpi('Despesa')" style="cursor:pointer;${_fkAct('Despesa')}"><div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${lans.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd neu">${orc>0?Math.round(dep/orc*100)+'% utilizado':'não informado'}</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-scale></use></svg> Saldo Orçamentário</div><div class="kv" style="color:${saldoOrc>=0?'var(--green)':'var(--red)'}">${fmtR(saldoOrc)}</div><div class="kd ${saldoOrc>=0?'up':'dn'}">${saldoOrc>=0?'Dentro do orçado':'Acima do orçado'}</div></div>
+    <div class="kpi" onclick="finFiltroKpi('')" style="cursor:pointer;${_fkAll}"><div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Total</div><div class="kv">${lans.length}</div><div class="kd neu">Lançamentos</div></div>`;
   // Chips de filtros ativos
   const temFiltro=Object.entries(_finFiltros).some(([k,v])=>k==='dataIni'||k==='dataFim'?v!=='':v!==null)||!!_finBuscaDesc||!!_finBuscaValor;
   const limparBtn=document.getElementById('fin-limpar-btn');
@@ -386,30 +386,30 @@ function renderFin(){
   const chipsEl=document.getElementById('fin-chips');
   if(chipsEl){
     const chips=[];
-    if(_finFiltros.dataIni||_finFiltros.dataFim)chips.push(`<span class="fin-fchip">📅 ${_finFiltros.dataIni?fmtDt(_finFiltros.dataIni):'início'} → ${_finFiltros.dataFim?fmtDt(_finFiltros.dataFim):'fim'}<button onclick="_finFiltros.dataIni='';_finFiltros.dataFim='';renderFin()">✕</button></span>`);
-    if(_finFiltros.obra!==null)chips.push(`<span class="fin-fchip">🏗️ ${_finFiltros.obra.size} obra(s)<button onclick="_finFiltros.obra=null;renderFin()">✕</button></span>`);
-    if(_finFiltros.tipo!==null)chips.push(`<span class="fin-fchip">${[..._finFiltros.tipo].join(' + ')}<button onclick="_finFiltros.tipo=null;renderFin()">✕</button></span>`);
-    if(_finFiltros.cat!==null)chips.push(`<span class="fin-fchip">🗂️ ${_finFiltros.cat.size} categ.<button onclick="_finFiltros.cat=null;renderFin()">✕</button></span>`);
-    if(_finFiltros.cc!==null)chips.push(`<span class="fin-fchip">🏷️ ${_finFiltros.cc.size} CC<button onclick="_finFiltros.cc=null;renderFin()">✕</button></span>`);
-    if(_finFiltros.forn!==null)chips.push(`<span class="fin-fchip">🏢 ${_finFiltros.forn.size} forn.<button onclick="_finFiltros.forn=null;renderFin()">✕</button></span>`);
+    if(_finFiltros.dataIni||_finFiltros.dataFim)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-calendar></use></svg> ${_finFiltros.dataIni?fmtDt(_finFiltros.dataIni):'início'} → ${_finFiltros.dataFim?fmtDt(_finFiltros.dataFim):'fim'}<button onclick="_finFiltros.dataIni='';_finFiltros.dataFim='';renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.obra!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-hard-hat></use></svg> ${_finFiltros.obra.size} obra(s)<button onclick="_finFiltros.obra=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.tipo!==null)chips.push(`<span class="fin-fchip">${[..._finFiltros.tipo].join(' + ')}<button onclick="_finFiltros.tipo=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.cat!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-folder-open></use></svg> ${_finFiltros.cat.size} categ.<button onclick="_finFiltros.cat=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.cc!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-tag></use></svg> ${_finFiltros.cc.size} CC<button onclick="_finFiltros.cc=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.forn!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-building-2></use></svg> ${_finFiltros.forn.size} forn.<button onclick="_finFiltros.forn=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     chipsEl.innerHTML=chips.join('');
   }
 
   const el=document.getElementById('lanc-tbl');
   if(!lans.length){
-    el.innerHTML='<div class="t-empty">Nenhum lançamento com os filtros atuais. <button class="btn sm" onclick="finLimparFiltros()" style="margin-left:8px">✕ Limpar filtros</button></div>';
+    el.innerHTML='<div class="t-empty">Nenhum lançamento com os filtros atuais. <button class="btn sm" onclick="finLimparFiltros()" style="margin-left:8px"><svg class=ot-i><use href=#i-x></use></svg> Limpar filtros</button></div>';
   } else {
     const thData=`<th><div class="th-inner">DATA <div style="display:flex;gap:3px"><input type="date" title="De" style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 4px" value="${_finFiltros.dataIni}" onchange="_finFiltros.dataIni=this.value;renderFin()" onclick="event.stopPropagation()"><input type="date" title="Até" style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 4px" value="${_finFiltros.dataFim}" onchange="_finFiltros.dataFim=this.value;renderFin()" onclick="event.stopPropagation()"></div></div></th>`;
     el.innerHTML=`<table class="tbl tbl-filter-hdr">
       <tr>
         ${thData}
-        <th><div class="th-inner">DESCRIÇÃO<input type="text" placeholder="🔍 Buscar..." style="height:22px;font-size:9px;width:120px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-desc" value="${_finBuscaDesc}" oninput="window._finDescVal=this.value;document.getElementById('fin-busca-desc').value=this.value;clearTimeout(window._finDescTm);window._finDescTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-desc');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
+        <th><div class="th-inner">DESCRIÇÃO<input type="text" placeholder="Buscar..." style="height:22px;font-size:9px;width:120px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-desc" value="${_finBuscaDesc}" oninput="window._finDescVal=this.value;document.getElementById('fin-busca-desc').value=this.value;clearTimeout(window._finDescTm);window._finDescTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-desc');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
         <th>${_finThBtn('obra','OBRA')}</th>
         <th>${_finThBtn('tipo','TIPO')}</th>
         <th>${_finThBtn('cat','CATEGORIA')}</th>
         <th>${_finThBtn('cc','C. CUSTO')}</th>
         <th>${_finThBtn('forn','FORNECEDOR')}</th>
-        <th style="text-align:right"><div class="th-inner">VALOR<input type="text" placeholder="🔍 Buscar..." style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-valor" value="${_finBuscaValor||''}" oninput="window._finBuscaValorInput=this.value;clearTimeout(window._finValorTm);window._finValorTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-valor');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
+        <th style="text-align:right"><div class="th-inner">VALOR<input type="text" placeholder="Buscar..." style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-valor" value="${_finBuscaValor||''}" oninput="window._finBuscaValorInput=this.value;clearTimeout(window._finValorTm);window._finValorTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-valor');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
         <th></th>
       </tr>`
       +lans.sort((a,b)=>b.data.localeCompare(a.data)).map(l=>{
@@ -425,8 +425,8 @@ function renderFin(){
           <td style="font-size:11px;color:var(--txt2)">${l.forn||'—'}</td>
           <td style="text-align:right;font-weight:600;color:${neg?'var(--red)':'var(--green)'}">${neg?'−':'+'}${fmtR(Number(l.valor))}</td>
           <td><div class="ta-actions">
-            <button class="btn sm ico" onclick="openModal('lanc','${String(l.id).replace(/'/g,"\\'")}')">✏️</button>
-            <button class="btn sm ico" onclick="delLanc('${String(l.id).replace(/'/g,"\\'")}')">🗑️</button>
+            <button class="btn sm ico" onclick="openModal('lanc','${String(l.id).replace(/'/g,"\\'")}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+            <button class="btn sm ico" onclick="delLanc('${String(l.id).replace(/'/g,"\\'")}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
           </div></td>
         </tr>`;
       }).join('')+'</table>';

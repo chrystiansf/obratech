@@ -151,16 +151,16 @@ function _dashObraLegacy(obras){
     const realM2=m2&&dep?dep/m2:0;
     const acimaBudget=orcM2&&realM2>orcM2;
     if(nomeEl)nomeEl.textContent=obra.nome;
-    if(subEl)subEl.innerHTML=`<span class="b ${obraColor(obra)==='r'?'br':obraColor(obra)==='g'?'bg':obraColor(obra)==='fin'?'bg':'bn'}">${obraLabel(obra)}</span>&nbsp;&nbsp;${obra.local?'📍 '+obra.local:''}`;
+    if(subEl)subEl.innerHTML=`<span class="b ${obraColor(obra)==='r'?'br':obraColor(obra)==='g'?'bg':obraColor(obra)==='fin'?'bg':'bn'}">${obraLabel(obra)}</span>&nbsp;&nbsp;${obra.local?'<svg class=ot-i><use href=#i-map-pin></use></svg> '+obra.local:''}`;
     if(kpisEl)kpisEl.innerHTML=`
-      <div class="kpi"><div class="kl">📐 Orçado/m²</div><div class="kv" style="color:var(--accent)">${orcM2?fmtR(orcM2)+'/m²':'—'}</div><div class="kd neu">${m2?m2+' m² total':'Cadastre o m²'}</div></div>
-      <div class="kpi" style="border-color:${acimaBudget?'rgba(217,64,64,.4)':'rgba(34,211,99,.3)'}">
-        <div class="kl">📊 Realizado/m²</div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-ruler></use></svg> Orçado/m²</div><div class="kv" style="color:var(--accent)">${orcM2?fmtR(orcM2)+'/m²':'—'}</div><div class="kd neu">${m2?m2+' m² total':'Cadastre o m²'}</div></div>
+      <div class="kpi" style="border-color:${acimaBudget?'rgba(180,40,40,.4)':'rgba(31,122,80,.3)'}">
+        <div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Realizado/m²</div>
         <div class="kv" style="color:${realM2?(acimaBudget?'var(--red)':'var(--green)'):'var(--txt3)'}">${realM2?fmtR(realM2)+'/m²':'—'}</div>
-        <div class="kd ${acimaBudget?'dn':'up'}">${realM2?(acimaBudget?'⚠ Acima do orçado':'✓ Dentro do orçado'):'Sem lançamentos'}</div>
+        <div class="kd ${acimaBudget?'dn':'up'}">${realM2?(acimaBudget?'<svg class=ot-i><use href=#i-triangle-alert></use></svg> Acima do orçado':'<svg class=ot-i><use href=#i-check></use></svg> Dentro do orçado'):'Sem lançamentos'}</div>
       </div>
-      <div class="kpi"><div class="kl">💸 Total Gasto</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd neu">de ${fmtR(obra.orc||0)} orçados</div></div>
-      <div class="kpi"><div class="kl">🏗️ Avanço Físico</div><div class="kv" style="color:var(--primary)">${pctMedio}%</div><div class="kd ${pctMedio>=50?'up':'neu'}">${DB.etapas.filter(e=>String(e.obraId)===String(obra.id)).length} etapas</div></div>`;
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Total Gasto</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd neu">de ${fmtR(obra.orc||0)} orçados</div></div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-hard-hat></use></svg> Avanço Físico</div><div class="kv" style="color:var(--primary)">${pctMedio}%</div><div class="kd ${pctMedio>=50?'up':'neu'}">${DB.etapas.filter(e=>String(e.obraId)===String(obra.id)).length} etapas</div></div>`;
     // Barra m²
     if(barEl&&m2&&(orcM2||realM2)){
       barEl.style.display='block';
@@ -184,16 +184,16 @@ function _dashObraLegacy(obras){
     if(nomeEl)nomeEl.textContent=`${obras.length} obras selecionadas`;
     if(subEl)subEl.innerHTML=obras.map(o=>`<span class="b ${obraColor(o)==='r'?'br':obraColor(o)==='g'?'bg':obraColor(o)==='fin'?'bg':'bn'}" style="margin-right:4px">${o.nome}</span>`).join('');
     if(kpisEl)kpisEl.innerHTML=`
-      <div class="kpi"><div class="kl">💰 Orçamento Total</div><div class="kv" style="color:var(--accent)">${fmtR(totalOrc)}</div><div class="kd neu">${totalM2?totalM2+' m² total':'—'}</div></div>
-      <div class="kpi" style="border-color:${acima?'rgba(217,64,64,.4)':'rgba(34,211,99,.3)'}">
-        <div class="kl">💸 Total Gasto</div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-wallet></use></svg> Orçamento Total</div><div class="kv" style="color:var(--accent)">${fmtR(totalOrc)}</div><div class="kd neu">${totalM2?totalM2+' m² total':'—'}</div></div>
+      <div class="kpi" style="border-color:${acima?'rgba(180,40,40,.4)':'rgba(31,122,80,.3)'}">
+        <div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Total Gasto</div>
         <div class="kv" style="color:var(--red)">${fmtR(dep)}</div>
         <div class="kd ${acima?'dn':'up'}">${totalOrc?Math.round(dep/totalOrc*100)+'% do orçado':''}</div>
       </div>
-      <div class="kpi"><div class="kl">📊 Avanço Médio</div><div class="kv" style="color:var(--primary)">${pctMedio}%</div><div class="kd neu">${obras.length} obras</div></div>
-      <div class="kpi"><div class="kl">📋 Status</div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Avanço Médio</div><div class="kv" style="color:var(--primary)">${pctMedio}%</div><div class="kd neu">${obras.length} obras</div></div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Status</div>
         <div class="kv" style="font-size:14px;gap:8px;display:flex;align-items:center">
-          ${nCon?`<span style="color:var(--primary)">${nCon}✓</span>`:''}
+          ${nCon?`<span style="color:var(--primary)">${nCon}<svg class=ot-i><use href=#i-check></use></svg></span>`:''}
           ${nAt?`<span style="color:var(--green)">${nAt}▶</span>`:''}
           ${nAt2?`<span style="color:var(--red)">${nAt2}!</span>`:''}
         </div>
@@ -256,10 +256,10 @@ function renderDash(){
   const ncsAb=DB.ncs.filter(n=>n.status!=='Fechada').length;
   const filtLbl=_obrasFiltro===null?'Todas as obras':filtObras.length===1?filtObras[0]?.nome:(filtObras.length+' selecionadas');
   document.getElementById('d-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">🏗️ Obras</div><div class="kv">${filtObras.length}<span style="font-size:12px;color:var(--txt3);font-weight:400">/${obras.length}</span></div><div class="kd neu">Cadastradas</div></div>
-    <div class="kpi"><div class="kl">📊 Avanço Médio</div><div class="kv" style="color:var(--primary)">${filtPm}%</div><div class="kd ${filtPm>=50?'up':'neu'}">${filtLbl}</div></div>
-    <div class="kpi" onclick="goPage('caixa')" style="cursor:pointer"><div class="kl">💵 Saldo em Caixa</div><div class="kv" style="color:${filtSaldo>=0?'var(--green)':'var(--red)'}">${fmtR(filtSaldo)}</div><div class="kd ${filtSaldo>=0?'up':'dn'}">Aportes − Despesas</div></div>
-    <div class="kpi"><div class="kl">⚠️ NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--yellow)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${ncsAb?'Atenção':'Tudo OK'}</div></div>`;
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras</div><div class="kv">${filtObras.length}<span style="font-size:12px;color:var(--txt3);font-weight:400">/${obras.length}</span></div><div class="kd neu">Cadastradas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Avanço Médio</div><div class="kv" style="color:var(--primary)">${filtPm}%</div><div class="kd ${filtPm>=50?'up':'neu'}">${filtLbl}</div></div>
+    <div class="kpi" onclick="goPage('caixa')" style="cursor:pointer"><div class="kl"><svg class=ot-i><use href=#i-banknote></use></svg> Saldo em Caixa</div><div class="kv" style="color:${filtSaldo>=0?'var(--green)':'var(--red)'}">${fmtR(filtSaldo)}</div><div class="kd ${filtSaldo>=0?'up':'dn'}">Aportes − Despesas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-triangle-alert></use></svg> NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--yellow)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${ncsAb?'Atenção':'Tudo OK'}</div></div>`;
   // Alertas
   const alts=[];
   DB.ncs.filter(n=>n.status!=='Fechada'&&n.prazo&&new Date(n.prazo)<new Date()).forEach(n=>{const o=DB.obras.find(x=>x.id==n.obraId);alts.push({t:'r',msg:`NC vencida: ${n.desc.substring(0,35)} — ${o?.nome||''}`});});

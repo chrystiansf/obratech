@@ -20,14 +20,14 @@ function openModal(type,editId=null,editId2=null){
           </label>`).join('');
         root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
           <div class="mo">
-            <div class="moh"><div class="mot">🏗️ Obras de ${cliente.nome}</div><div class="mox" onclick="closeModal()">✕</div></div>
+            <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras de ${cliente.nome}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
             <div class="mob">
               <p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Selecione quais obras este cliente pode visualizar:</p>
               <div style="background:var(--bg3);border-radius:8px;padding:10px;max-height:260px;overflow-y:auto">${obrasOpts||'<div style="color:var(--txt3);font-size:12px">Nenhuma obra cadastrada</div>'}</div>
             </div>
             <div class="mof">
               <button class="btn" onclick="closeModal()">Cancelar</button>
-              <button class="btn pri" onclick="salvarPermissoesCliente('${editId}')">✅ Salvar Permissões</button>
+              <button class="btn pri" onclick="salvarPermissoesCliente('${editId}')"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar Permissões</button>
             </div>
           </div></div>`;
       });
@@ -36,25 +36,25 @@ function openModal(type,editId=null,editId2=null){
 
   if(type==='obra'){
     const o=editId?DB.obras.find(x=>String(x.id)===String(editId)):null;
-    title=o?'Editar Obra':'🏗️ Nova Obra';
+    title=o?'Editar Obra':'<svg class=ot-i><use href=#i-hard-hat></use></svg> Nova Obra';
     const autoFin=o?obraPct(o)>=100:false;
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nome da Obra *</label><input class="inp" id="m-nome" value="${o?.nome||''}" placeholder="Ex: Residencial Aurora"></div>
       <div class="fg"><label class="lbl">Tipo</label><select class="sel" id="m-tipo"><option ${o?.tipo==='Residencial'?'selected':''}>Residencial</option><option ${o?.tipo==='Comercial'?'selected':''}>Comercial</option><option ${o?.tipo==='Industrial'?'selected':''}>Industrial</option><option ${o?.tipo==='Infraestrutura'?'selected':''}>Infraestrutura</option></select></div>
       <div class="fg">
-        <label class="lbl">🚦 Status</label>
+        <label class="lbl"><svg class=ot-i><use href=#i-traffic-cone></use></svg> Status</label>
         <select class="sel" id="m-status-manual" ${autoFin?'disabled':''}>
           <option value="" ${!o?.statusManual?'selected':''}>— Automático (por prazo) —</option>
           <option value="nao_iniciada" ${o?.statusManual==='nao_iniciada'?'selected':''}>○ Não iniciada</option>
           <option value="andamento" ${o?.statusManual==='andamento'?'selected':''}>▶ Em andamento</option>
-          <option value="finalizada" ${o?.statusManual==='finalizada'||autoFin?'selected':''}>✅ Finalizada</option>
+          <option value="finalizada" ${o?.statusManual==='finalizada'||autoFin?'selected':''}>Finalizada</option>
         </select>
         <div style="font-size:10px;margin-top:3px;color:${autoFin?'var(--green)':'var(--txt3)'}">
-          ${autoFin?'✓ Finalizada automaticamente — todas as etapas em 100%':'Deixe Automático para calcular pelo prazo'}
+          ${autoFin?'<svg class=ot-i><use href=#i-check></use></svg> Finalizada automaticamente — todas as etapas em 100%':'Deixe Automático para calcular pelo prazo'}
         </div>
       </div>
       <div class="fg"><label class="lbl">Orçamento Total (R$)</label><input type="number" class="inp" id="m-orc" value="${o?.orc||''}" placeholder="0.00"></div>
-      <div class="fg"><label class="lbl">📐 Área Total (m²)</label><input type="number" class="inp" id="m-m2" value="${o?.m2||''}" placeholder="Ex: 280" min="0" step="0.01"><div style="font-size:10px;color:var(--txt3);margin-top:2px">Para calcular custo por m²</div></div>
+      <div class="fg"><label class="lbl"><svg class=ot-i><use href=#i-ruler></use></svg> Área Total (m²)</label><input type="number" class="inp" id="m-m2" value="${o?.m2||''}" placeholder="Ex: 280" min="0" step="0.01"><div style="font-size:10px;color:var(--txt3);margin-top:2px">Para calcular custo por m²</div></div>
       <div class="fg"><label class="lbl">Início</label><input type="date" class="inp" id="m-ini" value="${o?.dataIni||''}"></div>
       <div class="fg"><label class="lbl">Entrega Prevista</label><input type="date" class="inp" id="m-fim" value="${o?.dataFim||''}"></div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Endereço / Local</label><input class="inp" id="m-local" value="${o?.local||''}" placeholder="Rua, bairro, cidade"></div>
@@ -83,7 +83,7 @@ function openModal(type,editId=null,editId2=null){
     const e=editId?DB.etapas.find(x=>String(x.id)===String(editId)):null;
     const cronSel=document.getElementById('cron-obra-sel');
     const obra=cronSel&&cronSel.value?DB.obras.find(o=>String(o.id)===String(cronSel.value)):getObra();
-    title=e?'Editar Etapa':'📅 Nova Etapa';
+    title=e?'Editar Etapa':'<svg class=ot-i><use href=#i-calendar></use></svg> Nova Etapa';
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nome da Etapa *</label><input class="inp" id="e-nome" value="${e?.nome||''}" placeholder="Ex: Fundações, Alvenaria..."></div>
       <div class="fg"><label class="lbl">Obra</label><select class="sel" id="e-obra">${DB.obras.map(o=>`<option value="${o.id}" ${String(e?.obraId||obra?.id||'')==String(o.id)?'selected':''}>${o.nome}</option>`).join('')}</select></div>
@@ -121,14 +121,14 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='colab'){
     const c=editId?DB.colabs.find(x=>x.id===editId):null;
-    title=c?'Editar Colaborador':'👷 Novo Colaborador';
+    title=c?'Editar Colaborador':'<svg class=ot-i><use href=#i-users></use></svg> Novo Colaborador';
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nome Completo *</label><input class="inp" id="c-nome" value="${c?.nome||''}" placeholder="Nome completo"></div>
       <div class="fg"><label class="lbl">Função / Cargo</label><input class="inp" id="c-func" value="${c?.funcao||''}" placeholder="Ex: Pedreiro, Eletricista..."></div>
       <div class="fg"><label class="lbl">CPF</label><input class="inp" id="c-cpf" value="${c?.cpf||''}" placeholder="000.000.000-00"></div>
       <div class="fg"><label class="lbl">Data de Admissão</label><input type="date" class="inp" id="c-adm" value="${c?.admissao||''}"></div>
       <div class="fg">
-        <label class="lbl">💰 Valor da Diária (R$) *</label>
+        <label class="lbl"><svg class=ot-i><use href=#i-wallet></use></svg> Valor da Diária (R$) *</label>
         <input type="number" class="inp" id="c-diaria" value="${c?.diaria||c?.salario||''}" placeholder="Ex: 150.00" min="0" step="0.01">
         <div style="font-size:10px;color:var(--txt3);margin-top:3px">Valor pago por dia trabalhado</div>
       </div>
@@ -155,7 +155,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='lanc'){
     const l=editId?DB.lancs.find(x=>String(x.id)===String(editId)):null;const obra=getObra();
-    title=l?'Editar Lançamento':'💰 Novo Lançamento';
+    title=l?'Editar Lançamento':'<svg class=ot-i><use href=#i-wallet></use></svg> Novo Lançamento';
     // Opções dinâmicas dos cadastros
     const catOpts=(DB.categorias||[]).map(x=>`<option${l?.cat===x?' selected':''}>${x}</option>`).join('');
     const ccOpts='<option value="">— Selecionar —</option>'+(DB.centros||[]).map(x=>`<option${l?.cc===x?' selected':''}>${x}</option>`).join('');
@@ -190,7 +190,7 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">Fornecedor
         <button type="button" onclick="_lancCriarFornecedorInline()" style="margin-left:6px;font-size:9px;padding:1px 5px;background:var(--primary);border:1px solid var(--primary);border-radius:3px;color:#fff;cursor:pointer" title="Cadastrar novo fornecedor">＋ novo fornecedor</button>
       </label>
-        <input class="inp" id="l-forn-txt" value="${l?.forn||''}" placeholder="🔍 Buscar fornecedor..." autocomplete="off" oninput="_lancFornBusca(this.value)" onfocus="_lancFornBusca(this.value)" style="font-size:12px">
+        <input class="inp" id="l-forn-txt" value="${l?.forn||''}" placeholder="Buscar fornecedor..." autocomplete="off" oninput="_lancFornBusca(this.value)" onfocus="_lancFornBusca(this.value)" style="font-size:12px">
         <div id="l-forn-dropdown" style="display:none;max-height:150px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-top:4px"></div>
       </div>
       <div id="l-forn-novo-area" style="display:none;grid-column:span 2"></div>
@@ -238,7 +238,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='material'){
     const m=editId?DB.estoque.find(x=>String(x.id)===String(editId)):null;const obra=getObra();
-    title=m?'Editar Material':'📦 Novo Material';
+    title=m?'Editar Material':'<svg class=ot-i><use href=#i-package></use></svg> Novo Material';
     // Unidades disponíveis — padrão + custom
     if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];
     const unOpts=DB.unidades.map(u=>`<option value="${u}"${m?.un===u?' selected':''}>${u}</option>`).join('');
@@ -260,7 +260,7 @@ function openModal(type,editId=null,editId2=null){
         </select>
         <input class="inp" id="mat-forn-txt" value="${m?.forn||''}" placeholder="Ou digitar..." style="margin-top:4px;font-size:12px">
       </div>
-      <div class="fg"><label class="lbl"><small style="color:var(--txt3)">📦 Catálogo global — a obra é definida ao movimentar o estoque</small></label></div>
+      <div class="fg"><label class="lbl"><small style="color:var(--txt3)"><svg class=ot-i><use href=#i-package></use></svg> Catálogo global — a obra é definida ao movimentar o estoque</small></label></div>
     </div>`;
     onSave=()=>{
       const material=document.getElementById('mat-nome').value.trim();if(!material){toast('⚠️','Nome obrigatório!');return false;}
@@ -282,7 +282,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='mov'){
     const est=DB.estoque.find(x=>String(x.id)===String(editId));if(!est){toast('aviso','Material nao encontrado!');return;}
-    title='🔄 Movimentar Estoque';
+    title='Movimentar Estoque';
     const obraAtual=getObra();
     // Calcular saldo desta obra especificamente
     const calcSaldoObra=(obraId)=>{
@@ -344,7 +344,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='contrato'){
     const ct=editId?DB.contratos.find(x=>String(x.id)===String(editId)):null;
-    title=ct?'Editar Contrato':'📑 Novo Contrato';
+    title=ct?'Editar Contrato':'<svg class=ot-i><use href=#i-file-pen-line></use></svg> Novo Contrato';
     const catOpts=(DB.categorias||[]).map(x=>`<option value="${x}"${ct?.cat===x?' selected':''}>${x}</option>`).join('');
     const ccOpts=(DB.centros||[]).map(x=>`<option value="${x}"${ct?.cc===x?' selected':''}>${x}</option>`).join('');
     const fornOpts=(DB.fornecedores||[]).map(x=>{const nome=typeof x==='object'?x.nome:x;return`<option value="${nome}"${ct?.forn===nome?' selected':''}>${nome}</option>`;}).join('');
@@ -421,18 +421,18 @@ function openModal(type,editId=null,editId2=null){
     const pgtoEx=isEdit?DB.pgtos.find(x=>x.id===editId):null;
     const contratoId=isEdit?pgtoEx?.contratoId:editId;
     const ct=DB.contratos.find(x=>x.id===contratoId);
-    title=isEdit?'Editar Pagamento':'💳 Registrar Pagamento';
+    title=isEdit?'Editar Pagamento':'<svg class=ot-i><use href=#i-credit-card></use></svg> Registrar Pagamento';
     const pago=_contPago(contratoId);
     const devedor=Number(ct?.valor||0)-pago;
     body=`
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:6px">${ct?.numero||'—'} — ${ct?.descricao||'—'}</div>
       <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:11px;margin-bottom:4px">
-        <span>💼 ${ct?.forn||'—'}</span>
-        ${ct?.cat?'<span>📂 '+ct.cat+'</span>':''}
-        ${ct?.cc?'<span>🏷️ '+ct.cc+'</span>':''}
-        ${ct?.obraId?'<span>🏗️ '+(DB.obras.find(o=>o.id==ct.obraId)?.nome||'—')+'</span>':''}
-        ${ct?.etapa?'<span>⚙️ '+ct.etapa+'</span>':''}
+        <span><svg class=ot-i><use href=#i-briefcase></use></svg> ${ct?.forn||'—'}</span>
+        ${ct?.cat?'<span><svg class=ot-i><use href=#i-folder-open></use></svg> '+ct.cat+'</span>':''}
+        ${ct?.cc?'<span><svg class=ot-i><use href=#i-tag></use></svg> '+ct.cc+'</span>':''}
+        ${ct?.obraId?'<span><svg class=ot-i><use href=#i-hard-hat></use></svg> '+(DB.obras.find(o=>o.id==ct.obraId)?.nome||'—')+'</span>':''}
+        ${ct?.etapa?'<span><svg class=ot-i><use href=#i-settings></use></svg> '+ct.etapa+'</span>':''}
       </div>
       <div style="display:flex;gap:18px;font-size:11px;margin-top:5px;padding-top:5px;border-top:1px solid var(--border)">
         <span>Contrato: <strong>${fmtR(Number(ct?.valor||0))}</strong></span>
@@ -505,7 +505,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='terceirizado'){
     const t=editId?DB.terceirizados.find(x=>x.id===editId):null;
-    title=t?'Editar Terceirizado':'🏢 Novo Terceirizado';
+    title=t?'Editar Terceirizado':'<svg class=ot-i><use href=#i-building-2></use></svg> Novo Terceirizado';
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2">
         <label class="lbl">Nome completo *</label>
@@ -552,7 +552,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='checklist'){
     const chk=editId?DB.checklists.find(x=>x.id===editId):null;
-    title=chk?'Editar Item de Checklist':'✅ Novo Item de Checklist';
+    title=chk?'Editar Item de Checklist':'<svg class=ot-i><use href=#i-circle-check></use></svg> Novo Item de Checklist';
     window._chkFotos=chk?.fotos?[...chk.fotos]:[];
 
     // Opções de etapa filtradas pela obra selecionada
@@ -571,7 +571,7 @@ function openModal(type,editId=null,editId2=null){
           '</div>';
       });
       html+='<label style="width:80px;height:80px;border-radius:8px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;flex-shrink:0">'+
-        '<span style="font-size:20px">📷</span>'+
+        '<span style="font-size:20px"><svg class=ot-i><use href=#i-camera></use></svg></span>'+
         '<span style="font-size:9px;color:var(--txt3)">Adicionar</span>'+
         '<input type="file" accept="image/*" multiple style="display:none" onchange="chkAddFotos(event)">'+
         '</label>';
@@ -596,7 +596,7 @@ function openModal(type,editId=null,editId2=null){
       </div>
       <!-- Fotos -->
       <div>
-        <label class="lbl" style="margin-bottom:8px;display:block">📷 Fotos de Evidência</label>
+        <label class="lbl" style="margin-bottom:8px;display:block"><svg class=ot-i><use href=#i-camera></use></svg> Fotos de Evidência</label>
         <div id="chk-foto-grid" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start"
           onchange="(()=>{const g=document.getElementById('chk-foto-grid');if(g){const fn=g._renderFn;if(fn)fn();}})()">
         </div>
@@ -645,7 +645,7 @@ function openModal(type,editId=null,editId2=null){
   else if(type==='medicao'){
     const contratoIdPre=editId2||null; // editId2 = contrato pré-selecionado
     const med=editId?DB.medicoes.find(x=>x.id===editId):null;
-    title=med?'Editar Medição':'📐 Nova Medição';
+    title=med?'Editar Medição':'<svg class=ot-i><use href=#i-ruler></use></svg> Nova Medição';
     const ctOpts=DB.contratos.map(c=>`<option value="${c.id}" ${(med?.contratoId||contratoIdPre)===c.id?'selected':''}>${c.numero||c.descricao?.substring(0,30)} — ${c.forn||'—'}</option>`).join('');
     // Calcular próximo número de medição
     const proxNum=med?.numero||((DB.medicoes||[]).length+1);
@@ -659,7 +659,7 @@ function openModal(type,editId=null,editId2=null){
           '<button onclick="window._medFotos.splice('+i+',1);document.getElementById("med-foto-grid")._rf()" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;font-size:9px">x</button></div>';
       });
       h+='<label style="width:72px;height:72px;border-radius:6px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:3px;flex-shrink:0">'+
-        '<span style="font-size:18px">📷</span><span style="font-size:8px;color:var(--txt3)">Adicionar</span>'+
+        '<span style="font-size:18px"><svg class=ot-i><use href=#i-camera></use></svg></span><span style="font-size:8px;color:var(--txt3)">Adicionar</span>'+
         '<input type="file" accept="image/*" multiple style="display:none" onchange="medAddFotos(event)"></label>';
       g.innerHTML=h;
     };
@@ -715,7 +715,7 @@ function openModal(type,editId=null,editId2=null){
       </div>
       <!-- Fotos -->
       <div>
-        <label class="lbl" style="margin-bottom:8px;display:block">📷 Fotos do Executado</label>
+        <label class="lbl" style="margin-bottom:8px;display:block"><svg class=ot-i><use href=#i-camera></use></svg> Fotos do Executado</label>
         <div id="med-foto-grid" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;min-height:80px;padding:8px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
           <div style="color:var(--txt3);font-size:11px;align-self:center" id="med-foto-empty">Clique em + para adicionar fotos</div>
         </div>
@@ -761,7 +761,7 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='nc'){
     const n=editId?DB.ncs.find(x=>String(x.id)===String(editId)):null;const obra=getObra();
-    title=n?'Editar NC':'❌ Nova Não Conformidade';
+    title=n?'Editar NC':'<svg class=ot-i><use href=#i-circle-x></use></svg> Nova Não Conformidade';
     body=`<div class="g g2">
       <div class="fg"><label class="lbl">Obra</label><select class="sel" id="nc-obra">${DB.obras.map(o=>`<option value="${o.id}" ${(n?.obraId||obra?.id)==o.id?'selected':''}>${o.nome}</option>`).join('')}</select></div>
       <div class="fg"><label class="lbl">Etapa</label><input class="inp" id="nc-etapa" value="${n?.etapa||''}" placeholder="Ex: Alvenaria, Estrutura..."></div>
@@ -790,7 +790,7 @@ function openModal(type,editId=null,editId2=null){
     };
   }
   else if(type==='user'){
-    title='⚙️ Configurações';
+    title='Configurações';
     const fotoAtual=DB.user.foto||'';
     body=`<div style="display:flex;flex-direction:column;gap:16px">
       <!-- Foto de perfil -->
@@ -800,14 +800,14 @@ function openModal(type,editId=null,editId2=null){
             ${fotoAtual?`<img src="${fotoAtual}" style="width:100%;height:100%;object-fit:cover">`:(DB.user.ini||DB.user.nome?.charAt(0)||'?')}
           </div>
           <label style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--bg2)" title="Alterar foto">
-            📷
+            <svg class=ot-i><use href=#i-camera></use></svg>
             <input type="file" accept="image/*" style="display:none" onchange="(e=>{const f=e.target.files[0];if(!f)return;if(f.size>2*1024*1024){toast('⚠️','Foto muito grande. Máximo 2MB.');return;}const r=new FileReader();r.onload=ev=>{const src=ev.target.result;document.getElementById('u-foto-preview').innerHTML='<img src='+JSON.stringify(src)+' style=width:100%;height:100%;object-fit:cover>';window._novaFoto=src;};r.readAsDataURL(f);})(event)">
           </label>
         </div>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:600;color:var(--txt)">${DB.user.nome||'Usuário'}</div>
           <div style="font-size:11px;color:var(--txt3);margin-top:2px">${DB.user.cargo||_papelAtual||''}</div>
-          <div style="font-size:10px;color:var(--txt3);margin-top:4px">Clique no 📷 para alterar a foto</div>
+          <div style="font-size:10px;color:var(--txt3);margin-top:4px">Clique no <svg class=ot-i><use href=#i-camera></use></svg> para alterar a foto</div>
         </div>
       </div>
       <!-- Campos -->
@@ -847,7 +847,7 @@ function openModal(type,editId=null,editId2=null){
 
   else if(type==='demanda'){
     const d=editId?DB.demandas.find(x=>String(x.id)===String(editId)):null;
-    title=d?'Editar Demanda':'📋 Nova Demanda';
+    title=d?'Editar Demanda':'<svg class=ot-i><use href=#i-clipboard-list></use></svg> Nova Demanda';
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Tarefa / Título *</label><input class="inp" id="dem-titulo" value="${d?.titulo||''}" placeholder="Ex: Comprar revestimento do piso geral"></div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Descrição</label><textarea class="ta" id="dem-desc" style="min-height:50px" placeholder="Detalhes adicionais...">${d?.desc||''}</textarea></div>
@@ -860,16 +860,16 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">Prazo</label><input type="date" class="inp" id="dem-prazo" value="${d?.prazo||''}"></div>
       <div class="fg"><label class="lbl">Prioridade</label>
         <select class="sel" id="dem-prior">
-          <option value="baixa"${d?.prioridade==='baixa'?' selected':''}>🟢 Baixa</option>
-          <option value="media"${(!d||d?.prioridade==='media')?' selected':''}>🟡 Média</option>
-          <option value="alta"${d?.prioridade==='alta'?' selected':''}>🔴 Alta</option>
+          <option value="baixa"${d?.prioridade==='baixa'?' selected':''}>Baixa</option>
+          <option value="media"${(!d||d?.prioridade==='media')?' selected':''}>Média</option>
+          <option value="alta"${d?.prioridade==='alta'?' selected':''}>Alta</option>
         </select>
       </div>
       <div class="fg"><label class="lbl">Status</label>
         <select class="sel" id="dem-status">
-          <option value="pendente"${(!d||d?.status==='pendente')?' selected':''}>⏳ Pendente</option>
-          <option value="andamento"${d?.status==='andamento'?' selected':''}>🔄 Em andamento</option>
-          <option value="concluida"${d?.status==='concluida'?' selected':''}>✅ Concluída</option>
+          <option value="pendente"${(!d||d?.status==='pendente')?' selected':''}>Pendente</option>
+          <option value="andamento"${d?.status==='andamento'?' selected':''}>Em andamento</option>
+          <option value="concluida"${d?.status==='concluida'?' selected':''}>Concluída</option>
         </select>
       </div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label><textarea class="ta" id="dem-obs" style="min-height:40px">${d?.obs||''}</textarea></div>
@@ -896,16 +896,16 @@ function openModal(type,editId=null,editId2=null){
   }
   else if(type==='fornecedor'){
     const f=editId?DB.fornecedores.find(x=>typeof x==='object'&&String(x.id)===String(editId)):null;
-    title=f?'Editar Fornecedor':'🏭 Novo Fornecedor';
+    title=f?'Editar Fornecedor':'<svg class=ot-i><use href=#i-factory></use></svg> Novo Fornecedor';
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nome / Razão Social *</label><input class="inp" id="forn-nome" value="${f?.nome||''}" placeholder="Nome da empresa ou pessoa"></div>
       <div class="fg"><label class="lbl">Tipo</label>
         <select class="sel" id="forn-tipo">
           <option value="">— Selecione —</option>
-          <option value="Material"${f?.tipo==='Material'?' selected':''}>📦 Material</option>
-          <option value="Serviço"${f?.tipo==='Serviço'?' selected':''}>🔧 Serviço</option>
-          <option value="Equipamento"${f?.tipo==='Equipamento'?' selected':''}>🚜 Equipamento</option>
-          <option value="Outro"${f?.tipo==='Outro'?' selected':''}>📌 Outro</option>
+          <option value="Material"${f?.tipo==='Material'?' selected':''}>Material</option>
+          <option value="Serviço"${f?.tipo==='Serviço'?' selected':''}>Serviço</option>
+          <option value="Equipamento"${f?.tipo==='Equipamento'?' selected':''}>Equipamento</option>
+          <option value="Outro"${f?.tipo==='Outro'?' selected':''}>Outro</option>
         </select>
       </div>
       <div class="fg"><label class="lbl">CNPJ / CPF</label><input class="inp" id="forn-cnpj" value="${f?.cnpj||''}" placeholder="00.000.000/0000-00"></div>
@@ -937,7 +937,7 @@ function openModal(type,editId=null,editId2=null){
   }
 
   if(!title)return;
-  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()">✕</div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()">✅ Salvar</button></div></div></div>`;
+  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar</button></div></div></div>`;
   window._mSave=onSave;
   // Executar callback pós-render (ex: grids de fotos)
   if(window._postModalRender){
@@ -1040,21 +1040,21 @@ function _lancCriarFornecedorInline(){
   const dd=document.getElementById('l-forn-dropdown');if(dd)dd.style.display='none';
   area.style.display='block';
   area.innerHTML=`<div style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
-    <div style="font-weight:600;font-size:13px;margin-bottom:10px">🏭 Novo Fornecedor</div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px"><svg class=ot-i><use href=#i-factory></use></svg> Novo Fornecedor</div>
     <div class="g g2" style="gap:8px">
       <div class="fg" style="grid-column:span 2"><input class="inp" id="_nf-nome" placeholder="Nome / Razão Social *" style="font-size:12px"></div>
       <div class="fg"><select class="sel" id="_nf-tipo" style="font-size:12px">
         <option value="">— Tipo —</option>
-        <option value="Material">📦 Material</option>
-        <option value="Serviço">🔧 Serviço</option>
-        <option value="Equipamento">🚜 Equipamento</option>
-        <option value="Outro">📌 Outro</option>
+        <option value="Material">Material</option>
+        <option value="Serviço">Serviço</option>
+        <option value="Equipamento">Equipamento</option>
+        <option value="Outro">Outro</option>
       </select></div>
       <div class="fg"><input class="inp" id="_nf-cnpj" placeholder="CNPJ / CPF" style="font-size:12px"></div>
       <div class="fg"><input class="inp" id="_nf-tel" placeholder="Telefone / WhatsApp" style="font-size:12px"></div>
       <div class="fg" style="display:flex;align-items:end;justify-content:flex-end;gap:6px">
         <button class="btn sm" onclick="document.getElementById('l-forn-novo-area').style.display='none'" type="button">Cancelar</button>
-        <button class="btn sm pri" onclick="_lancSalvarFornecedorInline()" type="button">✅ Salvar Fornecedor</button>
+        <button class="btn sm pri" onclick="_lancSalvarFornecedorInline()" type="button"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar Fornecedor</button>
       </div>
     </div>
   </div>`;

@@ -103,7 +103,7 @@ button, input, select, textarea { font-family: inherit; }
 .ot-label { font-family: var(--ot-font-mono); font-size: 12px; font-weight: 500; letter-spacing: var(--ot-tracking-label); text-transform: uppercase; color: var(--ot-text-muted); }
 
 /* Ícones de traço (Lucide) — <svg class="ot-i"><use href="#i-nome"/></svg> */
-.ot-i { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+.ot-i { width: max(14px, 1.2em); height: max(14px, 1.2em); flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.22em; }
 .ot-i.sm { width: 15px; height: 15px; vertical-align: -2px; }
 .ot-i.lg { width: 22px; height: 22px; }
 
@@ -338,3 +338,9 @@ body:not(.light) #theme-toggle::before, .light #theme-toggle::before { transform
 /* Botões que só têm ícone */
 .btn .ot-i { width: 16px; height: 16px; }
 .btn.sm .ot-i { width: 15px; height: 15px; }
+
+/* Ajustes de layout com os novos tamanhos */
+.ch { flex-wrap: wrap; }
+.ca { justify-content: flex-end; align-items: center; }
+.oc .btn.ico { width: 30px; height: 30px; }
+.oc-loc { display: flex; align-items: center; gap: 4px; }

@@ -13,25 +13,25 @@ function renderObras(){
     const pbColor=c==='r'?'var(--red2)':c==='fin'||c==='g'?'var(--green2)':'var(--primary)';
     return`<div class="oc ${c}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px">
-        <div class="oc-name" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.nome}</div>
+        <div class="oc-name" style="flex:1;min-width:0;overflow-wrap:anywhere">${o.nome}</div>
         <div style="display:flex;gap:3px;align-items:center;flex-shrink:0">
           ${obraStatusBadge(o)}
-          <button class="btn sm ico" onclick="event.stopPropagation();openModal('obra','${o.id}')" title="Editar">✏️</button>
-          <button class="btn sm ico" onclick="event.stopPropagation();delObra('${o.id}')" title="Excluir">🗑️</button>
+          <button class="btn sm ico" onclick="event.stopPropagation();openModal('obra','${o.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="event.stopPropagation();delObra('${o.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>
       </div>
-      <div class="oc-loc">📍 ${o.local||'—'}</div>
+      <div class="oc-loc"><svg class=ot-i><use href=#i-map-pin></use></svg> ${o.local||'—'}</div>
       <div class="pl"><span style="font-size:10px;color:var(--txt3)">Avanço físico</span><span style="font-weight:700">${p}%</span></div>
       <div class="pw" style="margin-bottom:9px"><div class="pb" style="width:${p}%;background:${pbColor}"></div></div>
       <div class="oc-stats">
         <div class="oc-st"><div class="oc-stl">Orçamento Total</div><div class="oc-stv">${fmtR(o.orc||0)}</div></div>
         <div class="oc-st"><div class="oc-stl">Área</div><div class="oc-stv">${o.m2?o.m2+' m²':'—'}</div></div>
         <div class="oc-st" style="${orcM2?'border-bottom:2px solid var(--accent)':''}">
-          <div class="oc-stl">📐 Orçado/m²</div>
+          <div class="oc-stl"><svg class=ot-i><use href=#i-ruler></use></svg> Orçado/m²</div>
           <div class="oc-stv" style="color:var(--accent)">${orcM2?fmtR(orcM2)+'/m²':'—'}</div>
         </div>
         <div class="oc-st" style="${realM2?(acima?'border-bottom:2px solid var(--red)':'border-bottom:2px solid var(--green)'):''}">
-          <div class="oc-stl">📊 Realizado/m²</div>
+          <div class="oc-stl"><svg class=ot-i><use href=#i-chart-column></use></svg> Realizado/m²</div>
           <div class="oc-stv" style="color:${realM2?(acima?'var(--red)':'var(--green)'):'var(--txt3)'}">${realM2?fmtR(realM2)+'/m²':'—'}</div>
         </div>
       </div>
@@ -75,7 +75,7 @@ function renderMovsPanel(){
           <div><span style="color:var(--txt3)">Unidade:</span> ${est?.un||'—'}</div>
           <div style="grid-column:span 2"><span style="color:var(--txt3)">Observação:</span> ${m.obs||'—'}</div>
           <div style="grid-column:span 2;text-align:right;padding-top:6px">
-            <button class="btn sm" onclick="event.stopPropagation();delMov('${m.id}')" style="color:var(--red);font-size:11px">🗑️ Excluir</button>
+            <button class="btn sm" onclick="event.stopPropagation();delMov('${m.id}')" style="color:var(--red);font-size:11px"><svg class=ot-i><use href=#i-trash-2></use></svg> Excluir</button>
           </div>
         </div>
       </div>

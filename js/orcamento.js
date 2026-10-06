@@ -297,7 +297,7 @@ async function renderOrcamento(){
 
   // KPIs
   kpis.innerHTML=`
-    <div class="kpi"><div class="kl">Total Geral</div><div class="kv" style="color:#1a7a3a">${fmtR(totalGeral)}</div><div class="kd neu">${grupos.length} grupos</div></div>
+    <div class="kpi"><div class="kl">Total Geral</div><div class="kv" style="color:#1F7A50">${fmtR(totalGeral)}</div><div class="kd neu">${grupos.length} grupos</div></div>
     <div class="kpi"><div class="kl">Custo/m²</div><div class="kv">${m2>0?fmtR(totalGeral/m2):'—'}</div><div class="kd neu">${m2>0?m2.toLocaleString('pt-BR')+' m²':'Área não informada'}</div></div>
     <div class="kpi"><div class="kl">Itens Preenchidos</div><div class="kv">${itensPreenchidos}</div><div class="kd neu">de ${itensTotal} itens</div></div>
   `;
@@ -310,14 +310,14 @@ async function renderOrcamento(){
     const pct=totalGeral>0?(gTotal/totalGeral*100).toFixed(1):'0.0';
 
     html+=`<div style="margin-bottom:2px">
-      <div onclick="orcToggleGrupo('${obraId}','${g.cod}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;transition:.15s${isOpen?';border-color:#1a7a3a':''}">
+      <div onclick="orcToggleGrupo('${obraId}','${g.cod}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;transition:.15s${isOpen?';border-color:#1F7A50':''}">
         <span style="font-size:12px;transition:.2s;transform:rotate(${isOpen?'90':'0'}deg)">▶</span>
-        <span style="font-weight:700;font-size:12px;color:#1a7a3a;min-width:28px">${g.cod}</span>
+        <span style="font-weight:700;font-size:12px;color:#1F7A50;min-width:28px">${g.cod}</span>
         <span style="font-weight:600;font-size:12px;flex:1">${g.nome}</span>
         <span style="font-size:10px;color:var(--txt3);margin-right:4px">${pct}%</span>
-        <span style="font-weight:700;font-size:12px;color:#1a7a3a;min-width:90px;text-align:right">${fmtR(gTotal)}</span>
+        <span style="font-weight:700;font-size:12px;color:#1F7A50;min-width:90px;text-align:right">${fmtR(gTotal)}</span>
         <button class="btn sm ico" onclick="event.stopPropagation();orcAdicionarItem('${obraId}',${gi})" title="Adicionar subitem" style="font-size:10px">＋</button>
-        <button class="btn sm ico" onclick="event.stopPropagation();orcRemoverGrupo('${obraId}',${gi})" title="Remover grupo" style="font-size:10px;color:var(--red)">🗑️</button>
+        <button class="btn sm ico" onclick="event.stopPropagation();orcRemoverGrupo('${obraId}',${gi})" title="Remover grupo" style="font-size:10px;color:var(--red)"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
       </div>`;
 
     if(isOpen){
@@ -341,13 +341,13 @@ async function renderOrcamento(){
           <td style="text-align:center;font-size:11px">${s.un}</td>
           <td><input type="number" class="inp" value="${s.qtd||''}" min="0" step="any" style="width:70px;height:28px;font-size:11px;text-align:right;padding:0 6px" onchange="orcUpdateItem('${obraId}',${gi},${si},'qtd',this.value)"></td>
           <td><input type="number" class="inp" value="${s.unit||''}" min="0" step="any" style="width:90px;height:28px;font-size:11px;text-align:right;padding:0 6px" onchange="orcUpdateItem('${obraId}',${gi},${si},'unit',this.value)"></td>
-          <td style="text-align:right;font-weight:600;font-size:11px;color:${subTotal>0?'#1a7a3a':'var(--txt3)'}">${subTotal>0?fmtR(subTotal):'—'}</td>
-          <td><button class="btn sm ico" onclick="orcRemoverItem('${obraId}',${gi},${si})" title="Remover" style="font-size:10px;color:var(--red)">✕</button></td>
+          <td style="text-align:right;font-weight:600;font-size:11px;color:${subTotal>0?'#1F7A50':'var(--txt3)'}">${subTotal>0?fmtR(subTotal):'—'}</td>
+          <td><button class="btn sm ico" onclick="orcRemoverItem('${obraId}',${gi},${si})" title="Remover" style="font-size:10px;color:var(--red)"><svg class=ot-i><use href=#i-x></use></svg></button></td>
         </tr>`;
       });
       html+=`<tr style="background:var(--bg3);font-weight:700">
         <td colspan="5" style="text-align:right;font-size:12px">Subtotal ${g.nome}</td>
-        <td style="text-align:right;font-size:12px;color:#1a7a3a">${fmtR(gTotal)}</td>
+        <td style="text-align:right;font-size:12px;color:#1F7A50">${fmtR(gTotal)}</td>
         <td></td>
       </tr></tbody></table></div>`;
     }
@@ -355,7 +355,7 @@ async function renderOrcamento(){
   });
 
   // Total geral row
-  html+=`<div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:14px 16px;margin-top:8px;background:#1a7a3a;border-radius:8px;color:#fff">
+  html+=`<div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:14px 16px;margin-top:8px;background:#1F7A50;border-radius:8px;color:#fff">
     <span style="font-size:14px;font-weight:600">TOTAL GERAL DO ORÇAMENTO</span>
     <span style="font-size:18px;font-weight:800">${fmtR(totalGeral)}</span>
   </div>`;

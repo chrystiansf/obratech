@@ -28,8 +28,8 @@ function renderTerceirizados(){
           <td style="font-size:11px">${t.cpf||'—'}</td>
           <td style="font-size:11px">${t.celular||'—'}</td>
           <td><div class="ta-actions">
-            <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')">✏️</button>
-            <button class="btn sm ico" onclick="delTerceirizado('${t.id}')">🗑️</button>
+            <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+            <button class="btn sm ico" onclick="delTerceirizado('${t.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
           </div></td>
         </tr>`).join('')}
       </table>
@@ -63,8 +63,8 @@ function rdoRenderPresencaTercs(){
     const presente=!!pt?.presente;
     const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
     return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
-      <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#16a34a')}">✓ Presente</button>
-      <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#dc2626')}">✗ Falta</button>
+      <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#1F7A50')}"><svg class=ot-i><use href=#i-check></use></svg> Presente</button>
+      <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#B42828')}"><svg class=ot-i><use href=#i-x></use></svg> Falta</button>
       <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${t.nome}</span>
       <span style="font-size:10px;color:var(--txt3)">${t.funcao||''}</span>
     </div>`;
@@ -109,9 +109,9 @@ function rdoRenderPresenca(){
     const valorHoje=presente?(meia?diaria/2:diaria):0;
     const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
     return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
-      <button onclick="rdoSetPresenca('${col.id}','P')" title="Dia inteiro" style="${btnStyle(!meia&&presente,'#16a34a')}">Dia</button>
-      <button onclick="rdoSetPresenca('${col.id}','M')" title="Meia diaria" style="${btnStyle(meia,'#d97706')}">1/2</button>
-      <button onclick="rdoSetPresenca('${col.id}','')" title="Marcar falta" style="${btnStyle(!presente,'#dc2626')}">X</button>
+      <button onclick="rdoSetPresenca('${col.id}','P')" title="Dia inteiro" style="${btnStyle(!meia&&presente,'#1F7A50')}">Dia</button>
+      <button onclick="rdoSetPresenca('${col.id}','M')" title="Meia diaria" style="${btnStyle(meia,'#8A5A00')}">1/2</button>
+      <button onclick="rdoSetPresenca('${col.id}','')" title="Marcar falta" style="${btnStyle(!presente,'#B42828')}">X</button>
       <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${col.nome}</span>
       <span style="font-size:10px;color:var(--txt3)">${col.funcao||''}</span>
       ${diaria?`<span style="font-size:11px;font-weight:600;color:${valorHoje?'var(--green)':'var(--txt3)'}">${valorHoje?fmtR(valorHoje)+'/dia':'--'}</span>`:''}
@@ -172,14 +172,14 @@ function renderFotoGrid(){
   document.getElementById('rdo-fotos').innerHTML=rdoFotos.map((f,i)=>{
     const imgSrc=f.url||f.data||'';
     return`<div class="pc" style="flex-direction:column;height:auto;padding:0;overflow:hidden;border-radius:7px;border:1px solid var(--border)"><div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block"><button class="rm" onclick="rdoFotos.splice(${i},1);renderFotoGrid()" style="top:4px;right:4px">×</button><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);padding:2px 5px"><span style="font-size:9px;color:#fff">#${i+1}</span></div></div><input type="text" value="${(f.desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição da foto..." oninput="rdoFotos[${i}].desc=this.value" style="width:100%;box-sizing:border-box;border:none;border-top:1px solid var(--border);padding:4px 6px;font-size:10px;color:var(--txt);background:var(--bg2);outline:none;border-radius:0 0 6px 6px"></div>`;
-  }).join('')+`<div class="pc add" onclick="document.getElementById('rdo-foto-in').click()"><span>📷</span><span style="font-size:9px">Foto</span></div>`;
+  }).join('')+`<div class="pc add" onclick="document.getElementById('rdo-foto-in').click()"><span><svg class=ot-i><use href=#i-camera></use></svg></span><span style="font-size:9px">Foto</span></div>`;
 }
 function addFotos(e){Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{rdoFotos.push({name:f.name,data:ev.target.result});renderFotoGrid();};r.readAsDataURL(f);});e.target.value='';}
 async function rdoSaveClick(status){
   const btns=document.getElementById('rdo-save-btns');
   const st=document.getElementById('rdo-save-status');
   if(btns)btns.style.display='none';
-  if(st){st.style.display='block';st.textContent=status==='finalizado'?'⏳ Finalizando e gerando PDF...':'⏳ Salvando RDO...';}
+  if(st){st.style.display='block';st.textContent=status==='finalizado'?'Finalizando e gerando PDF...':'Salvando RDO...';}
   try{
     await saveRDO(status);
   }catch(e){
@@ -271,7 +271,7 @@ async function saveRDO(status){
         await supaInsert('rdos',{id:rdo.id,...dadosSem});
       }
     }
-    console.log('✓ RDO salvo no Supabase:',rdo.id);
+    console.log('RDO salvo no Supabase:',rdo.id);
     toast('☁️','RDO sincronizado!');
   }catch(e){
     console.error('Erro sync RDO:',e);
@@ -298,7 +298,7 @@ function renderRDOHist(){
   if(!rdos.length){el.innerHTML='<div class="t-empty">Nenhum RDO registrado.</div>';return;}
   const btnSt=(v)=>filtro===v?'background:var(--primary);color:#fff':'';
   el.innerHTML=`<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px"><div style="display:flex;gap:4px"><button class="btn sm" style="${btnSt('obra')}" onclick="window._rdoHistFiltro='obra';renderRDOHist()">Esta obra</button><button class="btn sm" style="${btnSt('todos')}" onclick="window._rdoHistFiltro='todos';renderRDOHist()">Todas as obras</button></div><span style="font-size:11px;color:var(--txt3)">${rdos.length} relatório(s)</span>`
-    +`<button class="btn sm" onclick="exportRDOsLote()" title="Exportar todos em lote">📄 Exportar Lote</button></div>`
+    +`<button class="btn sm" onclick="exportRDOsLote()" title="Exportar todos em lote"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar Lote</button></div>`
     +`<div style="display:flex;flex-direction:column;gap:6px">`
     +rdos.map(r=>{
       const obra=DB.obras.find(o=>String(o.id)===String(r.obraId));
@@ -307,16 +307,16 @@ function renderRDOHist(){
         <span style="font-size:13px">${climaIco(r.clima)}</span>
         <span style="font-size:11px;color:var(--txt2);flex:1;min-width:60px">${obra?.nome||''}</span>
         ${r.autor?`<span style="font-size:10px;color:var(--txt3)">por ${r.autor}</span>`:''}
-        <span class="b ${r.status==='finalizado'?'bg':'by'}" style="font-size:10px">${r.status==='finalizado'?'✓ Final.':'📝 Rasc.'}</span>
+        <span class="b ${r.status==='finalizado'?'bg':'by'}" style="font-size:10px">${r.status==='finalizado'?'<svg class=ot-i><use href=#i-check></use></svg> Final.':'<svg class=ot-i><use href=#i-file-pen-line></use></svg> Rasc.'}</span>
         <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
-          <button class="btn sm ico" onclick="carregarRDO('${r.id}')" title="Editar">✏️</button>
-          <button class="btn sm" onclick="gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))" title="Baixar PDF" style="font-size:11px">⬇ PDF</button>
-          <button class="btn sm ico" onclick="delRDO('${r.id}')" title="Excluir">🗑️</button>
+          <button class="btn sm ico" onclick="carregarRDO('${r.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm" onclick="gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))" title="Baixar PDF" style="font-size:11px"><svg class=ot-i><use href=#i-download></use></svg> PDF</button>
+          <button class="btn sm ico" onclick="delRDO('${r.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>
       </div>`;
     }).join('')+'</div>';
 }
-function climaIco(c){return{Ensolarado:'☀️',Nublado:'🌤️',Chuva:'🌧️',Temporal:'⛈️'}[c]||'☀️';}
+function climaIco(c){return ic({Ensolarado:'sun',Nublado:'cloud-sun',Chuva:'cloud-rain',Temporal:'cloud-lightning'}[c]||'sun');}
 function delRDO(id){if(!confirm('Excluir RDO?'))return;const rdo=DB.rdos.find(r=>String(r.id)===String(id));if(rdo&&typeof rdo.id==='string'&&rdo.id.includes('-'))supaDelete('rdos',rdo.id);DB.rdos=DB.rdos.filter(r=>String(r.id)!==String(id));save();renderRDOHist();toast('🗑️','RDO excluído.');}
 
 async function visualizarRDO(id){
@@ -336,10 +336,10 @@ async function visualizarRDO(id){
   ov.innerHTML=`
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;width:100%;max-width:900px;justify-content:space-between">
       <span style="font-weight:700;font-size:14px;color:#fff">${fmtDt(rdo.data)} — ${obra?.nome||'Obra'}${rdo.autor?' (por '+rdo.autor+')':''}</span>
-      <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff">✕ Fechar</button>
+      <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff"><svg class=ot-i><use href=#i-x></use></svg> Fechar</button>
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px">
-      <div style="text-align:center"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite">⏳</div>Gerando relatório...</div>
+      <div style="text-align:center"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite"><svg class=ot-i><use href=#i-hourglass></use></svg></div>Gerando relatório...</div>
     </div>
     <style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>`;
 
@@ -353,9 +353,9 @@ async function visualizarRDO(id){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;width:100%;max-width:900px;justify-content:space-between">
       <span style="font-weight:700;font-size:14px;color:#fff">${fmtDt(rdo.data)} — ${obra?.nome||'Obra'}${rdo.autor?' (por '+rdo.autor+')':''}</span>
       <div style="display:flex;gap:6px">
-        <a href="${blobUrl}" download="${nomeArq}" class="btn pri sm" style="text-decoration:none;font-size:12px">⬇ Baixar PDF</a>
-        <button class="btn sm" onclick="carregarRDO('${id}');document.getElementById('rdo-preview-overlay').style.display='none'" style="font-size:12px">✏️ Editar</button>
-        <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff">✕ Fechar</button>
+        <a href="${blobUrl}" download="${nomeArq}" class="btn pri sm" style="text-decoration:none;font-size:12px"><svg class=ot-i><use href=#i-download></use></svg> Baixar PDF</a>
+        <button class="btn sm" onclick="carregarRDO('${id}');document.getElementById('rdo-preview-overlay').style.display='none'" style="font-size:12px"><svg class=ot-i><use href=#i-pencil></use></svg> Editar</button>
+        <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff"><svg class=ot-i><use href=#i-x></use></svg> Fechar</button>
       </div>
     </div>
     <iframe src="${blobUrl}" style="flex:1;width:100%;max-width:900px;border:none;border-radius:8px;background:#fff"></iframe>`;
@@ -389,7 +389,7 @@ function carregarRDO(id){
     const statusBar=document.getElementById('rdo-edit-status');
     if(statusBar){
       statusBar.innerHTML=`<div class="al ${rdo.status==='finalizado'?'w':'i'}" style="margin-bottom:9px">
-        <span>${rdo.status==='finalizado'?'⚠️':'ℹ️'}</span>
+        <span>${rdo.status==='finalizado'?'<svg class=ot-i><use href=#i-triangle-alert></use></svg>':'ℹ️'}</span>
         <span>Editando RDO do dia <strong>${fmtDt(rdo.data)}</strong> — Status: <strong>${rdo.status==='finalizado'?'Finalizado':'Rascunho'}</strong>. Salve para atualizar.</span>
       </div>`;
       statusBar.style.display='block';

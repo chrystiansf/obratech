@@ -78,8 +78,8 @@ function renderSolicitacoes(){
           ${s.status==='cotando'?`<button class="btn sm" onclick="comprasTab('cotacoes')" title="Ver cotacoes">Ver Cotacoes</button>`:''}
           ${s.status==='cotando'||s.status==='aberta'?`<button class="btn sm" onclick="solMudarStatus('${s.id}','aprovada')" title="Aprovar" style="color:var(--green)">Aprovar</button>`:''}
           ${s.status==='aprovada'?`<button class="btn sm" onclick="solReceber('${s.id}')" title="Registrar recebimento">Receber</button>`:''}
-          <button class="btn sm ico" onclick="openModalSolicitacao('${s.id}')">✏️</button>
-          <button class="btn sm ico" onclick="solExcluir('${s.id}')" title="Excluir">🗑️</button>
+          <button class="btn sm ico" onclick="openModalSolicitacao('${s.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="solExcluir('${s.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div></td>
       </tr>`;
     }).join('')}
@@ -204,7 +204,7 @@ function renderCotacoes(){
             <td style="font-size:11px;color:var(--txt3)">${c.obs||'—'}</td>
             <td><div class="ta-actions">
               ${!c.vencedor?`<button class="btn sm" onclick="cotSelecionar('${c.id}','${s.id}')" title="Selecionar vencedor" style="color:var(--green)">Selecionar</button>`:''}
-              <button class="btn sm ico" onclick="cotDel('${c.id}')">🗑️</button>
+              <button class="btn sm ico" onclick="cotDel('${c.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
             </div></td>
           </tr>`;
         }).join('')}
@@ -267,7 +267,7 @@ function renderPedidos(){
           ${p.status==='pendente'?`<button class="btn sm" onclick="pedMudarStatus('${p.id}','enviado')">Enviar</button>`:''}
           ${p.status==='enviado'?`<button class="btn sm" onclick="pedReceber('${p.id}')" style="color:var(--green)">Receber</button>`:''}
           <button class="btn sm" onclick="gerarOrdemCompraPDF('${p.id}')">PDF</button>
-          ${p.status!=='recebido'?`<button class="btn sm ico" onclick="pedDel('${p.id}')">🗑️</button>`:''}
+          ${p.status!=='recebido'?`<button class="btn sm ico" onclick="pedDel('${p.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>`:''}
         </div></td>
       </tr>`;
     }).join('')}
@@ -322,7 +322,7 @@ function openModalSolicitacao(editId){
   const title=s?'Editar Solicitacao':'Nova Solicitacao de Compra';
   const obrasOpts=DB.obras.map(o=>`<option value="${o.id}"${s?.obraId==o.id?' selected':''}>${o.nome}</option>`).join('');
   const root=document.getElementById('modal-root');
-  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()">✕</div></div><div class="mob">
+  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div><div class="mob">
     <div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Item / Material *</label><input class="inp" id="sol-item" value="${s?.item||''}" placeholder="Ex: Cimento CP-II 50kg"></div>
       <div class="fg"><label class="lbl">Unidade</label><input class="inp" id="sol-un" value="${s?.unidade||''}" placeholder="sc, m3, un..."></div>
@@ -367,7 +367,7 @@ function openModalCotacao(editId, solId){
   const title=c?'Editar Cotacao':'Nova Cotacao';
   const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(f=>{const nome=typeof f==='object'?f.nome:f;return`<option${c?.fornecedor===nome?' selected':''}>${nome}</option>`;}).join('');
   const root=document.getElementById('modal-root');
-  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}${sol?' — '+sol.item:''}</div><div class="mox" onclick="closeModal()">✕</div></div><div class="mob">
+  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}${sol?' — '+sol.item:''}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div><div class="mob">
     <div class="g g2">
       <div class="fg"><label class="lbl">Fornecedor *</label><select class="sel" id="cot-forn">${fornOpts}</select></div>
       <div class="fg"><label class="lbl">Valor Unitario (R$)</label><input type="number" class="inp" id="cot-vunit" value="${c?.valorUnit||''}" min="0" step="0.01" placeholder="0.00" oninput="_cotCalcTotal()"></div>

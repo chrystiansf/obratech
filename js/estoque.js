@@ -26,9 +26,9 @@ function renderCatalogo(){
   const totalMovs  = DB.movs.length;
   const fornSet    = new Set(DB.estoque.map(e=>e.forn).filter(Boolean));
   document.getElementById('est-kpis-cat').innerHTML = `
-    <div class="kpi"><div class="kl">📦 Materiais</div><div class="kv">${totalItens}</div><div class="kd neu">no catálogo</div></div>
-    <div class="kpi"><div class="kl">🔄 Movimentações</div><div class="kv">${totalMovs}</div><div class="kd neu">registradas</div></div>
-    <div class="kpi"><div class="kl">🏢 Fornecedores</div><div class="kv">${fornSet.size}</div><div class="kd neu">diferentes</div></div>`;
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-package></use></svg> Materiais</div><div class="kv">${totalItens}</div><div class="kd neu">no catálogo</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Movimentações</div><div class="kv">${totalMovs}</div><div class="kd neu">registradas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-building-2></use></svg> Fornecedores</div><div class="kv">${fornSet.size}</div><div class="kd neu">diferentes</div></div>`;
   const el = document.getElementById('est-tbl');
   if (!items.length) {
     el.innerHTML = '<div class="t-empty">Nenhum material' + (q ? ' encontrado.' : '. ') + (!q ? '<button class="btn pri sm" onclick="openModal(&apos;material&apos;)" style="margin-left:8px">＋ Cadastrar</button>' : '') + '</div>';
@@ -52,9 +52,9 @@ function renderCatalogo(){
         <td style="font-size:11px;color:var(--txt2)">${e.forn||'—'}</td>
         <td style="font-size:11px">${badges||'<span style="color:var(--txt3)">Nenhuma</span>'}</td>
         <td><div class="ta-actions">
-          <button class="btn sm" onclick="openModal('mov','${e.id}')" title="Movimentar este material">🔄 Lançar</button>
-          <button class="btn sm ico" onclick="openModal('material','${e.id}')" title="Editar">✏️</button>
-          <button class="btn sm ico" onclick="delMat('${e.id}')" title="Excluir">🗑️</button>
+          <button class="btn sm" onclick="openModal('mov','${e.id}')" title="Movimentar este material"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Lançar</button>
+          <button class="btn sm ico" onclick="openModal('material','${e.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delMat('${e.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div></td>
       </tr>`;
     }).join('') + '</table>';
@@ -167,10 +167,10 @@ function renderEstoqueSaldo(){
     if(s<=Number(e.min)&&s>0) itensAbaixoMin++;
   }));
   document.getElementById('est-kpis-saldo').innerHTML=`
-    <div class="kpi"><div class="kl">🏗️ Obras</div><div class="kv">${obras.length}</div><div class="kd neu">selecionadas</div></div>
-    <div class="kpi"><div class="kl">📦 Materiais</div><div class="kv">${itens.length}</div><div class="kd neu">no catálogo</div></div>
-    <div class="kpi"><div class="kl">⚠️ Abaixo Mín.</div><div class="kv" style="color:${itensAbaixoMin?'var(--yellow)':'var(--green)'}">${itensAbaixoMin}</div><div class="kd ${itensAbaixoMin?'dn':'up'}">${itensAbaixoMin?'Repor':'OK'}</div></div>
-    <div class="kpi"><div class="kl">🔄 Movimentações</div><div class="kv">${DB.movs.filter(m=>obras.some(o=>o.id===m.obraId)).length}</div><div class="kd neu">total</div></div>`;
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras</div><div class="kv">${obras.length}</div><div class="kd neu">selecionadas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-package></use></svg> Materiais</div><div class="kv">${itens.length}</div><div class="kd neu">no catálogo</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Abaixo Mín.</div><div class="kv" style="color:${itensAbaixoMin?'var(--yellow)':'var(--green)'}">${itensAbaixoMin}</div><div class="kd ${itensAbaixoMin?'dn':'up'}">${itensAbaixoMin?'Repor':'OK'}</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Movimentações</div><div class="kv">${DB.movs.filter(m=>obras.some(o=>o.id===m.obraId)).length}</div><div class="kd neu">total</div></div>`;
 
   const el = document.getElementById('est-saldo-tbl');
   if (!itens.length || !obras.length){
@@ -195,7 +195,7 @@ function renderEstoqueSaldo(){
       <td>${e.min}</td>
       ${tds}
       <td style="text-align:center;font-weight:700;color:${total>0?'var(--txt)':'var(--red)'};border-left:1px solid var(--border2)">${total}</td>
-      <td><button class="btn sm" onclick="openModal('mov','${e.id}')" title="Lançar movimentação">🔄 Lançar</button></td>
+      <td><button class="btn sm" onclick="openModal('mov','${e.id}')" title="Lançar movimentação"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Lançar</button></td>
     </tr>`;
   }).join('');
 
@@ -236,8 +236,8 @@ function renderEstoqueSaldo(){
             </td>
             <td style="font-size:11px">${m.nf||'—'}</td>
             <td><div class="ta-actions">
-              <button class="btn sm ico" onclick="editMov('${m.id}')">✏️</button>
-              <button class="btn sm ico" onclick="delMov('${m.id}')">🗑️</button>
+              <button class="btn sm ico" onclick="editMov('${m.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+              <button class="btn sm ico" onclick="delMov('${m.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
             </div></td>
           </tr>`;
         }).join('')+'</table>'

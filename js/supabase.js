@@ -28,7 +28,7 @@ function initSupabase(){
         detectSessionInUrl: true
       }
     });
-    console.log('✓ Supabase conectado');
+    console.log('Supabase conectado');
   } else {
     console.warn('Supabase CDN não carregou — tentando reconectar...');
     // Tentar recarregar a lib do Supabase após 3s
@@ -181,15 +181,15 @@ async function confirmarNovaSenha(){
 
   if(!senha || senha.length < 6){
     msgEl.style.display='block';
-    msgEl.style.background='#fff0f0';
-    msgEl.style.color='#c00';
+    msgEl.style.background='#FBE4E4';
+    msgEl.style.color='#B42828';
     msgEl.textContent='A senha precisa ter ao menos 6 caracteres.';
     return;
   }
   if(senha !== conf){
     msgEl.style.display='block';
-    msgEl.style.background='#fff0f0';
-    msgEl.style.color='#c00';
+    msgEl.style.background='#FBE4E4';
+    msgEl.style.color='#B42828';
     msgEl.textContent='As senhas não coincidem.';
     return;
   }
@@ -204,7 +204,7 @@ async function confirmarNovaSenha(){
     msgEl.style.display='block';
     msgEl.style.background='#f0fff4';
     msgEl.style.color='#0a6';
-    msgEl.textContent='✅ Senha atualizada com sucesso! Entrando no sistema...';
+    msgEl.textContent='Senha atualizada com sucesso! Entrando no sistema...';
 
     window._aguardandoNovaSenha = false;
 
@@ -216,10 +216,10 @@ async function confirmarNovaSenha(){
     }, 1500);
 
   }catch(e){
-    if(btn){ btn.disabled=false; btn.textContent='✅ Salvar Nova Senha'; }
+    if(btn){ btn.disabled=false; btn.textContent='Salvar Nova Senha'; }
     msgEl.style.display='block';
-    msgEl.style.background='#fff0f0';
-    msgEl.style.color='#c00';
+    msgEl.style.background='#FBE4E4';
+    msgEl.style.color='#B42828';
     msgEl.textContent='Erro: '+e.message;
   }
 }
@@ -231,7 +231,7 @@ async function enviarReset(){
     await supa.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/?nova_senha=1'
     });
-    authMsg('✅ Link enviado para '+email+'! Verifique seu email e clique no link para definir sua nova senha.','success');
+    authMsg('Link enviado para '+email+'! Verifique seu email e clique no link para definir sua nova senha.','success');
   } catch(e){
     authMsg(e.message,'error');
   }
@@ -601,12 +601,12 @@ async function diagnosticarSupabase(){
     console.error('PROBLEMAS SUPABASE:\n'+erros.join('\n'));
     // Mostrar alerta detalhado
     setTimeout(()=>{
-      const msg=`⚠️ Problema de acesso ao banco de dados:\n\n${erros.join('\n')}\n\nAcesse o Supabase → SQL Editor e execute:\nGRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;`;
+      const msg=`Problema de acesso ao banco de dados:\n\n${erros.join('\n')}\n\nAcesse o Supabase → SQL Editor e execute:\nGRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;`;
       console.warn(msg);
       toast('⚠️','Problema de acesso ao banco. Veja o console para detalhes.');
     },1000);
   } else {
-    console.log('✓ Acesso a todas as tabelas OK');
+    console.log('Acesso a todas as tabelas OK');
     // Testar ESCRITA
     try{
       const testId=uuidv4();
@@ -617,7 +617,7 @@ async function diagnosticarSupabase(){
       } else {
         // Apagar o registro de teste
         await supa.from('demandas').delete().eq('id',testId).eq('empresa_id',_empresaId);
-        console.log('✓ Teste escrita OK — banco funcionando corretamente');
+        console.log('Teste escrita OK — banco funcionando corretamente');
       }
     }catch(e){console.error('Teste escrita exception:',e.message);}
   }
@@ -700,7 +700,7 @@ async function carregarDadosSupabase(){
     if(invs.data)          DB.investidores  = invs.data.map(mapInvestidor);
     if(aps.data)           DB.aportes       = aps.data.map(mapAporte);
 
-    console.log('✓ Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos,', (DB.demandas||[]).length, 'demandas,', (DB.fornecedores||[]).length, 'fornecedores,', (DB.terceirizados||[]).length, 'terceirizados');
+    console.log('Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos,', (DB.demandas||[]).length, 'demandas,', (DB.fornecedores||[]).length, 'fornecedores,', (DB.terceirizados||[]).length, 'terceirizados');
   } catch(e){
     console.error('Erro ao carregar dados:', e);
     toast('⚠️','Erro ao carregar dados. Verifique a conexão.');
@@ -919,10 +919,10 @@ function iniciarRealtime(){
       ()=>debounce('rt_'+t,()=>sync(t),800));
   });
   ch.subscribe((status)=>{
-    if(status==='SUBSCRIBED') console.log('✓ Realtime ativo em',tabelas.length,'tabelas');
+    if(status==='SUBSCRIBED') console.log('Realtime ativo em',tabelas.length,'tabelas');
   });
-  console.log('✓ Realtime ativo');
-  console.log('✓ Realtime ativo');
+  console.log('Realtime ativo');
+  console.log('Realtime ativo');
 }
 
 // ── Adicionar botão Logout no sidebar ─────────────────────────
@@ -934,7 +934,7 @@ function adicionarBotaoLogout(){
   const btn = document.createElement('div');
   btn.id = 'btn-logout';
   btn.style.cssText='padding:8px 0;margin:0 auto;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;color:#888;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.15s;width:100%;justify-content:center';
-  btn.innerHTML='<span style="font-size:15px">🚪</span><span class="sb-txt" style="font-size:10px">Sair</span>';
+  btn.innerHTML='<span style="font-size:15px"><svg class=ot-i><use href=#i-log-out></use></svg></span><span class="sb-txt" style="font-size:10px">Sair</span>';
   btn.onmouseover=()=>btn.style.background='rgba(255,255,255,.08)';
   btn.onmouseout=()=>btn.style.background='transparent';
   btn.onclick=logout;

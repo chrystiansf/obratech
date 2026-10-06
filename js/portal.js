@@ -191,8 +191,8 @@ function pcRenderTab(tab){
       // Mostrar apenas histórico
       el.innerHTML=`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div class="ct">📋 RDOs da Obra</div>
-          <button class="btn sm pri" onclick="pcExportarRDOPdf()">📄 Exportar PDF</button>
+          <div class="ct"><svg class=ot-i><use href=#i-clipboard-list></use></svg> RDOs da Obra</div>
+          <button class="btn sm pri" onclick="pcExportarRDOPdf()"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar PDF</button>
         </div>
         <div id="pc-rdo-hist-wrap"></div>
       </div>`;
@@ -221,11 +221,11 @@ function pcRenderTab(tab){
       el.innerHTML=`
         <div class="kpis" style="margin-bottom:14px">${kpis?.innerHTML||''}</div>
         <div class="card" style="overflow-x:auto;margin-bottom:12px">
-          <div class="ct" style="margin-bottom:10px">📋 Catálogo de Materiais</div>
+          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Catálogo de Materiais</div>
           ${tbl?.innerHTML||'<div class="t-empty">Nenhum material.</div>'}
         </div>
         <div class="card" style="overflow-x:auto">
-          <div class="ct" style="margin-bottom:10px">🏗️ Estoque por Obra</div>
+          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-hard-hat></use></svg> Estoque por Obra</div>
           ${saldo?.innerHTML||''}
         </div>`;
     } else if(tab==='qualidade'){
@@ -242,11 +242,11 @@ function pcRenderTab(tab){
       el.innerHTML=`
         <div class="kpis" style="margin-bottom:14px">${kpis?.innerHTML||''}</div>
         <div class="card" style="overflow-x:auto;margin-bottom:12px">
-          <div class="ct" style="margin-bottom:10px">📑 Contratos</div>
+          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-file-pen-line></use></svg> Contratos</div>
           ${tbl?.innerHTML||'<div class="t-empty">Nenhum contrato.</div>'}
         </div>
         <div class="card" style="overflow-x:auto">
-          <div class="ct" style="margin-bottom:10px">💳 Pagamentos</div>
+          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-credit-card></use></svg> Pagamentos</div>
           ${pgtos?.innerHTML||''}
         </div>`;
     } else if(tab==='equipe'){
@@ -270,7 +270,7 @@ function pcRenderTab(tab){
   // Adicionar botão PDF e bloquear edição
   const btnPdf = PC_PDF_TABS[tab]
     ? `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-        <button class="btn sm pri" onclick="pcGerarPdf('${tab}')">📄 Exportar PDF</button>
+        <button class="btn sm pri" onclick="pcGerarPdf('${tab}')"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar PDF</button>
        </div>`
     : '';
   el.innerHTML = btnPdf + el.innerHTML;
@@ -284,7 +284,7 @@ function pcBloquearEdicao(container){
   container.querySelectorAll('button').forEach(b=>{
     const txt=b.textContent.trim();
     const onclick=b.getAttribute('onclick')||'';
-    if(txt==='✏️'||txt==='🗑️'||txt==='＋ Novo'||txt==='＋'||
+    if(txt==='✏️'||txt==='🗑️'||txt==='＋ Novo'||txt==='＋'||b.querySelector('use[href="#i-pencil"],use[href="#i-trash-2"]')||
        onclick.includes('openModal')||onclick.includes('delete')||
        onclick.includes('del')||onclick.includes('salvar')||
        onclick.includes('editar')||onclick.includes('supaInsert')||
@@ -310,22 +310,22 @@ function pcRenderResumo(el, d, o){
   const rdoHoje=d.rdos[0];
   el.innerHTML=`
   <div class="kpis" style="margin-bottom:16px">
-    <div class="kpi"><div class="kl">⚡ Avanço Físico</div><div class="kv" style="color:var(--primary)">${pct}%</div><div class="kd neu">${d.etapas.length} etapas</div></div>
-    <div class="kpi"><div class="kl">💰 Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd ${dep>orc?'dn':'neu'}">${orc?Math.round(dep/orc*100):0}% usado</div></div>
-    <div class="kpi"><div class="kl">💸 Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${d.lancs.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="kpi"><div class="kl">⚖️ Saldo do Orçamento</div><div class="kv" style="color:${orc-dep>=0?'var(--green)':'var(--red)'}">${fmtR(orc-dep)}</div><div class="kd ${orc-dep>=0?'up':'dn'}">${orc-dep>=0?'dentro do orçado':'acima do orçado'}</div></div>
-    <div class="kpi"><div class="kl">✅ NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--red)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${d.ncs.length} total</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-zap></use></svg> Avanço Físico</div><div class="kv" style="color:var(--primary)">${pct}%</div><div class="kd neu">${d.etapas.length} etapas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-wallet></use></svg> Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd ${dep>orc?'dn':'neu'}">${orc?Math.round(dep/orc*100):0}% usado</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${d.lancs.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-scale></use></svg> Saldo do Orçamento</div><div class="kv" style="color:${orc-dep>=0?'var(--green)':'var(--red)'}">${fmtR(orc-dep)}</div><div class="kd ${orc-dep>=0?'up':'dn'}">${orc-dep>=0?'dentro do orçado':'acima do orçado'}</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--red)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${d.ncs.length} total</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div class="card">
-      <div class="ct" style="margin-bottom:10px">📊 Informações da Obra</div>
+      <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-chart-column></use></svg> Informações da Obra</div>
       ${[['Nome',o.nome],['Tipo',o.tipo||'—'],['Local',o.local||o.local||'—'],['Responsável',o.responsavel||'—'],['Cliente',o.cliente||'—'],['Início',fmtDt(o.data_ini||o.dataIni)],['Prazo',fmtDt(o.data_fim||o.dataFim)]].map(([k,v])=>`
         <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
           <span style="color:var(--txt3)">${k}</span><span style="font-weight:500">${v||'—'}</span>
         </div>`).join('')}
     </div>
     <div class="card">
-      <div class="ct" style="margin-bottom:10px">📅 Cronograma Rápido</div>
+      <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-calendar></use></svg> Cronograma Rápido</div>
       ${d.etapas.slice(0,6).map(e=>{
         const pct=Number(e.pct||0);
         const cor=pct>=100?'var(--green)':e.status==='late'?'var(--red)':'var(--primary)';
@@ -342,13 +342,13 @@ function pcRenderResumo(el, d, o){
   </div>
   ${rdoHoje?`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="ct">📋 Último RDO — ${fmtDt(rdoHoje.data)}</div>
-      <span class="b ${rdoHoje.status==='finalizado'?'bg':'by'}">${rdoHoje.status==='finalizado'?'✓ Finalizado':'Rascunho'}</span>
+      <div class="ct"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Último RDO — ${fmtDt(rdoHoje.data)}</div>
+      <span class="b ${rdoHoje.status==='finalizado'?'bg':'by'}">${rdoHoje.status==='finalizado'?'<svg class=ot-i><use href=#i-check></use></svg> Finalizado':'Rascunho'}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
-      <div class="kpi"><div class="kl">☁️ Clima</div><div class="kv" style="font-size:16px">${rdoHoje.clima||'—'}</div></div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-cloud></use></svg> Clima</div><div class="kv" style="font-size:16px">${rdoHoje.clima||'—'}</div></div>
 
-      <div class="kpi"><div class="kl">✅ Realizado</div><div class="kv" style="font-size:16px;color:var(--green)">${rdoHoje.real||rdoHoje.realizado||0}</div></div>
+      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Realizado</div><div class="kv" style="font-size:16px;color:var(--green)">${rdoHoje.real||rdoHoje.realizado||0}</div></div>
     </div>
     ${rdoHoje.serv||rdoHoje.servicos?`<div style="font-size:12px;color:var(--txt2)">${rdoHoje.serv||rdoHoje.servicos}</div>`:''}
   </div>`:''}`;
@@ -356,7 +356,7 @@ function pcRenderResumo(el, d, o){
 
 function pcRenderEquipe(el, d){
   el.innerHTML=`<div class="card" style="overflow-x:auto">
-    <div class="ct" style="margin-bottom:12px">👷 Equipe da Obra</div>
+    <div class="ct" style="margin-bottom:12px"><svg class=ot-i><use href=#i-users></use></svg> Equipe da Obra</div>
     <table class="tbl"><tr><th>Colaborador</th><th>Função</th></tr>
     ${d.colabs.map(c=>`<tr><td class="n">${c.nome}</td><td>${c.funcao||'—'}</td></tr>`).join('')}
     </table></div>`;
@@ -372,14 +372,14 @@ function pcExportarRDOPdf(){
   const root=document.getElementById('modal-root');
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:420px">
-      <div class="moh"><div class="mot">📄 Selecionar RDO para PDF</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-file-text></use></svg> Selecionar RDO para PDF</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
       <div class="mob" style="max-height:400px;overflow-y:auto">
         ${rdos.map((r,i)=>`<div class="card" style="margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="closeModal();gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))">
           <div>
             <div style="font-weight:600">${fmtDt(r.data)}</div>
             <div style="font-size:11px;color:var(--txt3)">${r.clima||'—'}</div>
           </div>
-          <span class="b bg">📄 PDF</span>
+          <span class="b bg"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</span>
         </div>`).join('')}
       </div>
       <div class="mof"><button class="btn" onclick="closeModal()">Fechar</button></div>

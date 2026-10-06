@@ -35,7 +35,7 @@ function engSeq(nome){
 
 // Calcula % esperado hoje para uma etapa com base no prazo da obra
 function pctEsperadoHoje(obra, etapa){
-  // Somente valor manual definido pelo gestor via botão 🎯
+  // Somente valor manual definido pelo gestor via botão de meta
   if(etapa.pctEsp!=null && etapa.pctEsp!=='') return Number(etapa.pctEsp);
   return null;
 }
@@ -54,11 +54,11 @@ function ganttSaude(obra, etapa){
 
 // Cores e rótulos por saúde
 const SAUDE_STYLE={
-  done:   {bg:'#18a84d', track:'rgba(24,168,77,.15)',  glow:'rgba(24,168,77,.4)',  label:'Concluído',  txt:'#18a84d'},
-  ahead:  {bg:'#5b8ff9', track:'rgba(91,143,249,.15)', glow:'rgba(91,143,249,.4)', label:'Adiantado',  txt:'#5b8ff9'},
-  ok:     {bg:'#f4a623', track:'rgba(244,166,35,.15)', glow:'rgba(244,166,35,.4)', label:'No prazo',   txt:'#f4a623'},
-  late:   {bg:'#d94040', track:'rgba(217,64,64,.15)',  glow:'rgba(217,64,64,.4)',  label:'Atrasado',   txt:'#d94040'},
-  future: {bg:'#3a4260', track:'rgba(58,66,96,.2)',    glow:'transparent',         label:'Aguardando', txt:'#4a5278'},
+  done:   {bg:'#1F7A50', track:'rgba(31,122,80,.15)',  glow:'rgba(31,122,80,.4)',  label:'Concluído',  txt:'#1F7A50'},
+  ahead:  {bg:'#2B5C8A', track:'rgba(43,92,138,.15)', glow:'rgba(43,92,138,.4)', label:'Adiantado',  txt:'#2B5C8A'},
+  ok:     {on:'#1C1F24', bg:'#EE5A24', track:'rgba(238,90,36,.15)', glow:'rgba(238,90,36,.4)', label:'No prazo',   txt:'#EE5A24'},
+  late:   {bg:'#B42828', track:'rgba(180,40,40,.15)',  glow:'rgba(180,40,40,.4)',  label:'Atrasado',   txt:'#B42828'},
+  future: {bg:'#A8ADB5', track:'rgba(168,173,181,.25)',    glow:'transparent',         label:'Aguardando', txt:'#6B7079'},
 };
 
 async function renderCron(){
@@ -106,13 +106,13 @@ async function renderCron(){
   const corSaldo=saldoObra<0?'var(--red)':saldoObra<orcObra*0.1?'var(--yellow)':'var(--green)';
 
   document.getElementById('cron-kpis').innerHTML=`
-    <div class="kpi"><div class="kl">📊 Avanço Geral</div><div class="kv">${pm}%</div><div class="kd ${pm>=50?'up':'neu'}">Média das etapas</div></div>
-    <div class="kpi"><div class="kl">✅ Concluídas</div><div class="kv">${conc}/${totalEtapas}</div><div class="kd up">100% executadas</div></div>
-    <div class="kpi"><div class="kl">⬆️ Adiantadas</div><div class="kv" style="color:${ahead?'var(--green)':'var(--txt3)'}">${ahead}</div><div class="kd ${ahead?'up':'neu'}">Acima do esperado</div></div>
-    <div class="kpi"><div class="kl">🔴 Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>
-    <div class="kpi"><div class="kl">💰 Orçado</div><div class="kv" style="font-size:14px">${orcObra>0?fmtR(orcObra):'Não definido'}</div><div class="kd neu">${orcObra>0?'orçamento total':orcTotal>0?'defina em Obras':'cadastre nas etapas'}</div></div>
-    <div class="kpi"><div class="kl">💸 Gasto Real</div><div class="kv" style="font-size:14px;color:${gastoReal>orcObra&&orcObra>0?'var(--red)':'var(--txt)'}">${fmtR(gastoReal)}</div><div class="kd ${pctGasto>100?'dn':pctGasto>80?'neu':'up'}">${orcObra>0?pctGasto+'% do orçado':gastoReal>0?'lançamentos financeiros':'sem lançamentos'}</div></div>
-    ${orcObra>0?`<div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="font-size:14px;color:${corSaldo}">${fmtR(Math.abs(saldoObra))}</div><div class="kd ${saldoObra<0?'dn':'up'}">${saldoObra<0?'⚠ Acima do orçamento':'disponível'}</div></div>`:''}`;
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Avanço Geral</div><div class="kv">${pm}%</div><div class="kd ${pm>=50?'up':'neu'}">Média das etapas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Concluídas</div><div class="kv">${conc}/${totalEtapas}</div><div class="kd up">100% executadas</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-upload></use></svg> Adiantadas</div><div class="kv" style="color:${ahead?'var(--green)':'var(--txt3)'}">${ahead}</div><div class="kd ${ahead?'up':'neu'}">Acima do esperado</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-dot></use></svg> Atrasadas</div><div class="kv" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div><div class="kd ${atrasadas?'dn':'up'}">${atrasadas?'Requer ação':'Tudo OK'}</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-wallet></use></svg> Orçado</div><div class="kv" style="font-size:14px">${orcObra>0?fmtR(orcObra):'Não definido'}</div><div class="kd neu">${orcObra>0?'orçamento total':orcTotal>0?'defina em Obras':'cadastre nas etapas'}</div></div>
+    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Gasto Real</div><div class="kv" style="font-size:14px;color:${gastoReal>orcObra&&orcObra>0?'var(--red)':'var(--txt)'}">${fmtR(gastoReal)}</div><div class="kd ${pctGasto>100?'dn':pctGasto>80?'neu':'up'}">${orcObra>0?pctGasto+'% do orçado':gastoReal>0?'lançamentos financeiros':'sem lançamentos'}</div></div>
+    ${orcObra>0?`<div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Saldo</div><div class="kv" style="font-size:14px;color:${corSaldo}">${fmtR(Math.abs(saldoObra))}</div><div class="kd ${saldoObra<0?'dn':'up'}">${saldoObra<0?'<svg class=ot-i><use href=#i-triangle-alert></use></svg> Acima do orçamento':'disponível'}</div></div>`:''}`;
 
   // ── Gantt: etapas tradicionais + orçamento ──
   const orcGrupos=typeof _orcGet==="function"?await _orcGet(obra.id):[];
@@ -169,11 +169,11 @@ async function renderCron(){
         <div style="flex:1;position:relative;height:18px">
           <div style="position:absolute;inset:0;background:${st.track};border-radius:4px;border:1px solid ${st.bg}30"></div>
           <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'20px':'0'}">
-            ${pct>5?`<span style="font-size:9px;font-weight:800;color:#fff">${pct}%</span>`:''}
+            ${pct>5?`<span style="font-size:9px;font-weight:800;color:${st.on||'#fff'}">${pct}%</span>`:''}
           </div>
         </div>
         <div style="width:80px;flex-shrink:0;text-align:center;margin-left:8px">
-          <span style="font-size:9px;font-weight:700;color:#fff;background:${st.bg};padding:2px 8px;border-radius:8px">${pct}%</span>
+          <span style="font-size:9px;font-weight:700;color:${st.on||'#fff'};background:${st.bg};padding:2px 8px;border-radius:8px">${pct}%</span>
         </div>
       </div>`;
     } else if(item.tipo==='sub'){
@@ -204,15 +204,15 @@ async function renderCron(){
         <div style="flex:1;position:relative;height:16px">
           <div style="position:absolute;inset:0;background:${st2.track};border-radius:4px;border:1px solid ${st2.bg}30"></div>
           <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st2.bg};border-radius:${pct>=100?'4px':'4px 0 0 4px'};transition:width .6s ease;display:flex;align-items:center;justify-content:center;min-width:${pct>0?'18px':'0'}">
-            ${pct>8?`<span style="font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)">${pct>=100?'✓':pct+'%'}</span>`:''}
+            ${pct>8?`<span style="font-size:8px;font-weight:800;color:${st2.on||'#fff'}">${pct>=100?'<svg class=ot-i><use href=#i-check></use></svg>':pct+'%'}</span>`:''}
           </div>
           ${marca!==null?`<div style="position:absolute;left:${marca}%;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.95);z-index:3;border-radius:1px"></div>`:''}
         </div>
         <div style="width:130px;flex-shrink:0;display:flex;align-items:center;gap:3px;margin-left:8px">
-          <span style="font-size:9px;font-weight:700;color:#fff;background:${st2.bg};padding:2px 6px;border-radius:8px;white-space:nowrap;flex:1;text-align:center">${st2.label}</span>
-          <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="padding:2px 5px;font-size:11px">🎯</button>
-          <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="padding:2px 5px">✏️</button>
-          <button class="btn sm ico" onclick="delEtapa('${e.id}')" style="padding:2px 5px">🗑️</button>
+          <span style="font-size:9px;font-weight:700;color:${st2.on||'#fff'};background:${st2.bg};padding:2px 6px;border-radius:8px;white-space:nowrap;flex:1;text-align:center">${st2.label}</span>
+          <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="padding:2px 5px;font-size:11px"><svg class=ot-i><use href=#i-target></use></svg></button>
+          <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="padding:2px 5px"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delEtapa('${e.id}')" style="padding:2px 5px"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>
       </div>`;
     }
@@ -238,9 +238,9 @@ async function renderCron(){
     if(totalOrcado>0){
       orcSection.style.display='block';
       document.getElementById('cron-orc-kpis').innerHTML=`
-        <div class="kpi"><div class="kl">💰 Orçado</div><div class="kv" style="color:var(--primary)">${fmtR(totalOrcado)}</div></div>
-        <div class="kpi"><div class="kl">✅ Realizado</div><div class="kv" style="color:var(--green)">${fmtR(totalRealizado)}</div></div>
-        <div class="kpi"><div class="kl">📊 Saldo</div><div class="kv" style="color:${saldo>=0?'var(--green)':'var(--red)'}">${fmtR(saldo)}</div><div class="kd ${saldo>=0?'up':'dn'}">${totalOrcado>0?((totalRealizado/totalOrcado)*100).toFixed(1)+'% executado':'—'}</div></div>
+        <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-wallet></use></svg> Orçado</div><div class="kv" style="color:var(--primary)">${fmtR(totalOrcado)}</div></div>
+        <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Realizado</div><div class="kv" style="color:var(--green)">${fmtR(totalRealizado)}</div></div>
+        <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Saldo</div><div class="kv" style="color:${saldo>=0?'var(--green)':'var(--red)'}">${fmtR(saldo)}</div><div class="kd ${saldo>=0?'up':'dn'}">${totalOrcado>0?((totalRealizado/totalOrcado)*100).toFixed(1)+'% executado':'—'}</div></div>
       `;
       renderCurvaOrcRealizado(obra.id);
     } else {
@@ -335,11 +335,11 @@ async function renderCron(){
     const fmtK=v=>v>=1000000?'R$'+(v/1000000).toFixed(1)+'M':v>=1000?'R$'+(v/1000).toFixed(0)+'K':'R$'+Math.round(v);
 
     const datasets=[
-      {label:'Orçado Acumulado',data:orcAcum,borderColor:'#5b8ff9',backgroundColor:'rgba(91,143,249,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#5b8ff9',fill:true,tension:0.3},
-      {label:'Realizado Acumulado',data:realAcum,borderColor:'#18a84d',backgroundColor:'rgba(24,168,77,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#18a84d',fill:false,tension:0.3},
+      {label:'Orçado Acumulado',data:orcAcum,borderColor:'#2B5C8A',backgroundColor:'rgba(43,92,138,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#2B5C8A',fill:true,tension:0.3},
+      {label:'Realizado Acumulado',data:realAcum,borderColor:'#1F7A50',backgroundColor:'rgba(31,122,80,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#1F7A50',fill:false,tension:0.3},
     ];
     if(temMedicoes){
-      datasets.push({label:'Medido Acumulado',data:medAcum,borderColor:'#f4a623',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,pointBackgroundColor:'#f4a623',fill:false,tension:0.3});
+      datasets.push({label:'Medido Acumulado',data:medAcum,borderColor:'#EE5A24',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,pointBackgroundColor:'#EE5A24',fill:false,tension:0.3});
     }
 
     mkChart('ch-curvas',{
@@ -349,8 +349,8 @@ async function renderCron(){
         ...BO,
         plugins:{...BO.plugins,tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtK(ctx.parsed.y)}`}}},
         scales:{
-          x:{ticks:{color:'rgba(180,190,220,.8)',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
-          y:{ticks:{color:'rgba(180,190,220,.8)',font:{size:9},callback:v=>fmtK(v)},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}
+          x:{ticks:{color:CP.t,font:{size:9}},grid:{color:CP.g}},
+          y:{ticks:{color:CP.t,font:{size:9},callback:v=>fmtK(v)},grid:{color:CP.g},beginAtZero:true}
         }
       }
     });
@@ -382,11 +382,11 @@ function editarEspEtapa(id){
   const root=document.getElementById('modal-root');
   root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
     <div class="mo" style="max-width:380px">
-      <div class="moh"><div class="mot">🎯 % Esperado — ${e.nome}</div><div class="mox" onclick="closeModal()">✕</div></div>
+      <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-target></use></svg> % Esperado — ${e.nome}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
       <div class="mob">
         <p style="font-size:12px;color:var(--txt3);margin-bottom:14px">
           Define quanto desta etapa deveria estar concluído <strong>hoje</strong>.<br>
-          Isso determina se está: <span style="color:#d94040">Atrasado</span>, <span style="color:#f4a623">No prazo</span>, <span style="color:#5b8ff9">Adiantado</span> ou <span style="color:#18a84d">Concluído</span>.
+          Isso determina se está: <span style="color:#B42828">Atrasado</span>, <span style="color:#EE5A24">No prazo</span>, <span style="color:#2B5C8A">Adiantado</span> ou <span style="color:#1F7A50">Concluído</span>.
         </p>
         <div class="fg">
           <label class="lbl">% Esperado hoje (0–100)</label>
@@ -404,7 +404,7 @@ function editarEspEtapa(id){
           const n=v===''?null:Math.min(100,Math.max(0,Number(v)));
           const e2=DB.etapas.find(x=>String(x.id)==='${id}');
           if(e2){e2.pctEsp=n;supaUpdate('etapas','${id}',{pct_esperado:n});save();renderCron();closeModal();toast('🎯','% esperado atualizado!');}
-        })()">✅ Salvar</button>
+        })()"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar</button>
       </div>
     </div></div>`;
   window._mSave=null;
@@ -429,8 +429,8 @@ function renderCurvaOrcRealizado(obraId){
     data:{
       labels:labels,
       datasets:[
-        {label:'Orçado',data:orcado,backgroundColor:'rgba(91,143,249,0.7)',borderRadius:4},
-        {label:'Realizado',data:realizado,backgroundColor:'rgba(45,212,122,0.7)',borderRadius:4}
+        {label:'Orçado',data:orcado,backgroundColor:'rgba(43,92,138,0.7)',borderRadius:4},
+        {label:'Realizado',data:realizado,backgroundColor:'rgba(31,122,80,.7)',borderRadius:4}
       ]
     },
     options:{

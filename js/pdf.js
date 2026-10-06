@@ -971,7 +971,7 @@ function abrirRelCustoM2(){
     const sel=document.getElementById('m2-obra-sel');
     if(sel){
       sel.innerHTML='<option value="">— Selecione a obra —</option>'+
-        DB.obras.map(o=>`<option value="${o.id}">${o.nome}${o.m2?' ('+o.m2+' m²)':' ⚠ sem m²'}</option>`).join('');
+        DB.obras.map(o=>`<option value="${o.id}">${o.nome}${o.m2?' ('+o.m2+' m²)':' sem m²'}</option>`).join('');
       if(DB.sel)sel.value=DB.sel;
     }
     renderCustoM2();
@@ -1012,7 +1012,7 @@ function renderCustoM2(){
   if(!d){if(el)el.innerHTML='<div class="t-empty">Obra não encontrada.</div>';return;}
 
   const semM2=!d.m2;
-  const aviso=semM2?`<div class="al w" style="margin-bottom:11px"><span>⚠️</span><span>Esta obra não tem m² cadastrado. <button class="btn sm" onclick="openModal('obra','${d.obra.id}')">✏️ Editar obra</button></span></div>`:'';
+  const aviso=semM2?`<div class="al w" style="margin-bottom:11px"><span><svg class=ot-i><use href=#i-triangle-alert></use></svg></span><span>Esta obra não tem m² cadastrado. <button class="btn sm" onclick="openModal('obra','${d.obra.id}')"><svg class=ot-i><use href=#i-pencil></use></svg> Editar obra</button></span></div>`:'';
 
   const barHtml=(pct,cor)=>`<div style="flex:1;background:var(--bg3);border-radius:3px;height:7px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${cor};border-radius:3px"></div></div>`;
   const CORES=['#5b8ff9','#f4a623','#18a84d','#d94040','#a855f7','#ec4899','#14b8a6','#f97316'];
@@ -1020,30 +1020,30 @@ function renderCustoM2(){
   el.innerHTML=aviso+`
   <div class="g g4" style="margin-bottom:14px">
     <div class="kpi" style="border-color:rgba(244,166,35,.4)">
-      <div class="kl">📐 Área Total</div>
+      <div class="kl"><svg class=ot-i><use href=#i-ruler></use></svg> Área Total</div>
       <div class="kv" style="color:var(--accent)">${d.m2?d.m2+' m²':'—'}</div>
       <div class="kd neu">${d.obra.tipo||'—'}</div>
     </div>
     <div class="kpi">
-      <div class="kl">💸 Total Despesas</div>
+      <div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Total Despesas</div>
       <div class="kv" style="color:var(--red)">${fmtR(d.totalGeral)}</div>
       <div class="kd neu">${d.porCat.length} categorias</div>
     </div>
     <div class="kpi" style="border-color:rgba(244,166,35,.4)">
-      <div class="kl">📊 Custo/m² Realizado</div>
+      <div class="kl"><svg class=ot-i><use href=#i-chart-column></use></svg> Custo/m² Realizado</div>
       <div class="kv" style="color:var(--accent)">${d.m2?fmtR(d.custoM2Geral)+'/m²':'—'}</div>
       <div class="kd neu">sobre ${d.totalGeral>0?d.porCat.reduce((a,r)=>a+r.qtd,0)+' lançamentos':'sem dados'}</div>
     </div>
     <div class="kpi">
-      <div class="kl">🎯 Orçado/m²</div>
+      <div class="kl"><svg class=ot-i><use href=#i-target></use></svg> Orçado/m²</div>
       <div class="kv" style="color:${d.obra.orc&&d.m2?(d.custoM2Geral>d.obra.orc/d.m2?'var(--red)':'var(--green)'):'var(--txt3)'}">${d.obra.orc&&d.m2?fmtR(d.obra.orc/d.m2)+'/m²':'—'}</div>
-      <div class="kd ${d.obra.orc&&d.m2&&d.custoM2Geral>d.obra.orc/d.m2?'dn':'up'}">${d.obra.orc&&d.m2?(d.custoM2Geral<=d.obra.orc/d.m2?'✓ Dentro do orçamento':'⚠ Acima do orçado'):'—'}</div>
+      <div class="kd ${d.obra.orc&&d.m2&&d.custoM2Geral>d.obra.orc/d.m2?'dn':'up'}">${d.obra.orc&&d.m2?(d.custoM2Geral<=d.obra.orc/d.m2?'<svg class=ot-i><use href=#i-check></use></svg> Dentro do orçamento':'<svg class=ot-i><use href=#i-triangle-alert></use></svg> Acima do orçado'):'—'}</div>
     </div>
   </div>
 
   <div class="g g2" style="margin-bottom:14px">
     <div>
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--txt)">🗂️ Por Categoria</div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--txt)"><svg class=ot-i><use href=#i-folder-open></use></svg> Por Categoria</div>
       ${d.porCat.map((r,i)=>`
         <div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;margin-bottom:3px">
@@ -1060,7 +1060,7 @@ function renderCustoM2(){
         </div>`).join('')}
     </div>
     <div>
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--txt)">🏗️ Por Etapa Construtiva</div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--txt)"><svg class=ot-i><use href=#i-hard-hat></use></svg> Por Etapa Construtiva</div>
       ${d.porEtapa.length?d.porEtapa.map((r,i)=>`
         <div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;margin-bottom:3px">
@@ -1722,7 +1722,7 @@ function exportEstoquePDF(){
       const vals=[
         (e.material||'—').substring(0,34), e.un||'—',
         saldo.toFixed(2), Number(e.min||0).toFixed(0),
-        abaixoMin?'⚠ Crítico':semSaldo?'Zerado':'OK',
+        abaixoMin?'Crítico':semSaldo?'Zerado':'OK',
         entradas.toFixed(2), saidas.toFixed(2), ultMov,
         (e.forn||'—').substring(0,22)
       ];

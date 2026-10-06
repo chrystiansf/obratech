@@ -23,10 +23,10 @@ function renderDemandas(){
   const concluidas=(DB.demandas||[]).filter(d=>d.status==='concluida').length;
   const kAct=(v)=>statusF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('dem-kpis').innerHTML=`
-    <div class="kpi" onclick="demFiltroKpi('')" style="cursor:pointer;${kAct('')}"><div class="kl">📋 Total</div><div class="kv">${total}</div><div class="kd neu">demandas</div></div>
-    <div class="kpi" onclick="demFiltroKpi('pendente')" style="cursor:pointer;${kAct('pendente')}"><div class="kl">⏳ Pendentes</div><div class="kv" style="color:var(--yellow)">${pendentes}</div><div class="kd ${pendentes?'dn':'neu'}">aguardando</div></div>
-    <div class="kpi" onclick="demFiltroKpi('andamento')" style="cursor:pointer;${kAct('andamento')}"><div class="kl">🔄 Em andamento</div><div class="kv" style="color:var(--primary)">${andamento}</div><div class="kd neu">em execução</div></div>
-    <div class="kpi" onclick="demFiltroKpi('concluida')" style="cursor:pointer;${kAct('concluida')}"><div class="kl">✅ Concluídas</div><div class="kv" style="color:var(--green)">${concluidas}</div><div class="kd up">finalizadas</div></div>`;
+    <div class="kpi" onclick="demFiltroKpi('')" style="cursor:pointer;${kAct('')}"><div class="kl"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Total</div><div class="kv">${total}</div><div class="kd neu">demandas</div></div>
+    <div class="kpi" onclick="demFiltroKpi('pendente')" style="cursor:pointer;${kAct('pendente')}"><div class="kl"><svg class=ot-i><use href=#i-hourglass></use></svg> Pendentes</div><div class="kv" style="color:var(--yellow)">${pendentes}</div><div class="kd ${pendentes?'dn':'neu'}">aguardando</div></div>
+    <div class="kpi" onclick="demFiltroKpi('andamento')" style="cursor:pointer;${kAct('andamento')}"><div class="kl"><svg class=ot-i><use href=#i-refresh-cw></use></svg> Em andamento</div><div class="kv" style="color:var(--primary)">${andamento}</div><div class="kd neu">em execução</div></div>
+    <div class="kpi" onclick="demFiltroKpi('concluida')" style="cursor:pointer;${kAct('concluida')}"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Concluídas</div><div class="kv" style="color:var(--green)">${concluidas}</div><div class="kd up">finalizadas</div></div>`;
 
   const el=document.getElementById('dem-tbl');
   if(!demandas.length){
@@ -57,11 +57,11 @@ function renderDemandas(){
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span class="b ${PRIOR_COR[d.prioridade]||'bn'}" style="font-size:10px">${PRIOR_LABEL[d.prioridade]||'—'}</span>
           <select class="sel" style="height:28px;font-size:10px;padding:0 6px;width:auto;min-height:28px;border-radius:6px" onclick="event.stopPropagation()" onchange="event.stopPropagation();demMudarStatus('${d.id}',this.value)">
-            <option value="pendente"${d.status==='pendente'?' selected':''}>⏳ Pendente</option>
-            <option value="andamento"${d.status==='andamento'?' selected':''}>🔄 Em andamento</option>
-            <option value="concluida"${d.status==='concluida'?' selected':''}>✅ Concluída</option>
+            <option value="pendente"${d.status==='pendente'?' selected':''}>Pendente</option>
+            <option value="andamento"${d.status==='andamento'?' selected':''}>Em andamento</option>
+            <option value="concluida"${d.status==='concluida'?' selected':''}>Concluída</option>
           </select>
-          ${venc?'<span style="color:var(--red);font-size:11px;font-weight:600">⚠ Vencida</span>':''}
+          ${venc?'<span style="color:var(--red);font-size:11px;font-weight:600"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Vencida</span>':''}
           <span style="font-size:11px;color:var(--txt3);transition:.2s" class="dem-arrow">▸</span>
         </div>
       </div>
@@ -72,8 +72,8 @@ function renderDemandas(){
           <div><span style="color:var(--txt3)">Prazo:</span> <span style="color:${venc?'var(--red)':'inherit'}">${d.prazo?fmtDt(d.prazo):'—'}</span></div>
           ${d.obs?`<div style="grid-column:span 2"><span style="color:var(--txt3)">Obs:</span> ${d.obs}</div>`:''}
           <div style="grid-column:span 2;text-align:right;padding-top:6px;display:flex;gap:6px;justify-content:flex-end">
-            <button class="btn sm pri" onclick="event.stopPropagation();openModal('demanda','${d.id}')" style="font-size:11px">✏️ Editar</button>
-            <button class="btn sm" onclick="event.stopPropagation();delDemanda('${d.id}')" style="color:var(--red);font-size:11px">🗑️ Excluir</button>
+            <button class="btn sm pri" onclick="event.stopPropagation();openModal('demanda','${d.id}')" style="font-size:11px"><svg class=ot-i><use href=#i-pencil></use></svg> Editar</button>
+            <button class="btn sm" onclick="event.stopPropagation();delDemanda('${d.id}')" style="color:var(--red);font-size:11px"><svg class=ot-i><use href=#i-trash-2></use></svg> Excluir</button>
           </div>
         </div>
       </div>

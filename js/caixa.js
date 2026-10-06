@@ -45,7 +45,7 @@ function renderCaixa() {
   const sel = document.getElementById('cx-obra');
   if (sel) {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">🏗️ Todas as obras</option>' + DB.obras.map(o => `<option value="${o.id}">${escHtml(o.nome)}</option>`).join('');
+    sel.innerHTML = '<option value="">Todas as obras</option>' + DB.obras.map(o => `<option value="${o.id}">${escHtml(o.nome)}</option>`).join('');
     sel.value = cur;
   }
   const todosAportes = _cxAportesFiltrados(true);
@@ -57,10 +57,10 @@ function renderCaixa() {
   const invComAporte = new Set(todosAportes.map(a => String(a.investidorId))).size;
 
   document.getElementById('cx-kpis').innerHTML = `
-    <div class="kpi" onclick="cxFiltrarInvestidor(null)" style="cursor:pointer"><div class="kl">💵 Total Aportado</div><div class="kv" style="color:var(--green)">${fmtR(totAp)}</div><div class="kd up">${todosAportes.length} aporte${todosAportes.length !== 1 ? 's' : ''}</div></div>
-    <div class="kpi" onclick="cxTab('extrato')" style="cursor:pointer"><div class="kl">💸 Saídas (Despesas)</div><div class="kv" style="color:var(--red)">${fmtR(totDesp)}</div><div class="kd dn">${despesas.length} lançamentos</div></div>
-    <div class="kpi" onclick="cxTab('extrato')" style="cursor:pointer"><div class="kl">⚖️ Saldo em Caixa</div><div class="kv" style="color:${saldo >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtR(saldo)}</div><div class="kd ${saldo >= 0 ? 'up' : 'dn'}">${saldo >= 0 ? 'Disponível' : 'Necessita aporte'}</div></div>
-    <div class="kpi" onclick="cxAbrirInvestidores()" style="cursor:pointer"><div class="kl">🤝 Investidores</div><div class="kv">${invComAporte}<span style="font-size:12px;color:var(--txt3);font-weight:400">/${DB.investidores.length}</span></div><div class="kd neu">com aportes / cadastrados</div></div>`;
+    <div class="kpi" onclick="cxFiltrarInvestidor(null)" style="cursor:pointer"><div class="kl"><svg class=ot-i><use href=#i-banknote></use></svg> Total Aportado</div><div class="kv" style="color:var(--green)">${fmtR(totAp)}</div><div class="kd up">${todosAportes.length} aporte${todosAportes.length !== 1 ? 's' : ''}</div></div>
+    <div class="kpi" onclick="cxTab('extrato')" style="cursor:pointer"><div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Saídas (Despesas)</div><div class="kv" style="color:var(--red)">${fmtR(totDesp)}</div><div class="kd dn">${despesas.length} lançamentos</div></div>
+    <div class="kpi" onclick="cxTab('extrato')" style="cursor:pointer"><div class="kl"><svg class=ot-i><use href=#i-scale></use></svg> Saldo em Caixa</div><div class="kv" style="color:${saldo >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtR(saldo)}</div><div class="kd ${saldo >= 0 ? 'up' : 'dn'}">${saldo >= 0 ? 'Disponível' : 'Necessita aporte'}</div></div>
+    <div class="kpi" onclick="cxAbrirInvestidores()" style="cursor:pointer"><div class="kl"><svg class=ot-i><use href=#i-handshake></use></svg> Investidores</div><div class="kv">${invComAporte}<span style="font-size:12px;color:var(--txt3);font-weight:400">/${DB.investidores.length}</span></div><div class="kd neu">com aportes / cadastrados</div></div>`;
 
   // Participação por investidor
   const porInv = {};
@@ -103,7 +103,7 @@ function renderCaixa() {
 
 function _cxRenderAportes(aportes) {
   const el = document.getElementById('cx-aportes');
-  const chip = _cxInvFiltro ? `<div style="margin-bottom:10px"><span class="b bn" style="cursor:pointer" onclick="cxFiltrarInvestidor(null)">🤝 ${escHtml(_cxInvNome(_cxInvFiltro))} ✕</span></div>` : '';
+  const chip = _cxInvFiltro ? `<div style="margin-bottom:10px"><span class="b bn" style="cursor:pointer" onclick="cxFiltrarInvestidor(null)"><svg class=ot-i><use href=#i-handshake></use></svg> ${escHtml(_cxInvNome(_cxInvFiltro))} <svg class=ot-i><use href=#i-x></use></svg></span></div>` : '';
   if (!aportes.length) {
     el.innerHTML = chip + '<div class="t-empty">Nenhum aporte encontrado. <button class="btn pri sm" onclick="cxAbrirAporte()" style="margin-left:8px">＋ Registrar aporte</button></div>';
     return;
@@ -119,8 +119,8 @@ function _cxRenderAportes(aportes) {
       <td style="font-size:11px;color:var(--txt3)">${escHtml(a.desc || '—')}</td>
       <td style="text-align:right;font-weight:700;color:var(--green);white-space:nowrap">${fmtR(a.valor)}</td>
       <td><div class="ta-actions">
-        <button class="btn sm ico" onclick="cxAbrirAporte('${escHtml(a.id)}')" title="Editar">✏️</button>
-        <button class="btn sm ico" onclick="cxExcluirAporte('${escHtml(a.id)}')" title="Excluir">🗑️</button>
+        <button class="btn sm ico" onclick="cxAbrirAporte('${escHtml(a.id)}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+        <button class="btn sm ico" onclick="cxExcluirAporte('${escHtml(a.id)}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
       </div></td>
     </tr>`).join('') +
     `<tr style="font-weight:700;background:var(--bg3)"><td colspan="5">TOTAL</td><td style="text-align:right;color:var(--green)">${fmtR(tot)}</td><td></td></tr></table></div>`;
@@ -166,7 +166,7 @@ function cxLimparFiltros() {
 // ── Modal: Aporte ─────────────────────────────────────────────
 function _cxModal(title, body, onSave, saveLabel) {
   const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()">✕</div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">${onSave ? 'Cancelar' : 'Fechar'}</button>${onSave ? `<button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()">${saveLabel || '✅ Salvar'}</button>` : ''}</div></div></div>`;
+  root.innerHTML = `<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">${onSave ? 'Cancelar' : 'Fechar'}</button>${onSave ? `<button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()">${saveLabel || '<svg class=ot-i><use href=#i-circle-check></use></svg> Salvar'}</button>` : ''}</div></div></div>`;
   window._mSave = onSave;
 }
 
@@ -192,7 +192,7 @@ function cxAbrirAporte(editId) {
     <div class="fg"><label class="lbl">Forma</label><select class="sel" id="ap-forma">${formaOpts}</select></div>
     <div class="fg"><label class="lbl">Descrição</label><input class="inp" id="ap-desc" value="${escHtml(a?.desc || '')}" placeholder="Ex: 1ª parcela"></div>
   </div>`;
-  _cxModal(a ? '✏️ Editar Aporte' : '💵 Novo Aporte', body, () => {
+  _cxModal(a ? '<svg class=ot-i><use href=#i-pencil></use></svg> Editar Aporte' : '<svg class=ot-i><use href=#i-banknote></use></svg> Novo Aporte', body, () => {
     const dados = {
       investidorId: document.getElementById('ap-inv').value,
       obraId: document.getElementById('ap-obra').value,
@@ -266,14 +266,14 @@ function cxAbrirInvestidores() {
       <td style="text-align:right;font-weight:700;white-space:nowrap">${fmtR(v)}</td>
       <td style="text-align:center">${totGeral > 0 ? (v / totGeral * 100).toFixed(1) + '%' : '—'}</td>
       <td><div class="ta-actions">
-        <button class="btn sm ico" onclick="cxEditarInvestidor('${escHtml(i.id)}')" title="Editar">✏️</button>
-        <button class="btn sm ico" onclick="cxExcluirInvestidor('${escHtml(i.id)}')" title="Excluir">🗑️</button>
+        <button class="btn sm ico" onclick="cxEditarInvestidor('${escHtml(i.id)}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+        <button class="btn sm ico" onclick="cxExcluirInvestidor('${escHtml(i.id)}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
       </div></td></tr>`;
   }).join('');
   const body = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn sm pri" onclick="cxEditarInvestidor()">＋ Novo investidor</button></div>
     ${invs.length ? `<div style="overflow-x:auto"><table class="tbl"><tr><th>Investidor</th><th style="text-align:center">Aportes</th><th style="text-align:right">Total</th><th style="text-align:center">Part.</th><th></th></tr>${linhas}</table></div>`
       : '<div class="t-empty">Nenhum investidor cadastrado.</div>'}`;
-  _cxModal('🤝 Investidores', body, null);
+  _cxModal('<svg class=ot-i><use href=#i-handshake></use></svg> Investidores', body, null);
 }
 
 function cxEditarInvestidor(id) {
@@ -285,7 +285,7 @@ function cxEditarInvestidor(id) {
     <div class="fg" style="grid-column:span 2"><label class="lbl">E-mail</label><input class="inp" id="inv-email" value="${escHtml(i?.email || '')}"></div>
     <div class="fg" style="grid-column:span 2"><label class="lbl">Observações</label><input class="inp" id="inv-obs" value="${escHtml(i?.obs || '')}"></div>
   </div>`;
-  _cxModal(i ? '✏️ Editar Investidor' : '🤝 Novo Investidor', body, () => {
+  _cxModal(i ? '<svg class=ot-i><use href=#i-pencil></use></svg> Editar Investidor' : '<svg class=ot-i><use href=#i-handshake></use></svg> Novo Investidor', body, () => {
     const d = {
       nome: document.getElementById('inv-nome').value.trim(),
       documento: document.getElementById('inv-doc').value.trim(),
