@@ -604,9 +604,22 @@ async function salvarPermissoes(userId){
   toast("✅","Acesso de "+u?.nome?.split(" ")[0]+" atualizado!");
 }
 
+// Remove o acesso de um funcionário/cliente pela função segura do banco (ot_remover_acesso).
+// Se o SQL de blindagem ainda não foi aplicado, usa o método antigo.
+async function _removerAcesso(userId){
+  const {error}=await supa.rpc('ot_remover_acesso',{p_usuario:userId});
+  if(!error) return true;
+  if(/ot_remover_acesso|function|PGRST202/i.test((error.message||'')+(error.code||''))){
+    await supa.from('cliente_obras').delete().eq('cliente_id',userId).eq('empresa_id',_empresaId);
+    const r=await supa.from('perfis').update({empresa_id:null}).eq('id',userId);
+    if(!r.error) return true;
+  }
+  toast('❌','Não foi possível remover o acesso: '+String(error.message||'').substring(0,80));
+  return false;
+}
 async function removerAcessoUsuario(userId,nome){
   if(!confirm("Remover acesso de "+nome+"? O usuário não conseguirá mais entrar no sistema."))return;
-  await supa.from("perfis").update({empresa_id:null}).eq("id",userId);
+  if(!(await _removerAcesso(userId))) return;
   DB.equipeUsuarios=DB.equipeUsuarios?.filter(u=>u.id!==userId)||[];
   renderEquipeUsuarios(DB.equipeUsuarios);
   toast("✅",nome+" removido do sistema.");
@@ -781,8 +794,7 @@ async function sincronizarClientes(){
 
 async function revogarCliente(clienteId){
   if(!confirm('Remover acesso deste cliente?')) return;
-  await supa.from('cliente_obras').delete().eq('cliente_id',clienteId).eq('empresa_id',_empresaId);
-  // Não deletar o usuário, só remover permissões
+  if(!(await _removerAcesso(clienteId))) return;
   toast('✅','Acesso do cliente removido.');
   renderClientes();
 }
