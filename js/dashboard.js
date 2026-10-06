@@ -3,8 +3,25 @@
 // ═══════════════════════════════════════════
 const CH={};
 function mkChart(id,cfg){if(CH[id])CH[id].destroy();const el=document.getElementById(id);if(!el)return;CH[id]=new Chart(el,cfg);}
-const CP={g:'rgba(42,48,80,.8)',t:'rgba(136,146,184,1)',pri:'rgba(91,143,249,1)',priA:'rgba(91,143,249,.25)',grn:'rgba(34,211,99,1)',grnA:'rgba(34,211,99,.2)',red:'rgba(242,92,92,1)',redA:'rgba(242,92,92,.2)',yel:'rgba(246,201,14,1)',yelA:'rgba(246,201,14,.15)',pur:'rgba(155,116,245,1)',cya:'rgba(34,212,212,1)'};
-const BO={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:CP.t,font:{family:'DM Sans',size:10},boxWidth:8,padding:7}}},scales:{x:{grid:{color:CP.g},ticks:{color:CP.t,font:{size:10}}},y:{grid:{color:CP.g},ticks:{color:CP.t,font:{size:10}}}}};
+// Cores dos gráficos — identidade OBRATECH (seguem o tema claro/escuro)
+const CP={};
+const BO={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Sora',size:11},boxWidth:10,boxHeight:10,padding:10,usePointStyle:true,pointStyle:'rectRounded'}}},scales:{x:{grid:{},border:{},ticks:{font:{family:'IBM Plex Mono',size:10}}},y:{grid:{},border:{},ticks:{font:{family:'IBM Plex Mono',size:10}}}}};
+function atualizarCoresGraficos(){
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  Object.assign(CP,{
+    g: dark?'rgba(255,255,255,.07)':'#ECEAE5',          // grade
+    t: dark?'#A8ADB5':'#6B7079',                         // texto dos eixos
+    pri:'#EE5A24', priA:'rgba(238,90,36,.18)',           // marca (bloco)
+    grn: dark?'#5BC48E':'#1F7A50', grnA: dark?'rgba(91,196,142,.2)':'rgba(31,122,80,.16)',
+    red: dark?'#F08080':'#B42828', redA: dark?'rgba(240,128,128,.2)':'rgba(180,40,40,.14)',
+    yel:'#E0A100', yelA:'rgba(224,161,0,.16)',
+    pur: dark?'#8DB6DE':'#2B5C8A', cya: dark?'#C9CCD1':'#4A4F57'
+  });
+  BO.plugins.legend.labels.color=CP.t;
+  ['x','y'].forEach(a=>{BO.scales[a].grid.color=CP.g;BO.scales[a].border.color=CP.g;BO.scales[a].ticks.color=CP.t;});
+  if(window.Chart){Chart.defaults.font.family="'Sora', sans-serif";Chart.defaults.color=CP.t;}
+}
+atualizarCoresGraficos();
 
 function meses6(){const M=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],n=new Date();return Array.from({length:6},(_,i)=>{const d=new Date(n.getFullYear(),n.getMonth()-5+i,1);return{l:M[d.getMonth()],y:d.getFullYear(),m:d.getMonth()};});}
 
@@ -207,12 +224,12 @@ function renderDashCharts(obras){
     mkChart('ch-fluxo',{type:'line',data:{labels:ms.map(m=>m.l),datasets:[{label:'Aportes',data:recs,borderColor:CP.grn,backgroundColor:CP.grnA,fill:true,tension:.4},{label:'Despesas',data:deps,borderColor:CP.red,backgroundColor:CP.redA,fill:true,tension:.4}]},options:BO});
     mkChart('ch-avancos',{type:'bar',data:{labels:obras.map(o=>o.nome.split(' ').slice(0,2).join(' ')),datasets:[{label:'Avanço %',data:obras.map(obraPct),backgroundColor:obras.map(o=>obraColor(o)==='r'?CP.redA:obraColor(o)==='g'?CP.grnA:CP.priA),borderColor:obras.map(o=>obraColor(o)==='r'?CP.red:obraColor(o)==='g'?CP.grn:CP.pri),borderWidth:2,borderRadius:3}]},options:{...BO,scales:{...BO.scales,y:{...BO.scales.y,max:100}}}});
     // Paleta de 20 cores distintas para nunca repetir
-    const _cPal=[
-      ['#3366CC','#2952a3'],['#DC3912','#b32e0e'],['#FF9900','#cc7a00'],['#109618','#0c7412'],
-      ['#990099','#730073'],['#0099C6','#007a9e'],['#DD4477','#b3375f'],['#66AA00','#4d8000'],
-      ['#B82E2E','#8f2424'],['#316395','#264d73'],['#994499','#733673'],['#22AA99','#1a8577'],
-      ['#AAAA11','#88880d'],['#6633CC','#5228a3'],['#E67300','#b35c00'],['#8B0707','#6b0505'],
-      ['#329262','#27724c'],['#5574A6','#435c84'],['#3B3EAC','#2e3087'],['#B77322','#925c1b']
+    const _cPal=[ // cores distintas, começando pela paleta da marca
+      ['rgba(238,90,36,.85)','#EE5A24'],['rgba(28,31,36,.85)','#1C1F24'],['rgba(43,92,138,.85)','#2B5C8A'],['rgba(31,122,80,.85)','#1F7A50'],
+      ['rgba(224,161,0,.85)','#E0A100'],['rgba(107,112,121,.85)','#6B7079'],['rgba(184,63,20,.85)','#B83F14'],['rgba(127,167,207,.9)','#7FA7CF'],
+      ['rgba(91,174,133,.9)','#5BAE85'],['rgba(168,173,181,.9)','#A8ADB5'],['rgba(138,90,0,.85)','#8A5A00'],['rgba(244,162,127,.9)','#F4A27F'],
+      ['rgba(74,79,87,.85)','#4A4F57'],['rgba(153,68,153,.8)','#994499'],['rgba(34,170,153,.85)','#22AA99'],['rgba(180,40,40,.85)','#B42828'],
+      ['rgba(85,116,166,.85)','#5574A6'],['rgba(170,170,17,.85)','#AAAA11'],['rgba(102,51,204,.8)','#6633CC'],['rgba(183,115,34,.85)','#B77322']
     ];
     // Buscar todas as categorias com valor (dinâmico)
     const allCats=[...new Set([...(DB.categorias||[]),...DB.lancs.map(l=>l.cat).filter(Boolean)])];
@@ -257,3 +274,6 @@ function renderDash(){
     ?`<table class="tbl"><tr><th>Obra</th><th>Avanço</th><th>Status</th></tr>`+obras.map(o=>`<tr><td class="n">${o.nome}</td><td style="min-width:110px"><div class="pl"><span>${obraPct(o)}%</span></div><div class="pw"><div class="pb" style="width:${obraPct(o)}%;background:var(--${obraColor(o)==='r'?'red2':obraColor(o)==='g'?'green2':'primary'})"></div></div></td><td><span class="b ${obraColor(o)==='r'?'br':obraColor(o)==='g'?'bg':obraColor(o)==='fin'?'bg':'bn'}">${obraLabel(o)}</span></td></tr>`).join('')+'</table>'
     :'<div class="t-empty">Nenhuma obra.</div>';
 }
+
+// Recalcular layout dos gráficos quando as fontes da marca terminarem de carregar
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{Object.values(CH).forEach(c=>{try{c.update()}catch(e){}});});

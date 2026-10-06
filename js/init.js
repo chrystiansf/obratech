@@ -1,12 +1,22 @@
 // ════════════════════════════════════════════════════════════
 // TEMA CLARO / ESCURO
 // ════════════════════════════════════════════════════════════
+function _aplicarTema(t){
+  const dark=t==='dark';
+  if(dark) document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  document.body.classList.toggle('light',!dark);
+  if(typeof atualizarCoresGraficos==='function') atualizarCoresGraficos();
+}
 function toggleTheme(){
-  document.body.classList.toggle('light');
-  localStorage.setItem('og_theme',document.body.classList.contains('light')?'light':'dark');
+  const novo=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  try{localStorage.setItem('og_theme',novo);}catch(e){}
+  _aplicarTema(novo);
+  if(typeof renderPaginaAtual==='function') renderPaginaAtual();
 }
 function initTheme(){
-  if(localStorage.getItem('og_theme')==='light') document.body.classList.add('light');
+  let t='light';try{t=localStorage.getItem('og_theme')==='dark'?'dark':'light';}catch(e){}
+  _aplicarTema(t);
 }
 
 // ── Inicialização do ObraTech ─────────────────────────────────

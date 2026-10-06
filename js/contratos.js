@@ -298,7 +298,7 @@ function previewBoletimPDF(medicaoId){
     <div class="mo" style="max-width:95vw;max-height:95vh;padding:0;width:800px;display:flex;flex-direction:column">
       <div class="moh" style="flex-shrink:0"><div class="mot">📄 Boletim de Medição Nº ${String(m.numero||'1').padStart(3,'0')}</div><div class="mox" onclick="closeModal()">✕</div></div>
       <div class="mob" style="flex:1;overflow-y:auto;background:#f7f8fc">
-        <div style="background:#fff;padding:24px;border-radius:8px;color:#1a2040;font-family:'Inter',sans-serif">
+        <div style="background:#fff;padding:24px;border-radius:8px;color:#1a2040;font-family:var(--ot-font-sans)">
           <h3 style="margin:0 0 14px 0;font-size:16px;border-bottom:2px solid #464b5a;padding-bottom:8px">Dados do Contrato</h3>
           <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:18px">
             <thead><tr style="background:#464b5a;color:#fff"><th style="padding:8px;text-align:center">Contrato</th><th style="padding:8px;text-align:center">Fornecedor</th><th style="padding:8px;text-align:center">Valor do Contrato</th><th style="padding:8px;text-align:center">Período</th></tr></thead>

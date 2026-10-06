@@ -1,0 +1,340 @@
+/* =========================================================
+   OBRATECH — Identidade "01 · O Bloco"
+   Carregado DEPOIS de style.css. Fonte da verdade: brand/BRAND.md
+   1. Tokens  2. Ponte com variáveis antigas  3. Base  4. Componentes
+   ========================================================= */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+/* ---------- 1. TOKENS (brand/tokens/tokens.css) ---------- */
+:root {
+  --ot-grafite-900: #1C1F24; --ot-grafite-800: #2B2F36; --ot-grafite-700: #4A4F57;
+  --ot-grafite-500: #6B7079; --ot-grafite-300: #A8ADB5; --ot-grafite-200: #D3D6DB;
+  --ot-areia-200: #E4E2DC; --ot-areia-100: #F6F5F2; --ot-branco: #FFFFFF;
+  --ot-bloco-100: #FDE9DF; --ot-bloco-300: #F07A4A; --ot-bloco-500: #EE5A24; --ot-bloco-600: #D94E1C; --ot-bloco-700: #B83F14;
+  --ot-sucesso-600: #1F7A50; --ot-sucesso-100: #E3F3EA;
+  --ot-alerta-600: #8A5A00; --ot-alerta-500: #E0A100; --ot-alerta-100: #FCF1D6;
+  --ot-erro-600: #B42828; --ot-erro-100: #FBE4E4;
+  --ot-info-600: #2B5C8A; --ot-info-100: #E2ECF6;
+
+  --ot-bg: var(--ot-areia-100);
+  --ot-surface: var(--ot-branco);
+  --ot-surface-sunken: var(--ot-areia-100);
+  --ot-surface-inverse: var(--ot-grafite-900);
+  --ot-border: var(--ot-areia-200);
+  --ot-border-strong: var(--ot-grafite-200);
+  --ot-text: var(--ot-grafite-900);
+  --ot-text-secondary: var(--ot-grafite-700);
+  --ot-text-muted: var(--ot-grafite-500);
+  --ot-text-inverse: var(--ot-branco);
+  --ot-text-accent: var(--ot-bloco-700);
+  --ot-brand: var(--ot-bloco-500);
+  --ot-brand-hover: var(--ot-bloco-600);
+  --ot-brand-soft: var(--ot-bloco-100);
+  --ot-on-brand: var(--ot-grafite-900);
+  --ot-primary: var(--ot-grafite-900);
+  --ot-primary-hover: var(--ot-grafite-800);
+  --ot-on-primary: var(--ot-branco);
+  --ot-focus-ring: 0 0 0 3px rgba(238, 90, 36, 0.35);
+
+  /* estados (texto/fundo) — no escuro ficam mais claros para manter contraste */
+  --ot-ok: var(--ot-sucesso-600);  --ot-ok-soft: var(--ot-sucesso-100);
+  --ot-warn: var(--ot-alerta-600); --ot-warn-soft: var(--ot-alerta-100);
+  --ot-err: var(--ot-erro-600);    --ot-err-soft: var(--ot-erro-100);
+  --ot-inf: var(--ot-info-600);    --ot-inf-soft: var(--ot-info-100);
+
+  --ot-font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --ot-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ot-tracking-tight: -0.02em; --ot-tracking-label: 0.08em;
+  --ot-radius-sm: 6px; --ot-radius-md: 10px; --ot-radius-lg: 16px; --ot-radius-xl: 20px; --ot-radius-full: 999px;
+  --ot-shadow-sm: 0 1px 2px rgba(28,31,36,.06);
+  --ot-shadow-md: 0 4px 12px rgba(28,31,36,.08);
+  --ot-shadow-lg: 0 12px 32px rgba(28,31,36,.12);
+  --ot-ease: cubic-bezier(0.2, 0, 0, 1); --ot-duration: 160ms;
+}
+[data-theme="dark"] {
+  --ot-bg: #121417; --ot-surface: var(--ot-grafite-900); --ot-surface-sunken: #16191D;
+  --ot-surface-inverse: var(--ot-areia-100);
+  --ot-border: var(--ot-grafite-800); --ot-border-strong: #3A3F47;
+  --ot-text: var(--ot-areia-100); --ot-text-secondary: #C9CCD1; --ot-text-muted: var(--ot-grafite-300);
+  --ot-text-inverse: var(--ot-grafite-900); --ot-text-accent: var(--ot-bloco-300);
+  --ot-brand-soft: rgba(238,90,36,.16);
+  --ot-primary: var(--ot-areia-100); --ot-primary-hover: var(--ot-branco); --ot-on-primary: var(--ot-grafite-900);
+  --ot-ok: #5BC48E;  --ot-ok-soft: rgba(91,196,142,.14);
+  --ot-warn: #E8B83A; --ot-warn-soft: rgba(224,161,0,.14);
+  --ot-err: #F08080; --ot-err-soft: rgba(240,128,128,.14);
+  --ot-inf: #8DB6DE; --ot-inf-soft: rgba(141,182,222,.14);
+  --ot-shadow-md: 0 4px 12px rgba(0,0,0,.35);
+  --ot-shadow-lg: 0 12px 32px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
+/* ---------- 2. PONTE: variáveis antigas → tokens ----------
+   Todo o sistema usa --bg, --card, --primary... Aqui elas passam a apontar para a marca. */
+:root, body, body.light {
+  --bg: var(--ot-bg);
+  --bg2: var(--ot-surface);
+  --bg3: var(--ot-surface-sunken);
+  --card: var(--ot-surface);
+  --card2: var(--ot-surface-sunken);
+  --border: var(--ot-border);
+  --border2: var(--ot-border-strong);
+  --primary: var(--ot-text-accent);      /* usado como texto: laranja acessível */
+  --primary-d: var(--ot-bloco-700);
+  --pglow: var(--ot-brand-soft);
+  --accent: var(--ot-brand);
+  --green: var(--ot-ok);  --green2: var(--ot-ok);  --gglow: var(--ot-ok-soft);
+  --red: var(--ot-err);   --red2: var(--ot-err);   --rglow: var(--ot-err-soft);
+  --yellow: var(--ot-warn); --yglow: var(--ot-warn-soft);
+  --purple: var(--ot-inf); --cyan: var(--ot-inf);
+  --txt: var(--ot-text); --txt2: var(--ot-text-secondary); --txt3: var(--ot-text-muted);
+  --r: var(--ot-radius-lg); --rs: var(--ot-radius-md);
+  --sh: var(--ot-shadow-md);
+}
+
+/* ---------- 3. BASE ---------- */
+html, body { font-family: var(--ot-font-sans); background: var(--ot-bg); color: var(--ot-text); font-feature-settings: normal; }
+body { font-size: 14px; }
+button, input, select, textarea { font-family: inherit; }
+.ot-num, .ot-mono, .kv, .pc-kv, .oc-stv, .ptot, .est-saldo-card .esv { font-family: var(--ot-font-mono); font-variant-numeric: tabular-nums; }
+.tbl td { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: none; box-shadow: var(--ot-focus-ring); }
+::selection { background: var(--ot-brand-soft); }
+::-webkit-scrollbar-thumb { background: var(--ot-border-strong); }
+.ot-label { font-family: var(--ot-font-mono); font-size: 12px; font-weight: 500; letter-spacing: var(--ot-tracking-label); text-transform: uppercase; color: var(--ot-text-muted); }
+
+/* Ícones de traço (Lucide) — <svg class="ot-i"><use href="#i-nome"/></svg> */
+.ot-i { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+.ot-i.sm { width: 15px; height: 15px; vertical-align: -2px; }
+.ot-i.lg { width: 22px; height: 22px; }
+
+/* ---------- 4. COMPONENTES ---------- */
+
+/* Sidebar — sempre grafite (nos dois temas) */
+#sb {
+  background: var(--ot-grafite-900); border-right: 1px solid var(--ot-grafite-800);
+  --txt: #FFFFFF; --txt2: var(--ot-grafite-300); --txt3: #8D929B;
+  --bg3: rgba(255,255,255,.06); --border: rgba(255,255,255,.08); --border2: rgba(255,255,255,.14);
+  --primary: var(--ot-bloco-300); --pglow: rgba(238,90,36,.14);
+  color: var(--ot-grafite-300);
+}
+#sb .logo { padding: 16px 14px 14px; min-height: 60px; gap: 0; position: relative; }
+#sb .logo-sym { width: 32px; height: 32px; flex-shrink: 0; }
+#sb .logo-full { height: 28px; width: auto; display: none; }
+#sb:hover .logo-sym { display: none; }
+#sb:hover .logo-full { display: block; opacity: 1; }
+.ni { position: relative; margin: 1px 8px; padding: 0 12px; height: 40px; border-radius: 8px; color: var(--ot-grafite-300); font-size: 14px; font-weight: 400; gap: 12px; }
+.ni:hover { color: #fff; background: rgba(255,255,255,.04); }
+.ni.on { color: #fff; background: rgba(255,255,255,.07); font-weight: 500; }
+.ni.on::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--ot-brand); }
+.ni .ic, .ni.on .ic, .ni:hover .ic { filter: none; opacity: 1; width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; }
+.ni .ic .ot-i { width: 20px; height: 20px; }
+#sb:not(:hover) .ni { padding: 0; justify-content: center; }
+#sb:not(:hover) .ni .sb-txt { display: none; }
+.sbfoot { border-top: 1px solid rgba(255,255,255,.08); }
+.av { background: var(--ot-grafite-700); color: #fff; font-weight: 600; }
+
+/* Topbar */
+#topbar { background: var(--ot-surface); border-bottom: 1px solid var(--ot-border); padding-left: 24px; padding-right: 24px; height: calc(60px + env(safe-area-inset-top,0)); box-shadow: none; }
+#topbar h1 { font-size: 20px; font-weight: 600; letter-spacing: var(--ot-tracking-tight); color: var(--ot-text); }
+
+/* Conteúdo */
+#content { padding: 24px; background: var(--ot-bg); }
+.g { gap: 16px; }
+
+/* Cards */
+.card, .kpi, .oc, .pc-kpi, .rel-card, .est-saldo-card { background: var(--ot-surface); border: 1px solid var(--ot-border); box-shadow: none; }
+.card { border-radius: var(--ot-radius-lg); padding: 20px; }
+.card:hover { border-color: var(--ot-border); }
+.ct { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--ot-text); }
+.cs { font-size: 12px; color: var(--ot-text-muted); margin-top: 2px; }
+.ch { margin-bottom: 16px; }
+
+/* KPIs */
+.kpi { border-radius: var(--ot-radius-lg); padding: 20px; transition: border-color var(--ot-duration) var(--ot-ease); }
+.kpi:hover { border-color: var(--ot-border-strong); transform: none; box-shadow: none; }
+.kl { font-family: var(--ot-font-mono); font-size: 11.5px; font-weight: 500; letter-spacing: var(--ot-tracking-label); text-transform: uppercase; color: var(--ot-text-muted); margin-bottom: 10px; }
+.kv { font-size: 26px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 6px; }
+.kd { font-size: 12px; font-weight: 500; }
+.kd.neu { color: var(--ot-text-muted); }
+/* KPI selecionado (filtro ativo): o "bloco" */
+.kpi[style*="outline:2px solid var(--primary)"] { outline-color: var(--ot-brand) !important; }
+
+/* Botões */
+.btn { height: 40px; padding: 0 16px; border-radius: var(--ot-radius-md); border: 1px solid var(--ot-border); background: var(--ot-surface); color: var(--ot-text); font-size: 14px; font-weight: 500; gap: 8px; transition: background var(--ot-duration) var(--ot-ease), border-color var(--ot-duration) var(--ot-ease); box-shadow: none; }
+.btn:hover { background: var(--ot-surface-sunken); border-color: var(--ot-border-strong); color: var(--ot-text); }
+.btn.sm { height: 34px; padding: 0 12px; font-size: 13px; }
+.btn.ico { width: 34px; padding: 0; justify-content: center; }
+.btn.pri, .light .btn.pri { background: var(--ot-primary); border-color: var(--ot-primary); color: var(--ot-on-primary); font-weight: 500; box-shadow: none; }
+.btn.pri:hover, .light .btn.pri:hover { background: var(--ot-primary-hover); border-color: var(--ot-primary-hover); color: var(--ot-on-primary); box-shadow: none; }
+.btn.brand { background: var(--ot-brand); border-color: var(--ot-brand); color: var(--ot-on-brand); }
+.btn.brand:hover { background: var(--ot-brand-hover); border-color: var(--ot-brand-hover); color: var(--ot-on-brand); }
+.btn.grn { background: var(--ot-ok); border-color: var(--ot-ok); color: #fff; }
+.btn.red, .btn.danger { background: var(--ot-err); border-color: var(--ot-err); color: #fff; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Formulários */
+.lbl { font-size: 13px; font-weight: 500; color: var(--ot-text); text-transform: none; letter-spacing: 0; }
+.inp, .sel, .ta { background: var(--ot-surface); border: 1px solid var(--ot-border); border-radius: var(--ot-radius-md); color: var(--ot-text); font-size: 14px; padding: 0 12px; min-height: 40px; transition: border-color var(--ot-duration) var(--ot-ease), box-shadow var(--ot-duration) var(--ot-ease); }
+.ta { padding: 10px 12px; }
+.inp:hover, .sel:hover, .ta:hover { border-color: var(--ot-border-strong); }
+.inp:focus, .sel:focus, .ta:focus { border-color: var(--ot-brand); box-shadow: var(--ot-focus-ring); }
+.inp::placeholder, .ta::placeholder { color: var(--ot-text-muted); }
+input[type=checkbox], input[type=radio] { accent-color: var(--ot-brand); }
+.fg { gap: 6px; }
+
+/* Tabelas */
+.tbl th { background: var(--ot-surface-sunken); font-family: var(--ot-font-mono); font-size: 11.5px; font-weight: 500; letter-spacing: .06em; color: var(--ot-text-muted); border-bottom: 1px solid var(--ot-border); padding: 10px 14px; }
+.tbl td { font-size: 13.5px; color: var(--ot-text-secondary); border-bottom: 1px solid var(--ot-border); padding: 12px 14px; height: 48px; }
+.tbl td.n { color: var(--ot-text); font-weight: 500; }
+.tbl tr:hover td, .light .tbl tr:hover td { background: var(--ot-surface-sunken); }
+.t-empty { color: var(--ot-text-muted); }
+
+/* Badges (pill) */
+.b, .status-badge { border-radius: var(--ot-radius-full); font-size: 12px; font-weight: 500; padding: 3px 10px; border: none; }
+.bg, .sb-fin { background: var(--ot-ok-soft); color: var(--ot-ok); }
+.br, .sb-atr { background: var(--ot-err-soft); color: var(--ot-err); }
+.by { background: var(--ot-warn-soft); color: var(--ot-warn); }
+.bb, .sb-and { background: var(--ot-brand-soft); color: var(--ot-text-accent); }
+.bp { background: var(--ot-inf-soft); color: var(--ot-inf); }
+.bn, .sb-ni { background: var(--ot-surface-sunken); color: var(--ot-text-muted); border: 1px solid var(--ot-border); }
+
+/* Progresso — trilho areia, preenchimento laranja da marca */
+.pw { background: var(--ot-areia-200); border-radius: var(--ot-radius-full); height: 8px; }
+[data-theme="dark"] .pw { background: var(--ot-grafite-800); }
+.pb { border-radius: var(--ot-radius-full); }
+.pb[style*="var(--primary)"] { background: var(--ot-brand) !important; }
+.pl { font-size: 12px; color: var(--ot-text-muted); margin-bottom: 4px; }
+
+/* Abas */
+.tabs, .est-tabs { border-bottom: 1px solid var(--ot-border); }
+.tab, .est-tab, .pc-tab { font-size: 14px; font-weight: 500; color: var(--ot-text-muted); }
+.tab:hover, .est-tab:hover:not(.active), .pc-tab:hover:not(.on) { color: var(--ot-text); background: transparent; }
+.tab.on, .est-tab.active, .pc-tab.on { color: var(--ot-text); border-bottom-color: var(--ot-brand); }
+
+/* Modais */
+.ov, #modal-obra-choice, #modal-import-obra { background: rgba(28,31,36,.45); backdrop-filter: blur(2px); }
+.mo, .moc-box, .mio-box { background: var(--ot-surface); border: 1px solid var(--ot-border); border-radius: var(--ot-radius-xl); box-shadow: var(--ot-shadow-lg); }
+.light .mo { box-shadow: var(--ot-shadow-lg); }
+.moh, .mof { background: var(--ot-surface); border-color: var(--ot-border); padding-left: 24px; padding-right: 24px; }
+.moh { padding-top: 20px; padding-bottom: 16px; }
+.mob { padding: 20px 24px; }
+.mot, .moc-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.mox { background: transparent; border: 1px solid var(--ot-border); border-radius: var(--ot-radius-md); width: 32px; height: 32px; color: var(--ot-text-muted); }
+.mox:hover { background: var(--ot-surface-sunken); color: var(--ot-text); }
+.moc-btn { background: var(--ot-surface); border: 1px solid var(--ot-border); border-radius: var(--ot-radius-lg); }
+.moc-btn:hover { border-color: var(--ot-brand); background: var(--ot-brand-soft); color: var(--ot-text); transform: none; }
+
+/* Dropdowns flutuantes */
+#d-obra-dropdown, #est-obra-dropdown, .cf-drop { background: var(--ot-surface); border: 1px solid var(--ot-border); border-radius: var(--ot-radius-md); box-shadow: var(--ot-shadow-md); }
+#d-obra-filter-btn, #est-obra-filter-btn, .cron-obra-sel { background: var(--ot-surface); border-color: var(--ot-border); border-radius: var(--ot-radius-md); height: 36px; font-size: 13px; }
+.filter-count, .cf-btn .cf-cnt { background: var(--ot-brand) !important; color: var(--ot-on-brand) !important; }
+.cf-btn:hover, .cf-btn.active { background: var(--ot-brand-soft); border-color: var(--ot-brand); color: var(--ot-text-accent); }
+.fin-fchip { background: var(--ot-brand-soft); border: 1px solid transparent; color: var(--ot-text-accent); border-radius: var(--ot-radius-full); }
+.fin-fchip button { color: var(--ot-text-accent); }
+
+/* Toast — superfície invertida */
+.ti { background: var(--ot-surface-inverse); color: var(--ot-text-inverse); border: none; border-radius: var(--ot-radius-md); box-shadow: var(--ot-shadow-lg); }
+
+/* Alertas */
+.al { border-radius: var(--ot-radius-md); font-size: 13px; }
+.al.w { background: var(--ot-warn-soft); border-left-color: var(--ot-alerta-500); }
+.al.e { background: var(--ot-err-soft); border-left-color: var(--ot-err); }
+.al.i { background: var(--ot-inf-soft); border-left-color: var(--ot-inf); }
+.al.s { background: var(--ot-ok-soft); border-left-color: var(--ot-ok); }
+
+/* Card de obra */
+.oc { border-radius: var(--ot-radius-lg); padding: 20px; }
+.oc:hover, .light .oc:hover { border-color: var(--ot-border-strong); transform: none; box-shadow: var(--ot-shadow-md); }
+.oc::before { height: 3px; }
+.oc.b::before { background: var(--ot-brand); }
+.oc.fin::before { background: var(--ot-ok); }
+.oc-name { font-size: 16px; font-weight: 600; }
+.oc-st { background: var(--ot-surface-sunken); border-radius: var(--ot-radius-sm); }
+.light .oc, .light .kpi, .light .card, .light .kpi:hover { box-shadow: none; }
+.light #sb, .light #topbar { box-shadow: none; }
+
+/* Gantt */
+.gt { background: var(--ot-surface-sunken); border-radius: var(--ot-radius-sm); }
+.gb { border-radius: var(--ot-radius-sm); }
+.gb.prog { background: var(--ot-brand); color: var(--ot-on-brand); }
+.gb.done { background: var(--ot-ok); }
+.gb.late { background: var(--ot-err); }
+
+/* Relatórios */
+.rel-card { border: 1px solid var(--ot-border); border-radius: var(--ot-radius-lg); }
+.rel-card:hover { border-color: var(--ot-border-strong); transform: none; }
+.rel-card.sel { border-color: var(--ot-brand); background: var(--ot-brand-soft); }
+.rel-card.sel .rc-chk { background: var(--ot-brand); border-color: var(--ot-brand); color: var(--ot-on-brand); }
+.rel-export-bar { background: var(--ot-surface); border-radius: var(--ot-radius-md); }
+
+/* Estado vazio */
+.empty .eic { opacity: 1; color: var(--ot-grafite-300); }
+.empty .etit { font-size: 16px; color: var(--ot-text); }
+.empty .edesc { font-size: 13px; color: var(--ot-text-muted); }
+
+/* Toggle de tema */
+#theme-toggle { width: 40px; height: 22px; border-radius: 999px; }
+#theme-toggle::before { width: 16px; height: 16px; box-shadow: var(--ot-shadow-sm); }
+body #theme-toggle, .light #theme-toggle { background: var(--ot-border-strong); }
+[data-theme="dark"] body #theme-toggle { background: var(--ot-brand); }
+[data-theme="dark"] body #theme-toggle::before { transform: translateX(18px); }
+body:not(.light) #theme-toggle::before, .light #theme-toggle::before { transform: translateX(0); }
+
+/* Navegação mobile */
+#mobile-nav, .mni-more-panel { background: var(--ot-surface); border-top: 1px solid var(--ot-border); }
+.mni { position: relative; color: var(--ot-text-muted); }
+.mni.on { color: var(--ot-text); }
+.mni.on::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--ot-brand); }
+.mni .mni-lb { font-size: 10px; font-weight: 500; }
+.mni-more-item { background: var(--ot-surface-sunken); border: 1px solid var(--ot-border); }
+.mni-more-item .lb { color: var(--ot-text-secondary); font-weight: 500; }
+
+/* ---------- Login e carregamento ---------- */
+#auth-screen { background: var(--ot-areia-100) !important; font-family: var(--ot-font-sans) !important; }
+.ot-auth-card { background: #fff; border: 1px solid var(--ot-areia-200); border-radius: 20px; padding: 40px 36px; width: 100%; max-width: 420px; box-shadow: var(--ot-shadow-lg); color: var(--ot-grafite-900); }
+.ot-auth-logo { display: block; height: 44px; margin: 0 auto 8px; }
+.ot-auth-sub { text-align: center; font-size: 13px; color: var(--ot-grafite-500); margin-bottom: 28px; }
+.ot-auth-tabs { display: flex; background: var(--ot-areia-100); border: 1px solid var(--ot-areia-200); border-radius: 12px; padding: 3px; margin-bottom: 24px; }
+.ot-auth-tabs button { flex: 1; height: 36px; border: none; border-radius: 9px; background: transparent; color: var(--ot-grafite-700); font-weight: 500; font-size: 14px; cursor: pointer; transition: background var(--ot-duration) var(--ot-ease); }
+.ot-auth-tabs button.on { background: #fff; color: var(--ot-grafite-900); box-shadow: var(--ot-shadow-sm); }
+.ot-field { margin-bottom: 14px; }
+.ot-field label { display: block; font-size: 13px; font-weight: 500; color: var(--ot-grafite-900); margin-bottom: 6px; }
+.ot-field input { width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--ot-areia-200); border-radius: 10px; font-size: 15px; background: #fff; color: var(--ot-grafite-900); outline: none; font-family: var(--ot-font-sans); transition: border-color var(--ot-duration) var(--ot-ease), box-shadow var(--ot-duration) var(--ot-ease); }
+.ot-field input:focus { border-color: var(--ot-brand); box-shadow: var(--ot-focus-ring); }
+.ot-auth-btn { width: 100%; height: 46px; margin-top: 6px; background: var(--ot-grafite-900); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background var(--ot-duration) var(--ot-ease); font-family: var(--ot-font-sans); }
+.ot-auth-btn:hover { background: var(--ot-grafite-800); }
+.ot-auth-link { background: none; border: none; color: var(--ot-bloco-700); font-size: 13px; cursor: pointer; font-family: var(--ot-font-sans); }
+.ot-auth-link:hover { text-decoration: underline; }
+
+#loading-screen { background: var(--ot-grafite-900) !important; font-family: var(--ot-font-sans) !important; }
+.ot-loader { width: 72px; height: 72px; }
+.ot-loader .arc { transform-origin: 32px 32px; animation: ot-spin 1s var(--ot-ease) infinite; }
+@keyframes ot-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 768px) {
+  #content { padding: 12px; }
+  .card, .kpi { border-radius: 14px; padding: 16px; }
+  #topbar h1 { font-size: 17px; }
+  .btn { height: 44px; font-size: 14px; }
+  .btn.sm { height: 36px; font-size: 13px; }
+  .inp, .sel { min-height: 44px; font-size: 15px; }
+  .kv { font-size: 22px; }
+  .mo { border-radius: 20px 20px 0 0 !important; }
+  .tbl-filter-hdr .ta-actions { background: var(--ot-surface); }
+  #fin-tbl-wrap::after { background: linear-gradient(transparent, var(--ot-surface)); }
+}
+
+/* Ícones em navegação, toast e estados vazios */
+.mni .mni-ic .ot-i, .mni-more-item .ic .ot-i { width: 22px; height: 22px; }
+.empty .eic .ot-i { width: 44px; height: 44px; stroke-width: 1.5; }
+#t-ico { display: inline-flex; }
+#t-ico .ot-i { width: 20px; height: 20px; }
+.d-filter-search::before, .cf-drop .cf-search::before {
+  content: ""; width: 13px; height: 13px; left: 9px; background: var(--ot-text-muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+/* Botões que só têm ícone */
+.btn .ot-i { width: 16px; height: 16px; }
+.btn.sm .ot-i { width: 15px; height: 15px; }

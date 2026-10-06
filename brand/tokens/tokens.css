@@ -1,0 +1,125 @@
+/* =========================================================
+   OBRATECH — Design tokens (identidade "01 · O Bloco")
+   Importe este arquivo uma vez, na raiz do app.
+   Fontes: Sora (UI + títulos) e IBM Plex Mono (números/códigos)
+   ========================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  /* ---------- Paleta base ---------- */
+  --ot-grafite-900: #1C1F24;   /* texto principal, fundos escuros, símbolo */
+  --ot-grafite-800: #2B2F36;
+  --ot-grafite-700: #4A4F57;   /* texto secundário */
+  --ot-grafite-500: #6B7079;   /* texto suave, legendas (AA sobre branco e areia) */
+  --ot-grafite-300: #A8ADB5;   /* desabilitado, texto suave sobre escuro */
+  --ot-grafite-200: #D3D6DB;
+
+  --ot-areia-200: #E4E2DC;     /* bordas e divisórias */
+  --ot-areia-100: #F6F5F2;     /* fundo do app */
+  --ot-branco:    #FFFFFF;     /* superfícies, cards */
+
+  /* "O Bloco" — cor de destaque da marca */
+  --ot-bloco-100: #FDE9DF;     /* fundo suave (badges, seleção) */
+  --ot-bloco-300: #F07A4A;     /* destaque/texto sobre fundo escuro */
+  --ot-bloco-500: #EE5A24;     /* COR DA MARCA: bloco do logo, preenchimentos, indicadores */
+  --ot-bloco-600: #D94E1C;     /* hover de preenchimentos em laranja */
+  --ot-bloco-700: #B83F14;     /* texto/links laranja sobre fundo claro (AA) */
+
+  /* Estados */
+  --ot-sucesso-600: #1F7A50;  --ot-sucesso-100: #E3F3EA;
+  --ot-alerta-600:  #8A5A00;  --ot-alerta-500: #E0A100;  --ot-alerta-100: #FCF1D6;
+  --ot-erro-600:    #B42828;  --ot-erro-100:   #FBE4E4;
+  --ot-info-600:    #2B5C8A;  --ot-info-100:   #E2ECF6;
+
+  /* ---------- Tokens semânticos (use ESTES nos componentes) ---------- */
+  --ot-bg:              var(--ot-areia-100);
+  --ot-surface:         var(--ot-branco);
+  --ot-surface-sunken:  var(--ot-areia-100);
+  --ot-surface-inverse: var(--ot-grafite-900);
+  --ot-border:          var(--ot-areia-200);
+  --ot-border-strong:   var(--ot-grafite-200);
+
+  --ot-text:            var(--ot-grafite-900);
+  --ot-text-secondary:  var(--ot-grafite-700);
+  --ot-text-muted:      var(--ot-grafite-500);
+  --ot-text-inverse:    var(--ot-branco);
+  --ot-text-accent:     var(--ot-bloco-700);
+
+  --ot-brand:           var(--ot-bloco-500);
+  --ot-brand-hover:     var(--ot-bloco-600);
+  --ot-brand-soft:      var(--ot-bloco-100);
+  --ot-on-brand:        var(--ot-grafite-900); /* texto sobre laranja: SEMPRE grafite, nunca branco */
+
+  --ot-primary:         var(--ot-grafite-900); /* botão primário */
+  --ot-primary-hover:   var(--ot-grafite-800);
+  --ot-on-primary:      var(--ot-branco);
+
+  --ot-focus-ring:      0 0 0 3px rgba(238, 90, 36, 0.35);
+
+  /* ---------- Tipografia ---------- */
+  --ot-font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --ot-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --ot-text-xs:   12px;  --ot-lh-xs:   16px;
+  --ot-text-sm:   14px;  --ot-lh-sm:   20px;
+  --ot-text-base: 15px;  --ot-lh-base: 24px;
+  --ot-text-lg:   18px;  --ot-lh-lg:   26px;
+  --ot-text-xl:   22px;  --ot-lh-xl:   30px;
+  --ot-text-2xl:  28px;  --ot-lh-2xl:  36px;
+  --ot-text-3xl:  36px;  --ot-lh-3xl:  44px;
+
+  --ot-weight-light: 300;
+  --ot-weight-regular: 400;
+  --ot-weight-medium: 500;
+  --ot-weight-semibold: 600;
+  --ot-tracking-tight: -0.02em;   /* títulos */
+  --ot-tracking-label: 0.08em;    /* rótulos em caixa alta */
+
+  /* ---------- Espaçamento (base 4) ---------- */
+  --ot-space-1: 4px;   --ot-space-2: 8px;   --ot-space-3: 12px;
+  --ot-space-4: 16px;  --ot-space-5: 20px;  --ot-space-6: 24px;
+  --ot-space-8: 32px;  --ot-space-10: 40px; --ot-space-12: 48px;
+
+  /* ---------- Raios ---------- */
+  --ot-radius-sm: 6px;     /* inputs pequenos, tags */
+  --ot-radius-md: 10px;    /* botões, inputs */
+  --ot-radius-lg: 16px;    /* cards */
+  --ot-radius-xl: 20px;    /* modais, painéis */
+  --ot-radius-full: 999px; /* pills, avatares */
+
+  /* ---------- Sombras (discretas) ---------- */
+  --ot-shadow-sm: 0 1px 2px rgba(28, 31, 36, 0.06);
+  --ot-shadow-md: 0 4px 12px rgba(28, 31, 36, 0.08);
+  --ot-shadow-lg: 0 12px 32px rgba(28, 31, 36, 0.12);
+
+  /* ---------- Movimento ---------- */
+  --ot-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ot-duration: 160ms;
+}
+
+/* ---------- Tema escuro ---------- */
+[data-theme="dark"] {
+  --ot-bg:              #121417;
+  --ot-surface:         var(--ot-grafite-900);
+  --ot-surface-sunken:  #16191D;
+  --ot-surface-inverse: var(--ot-areia-100);
+  --ot-border:          var(--ot-grafite-800);
+  --ot-border-strong:   #3A3F47;
+
+  --ot-text:            var(--ot-areia-100);
+  --ot-text-secondary:  #C9CCD1;
+  --ot-text-muted:      var(--ot-grafite-300);
+  --ot-text-inverse:    var(--ot-grafite-900);
+  --ot-text-accent:     var(--ot-bloco-300);
+
+  --ot-brand-soft:      rgba(238, 90, 36, 0.16);
+  --ot-primary:         var(--ot-areia-100);
+  --ot-primary-hover:   var(--ot-branco);
+  --ot-on-primary:      var(--ot-grafite-900);
+}
+
+/* ---------- Base ---------- */
+html { font-family: var(--ot-font-sans); color: var(--ot-text); background: var(--ot-bg); }
+.ot-num, .ot-mono { font-family: var(--ot-font-mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: none; box-shadow: var(--ot-focus-ring); }

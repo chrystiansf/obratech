@@ -4,8 +4,7 @@
 
 function fmtR(v){return 'R$'+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtDt(d){if(!d)return'—';try{const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}catch{return d;}}
-let _tT;
-function toast(ico,msg){document.getElementById('t-ico').textContent=ico;document.getElementById('t-msg').textContent=msg;const t=document.getElementById('toast');t.style.display='block';clearTimeout(_tT);_tT=setTimeout(()=>t.style.display='none',3500);}
+// toast() está em js/icons.js (mostra ícone de traço)
 
 // Helper: hex para RGB array
 function hexToRgb(hex){

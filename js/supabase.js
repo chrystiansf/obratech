@@ -162,31 +162,15 @@ function mostrarTelaNovaSenha(session){
   const authEl = document.getElementById('auth-screen');
   authEl.style.display='flex';
   authEl.innerHTML=`
-  <div style="background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.4)">
-    <div style="text-align:center;margin-bottom:28px">
-      <div style="margin-bottom:12px"><img src="${document.querySelector('link[rel=apple-touch-icon]')?.href||''}" style="width:52px;height:52px;object-fit:contain" onerror="this.style.display='none'"></div>
-      <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:22px;color:#0a193c">Definir Nova Senha</div>
-      <div style="font-size:13px;color:#666;margin-top:6px">Digite sua nova senha de acesso</div>
-    </div>
-    <div id="nova-senha-msg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px"></div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:6px">Nova Senha</label>
-      <input id="nova-senha-inp" type="password" placeholder="Mínimo 6 caracteres"
-        style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;outline:none;font-family:'Inter',sans-serif"
-        onfocus="this.style.borderColor='#1a65d6'" onblur="this.style.borderColor='#ddd'"
-        onkeydown="if(event.key==='Enter')confirmarNovaSenha()">
-    </div>
-    <div style="margin-bottom:20px">
-      <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:6px">Confirmar Senha</label>
-      <input id="nova-senha-conf" type="password" placeholder="Digite novamente"
-        style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;outline:none;font-family:'Inter',sans-serif"
-        onfocus="this.style.borderColor='#1a65d6'" onblur="this.style.borderColor='#ddd'"
-        onkeydown="if(event.key==='Enter')confirmarNovaSenha()">
-    </div>
-    <button onclick="confirmarNovaSenha()"
-      style="width:100%;padding:13px;background:#1a65d6;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">
-      ✅ Salvar Nova Senha
-    </button>
+  <div class="ot-auth-card">
+    <img class="ot-auth-logo" src="brand/logo/obratech-logo-horizontal.svg" alt="OBRATECH">
+    <div class="ot-auth-sub" style="margin-bottom:24px"><strong style="display:block;font-size:20px;font-weight:600;color:var(--ot-grafite-900);margin:12px 0 4px">Definir nova senha</strong>Digite sua nova senha de acesso</div>
+    <div id="nova-senha-msg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:13px"></div>
+    <div class="ot-field"><label for="nova-senha-inp">Nova senha</label>
+      <input id="nova-senha-inp" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" onkeydown="if(event.key==='Enter')confirmarNovaSenha()"></div>
+    <div class="ot-field" style="margin-bottom:20px"><label for="nova-senha-conf">Confirmar senha</label>
+      <input id="nova-senha-conf" type="password" placeholder="Digite novamente" autocomplete="new-password" onkeydown="if(event.key==='Enter')confirmarNovaSenha()"></div>
+    <button class="ot-auth-btn" onclick="confirmarNovaSenha()">Salvar nova senha</button>
   </div>`;
 }
 
@@ -276,10 +260,8 @@ function authTab(tab){
   document.getElementById('form-login').style.display   = tab==='login'   ?'block':'none';
   document.getElementById('form-cadastro').style.display= tab==='cadastro'?'block':'none';
   document.getElementById('form-reset').style.display   = tab==='reset'   ?'block':'none';
-  document.getElementById('tab-login').style.background    = tab==='login'   ?'#0a193c':'transparent';
-  document.getElementById('tab-login').style.color         = tab==='login'   ?'#fff':'#666';
-  document.getElementById('tab-cadastro').style.background = tab==='cadastro'?'#0a193c':'transparent';
-  document.getElementById('tab-cadastro').style.color      = tab==='cadastro'?'#fff':'#666';
+  document.getElementById('tab-login').classList.toggle('on', tab!=='cadastro');
+  document.getElementById('tab-cadastro').classList.toggle('on', tab==='cadastro');
   document.getElementById('auth-msg').style.display='none';
 }
 
@@ -287,8 +269,8 @@ function authMsg(msg, tipo){
   const el = document.getElementById('auth-msg');
   el.style.display='block';
   el.textContent=msg;
-  el.style.background = tipo==='error'?'#fee2e2':tipo==='success'?'#dcfce7':'#e0f2fe';
-  el.style.color       = tipo==='error'?'#dc2626':tipo==='success'?'#16a34a':'#0369a1';
+  el.style.background = tipo==='error'?'var(--ot-erro-100)':tipo==='success'?'var(--ot-sucesso-100)':'var(--ot-info-100)';
+  el.style.color       = tipo==='error'?'var(--ot-erro-600)':tipo==='success'?'var(--ot-sucesso-600)':'var(--ot-info-600)';
 }
 
 function mostrarLogin(){
