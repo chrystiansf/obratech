@@ -25,11 +25,13 @@ function _clLoadScript(src) {
 
 // ── Texto → números ───────────────────────────────────────────
 // Valores em reais: 1.234,56 | 1234,56 | 1234.56 (OCR às vezes troca vírgula por ponto)
-const _CL_RE_MONEY = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2}|\d+\.\d{2})(?!\d)/g;
+// Números no padrão brasileiro: 1.234,56 | 6.400,0000 | 512,000 | 12,500000 | 1234.56 (OCR troca vírgula por ponto)
+// Não pega medidas como "5.0 MM" ou "12.5" (ponto com 1 casa), nem códigos inteiros.
+const _CL_RE_MONEY = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,6})?|\d+,\d{1,6}|\d+\.\d{2})(?![\d.,]*\d)/g;
 function _clNum(s) {
   if (s == null) return 0;
   s = String(s).trim().replace(/R\$\s*/i, '');
-  if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
   else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
   const n = parseFloat(s.replace(/[^\d.\-]/g, ''));
   return isFinite(n) ? n : 0;
@@ -40,9 +42,10 @@ function _clNorm(s) {
 }
 
 // ── Interpretar o texto de um orçamento ───────────────────────
-// Retorna {itens:[{desc,qtd,unit,total,raw}], total, pix, cartao, parcelas, frete, prazo}
+// Retorna {itens:[{desc,qtd,unit,total,raw}], total, produtos, desconto, pix, cartao, parcelas, frete, prazo, aVista}
 function clParseOrcamento(texto) {
-  const res = { itens: [], total: 0, pix: 0, cartao: 0, parcelas: 0, frete: 0, prazo: '' };
+  const res = { itens: [], total: 0, produtos: 0, desconto: 0, pix: 0, cartao: 0, parcelas: 0, frete: 0, prazo: '', aVista: false };
+  let totalForte = false; // "TOTAL DO ORÇAMENTO"/"TOTAL GERAL"/"TOTAL A PAGAR" vence outros totais
   const linhas = String(texto || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
   for (const raw of linhas) {
     const n = _clNorm(raw);
@@ -50,49 +53,58 @@ function clParseOrcamento(texto) {
     const ultimo = money.length ? money[money.length - 1].v : 0;
     const parc = raw.match(/(\d{1,2})\s*[xX](?![a-z])/);
 
-    // Condições de pagamento / totais (linhas sem cara de item)
-    if (/\bpix\b|a vista|avista|\bdinheiro\b|\bboleto a vista\b/.test(n) && ultimo) { res.pix = ultimo; continue; }
+    // Totais e condições (testados antes de qualquer descarte)
+    if (/total (do )?orcamento|total geral|total a pagar|valor a pagar|total liquido/.test(n) && ultimo) { res.total = ultimo; totalForte = true; continue; }
+    if (/valor (dos )?produtos|total (dos )?produtos|sub ?total|total (dos )?itens|total bruto/.test(n) && ultimo) { res.produtos = ultimo; continue; }
+    if (/\bdesconto\b/.test(n) && !/unitario/.test(n)) { if (ultimo) res.desconto = ultimo; continue; }
+    if (/acrescimo|\bjuros\b/.test(n) && !/unitario/.test(n) && money.length <= 1) continue;
+    if (/\bpix\b|a vista|avista|\bdinheiro\b|\bespecie\b/.test(n)) {
+      if (/a vista|avista|\bdinheiro\b|\bpix\b/.test(n)) res.aVista = true;
+      if (ultimo) res.pix = ultimo;
+      continue;
+    }
     if (/cart.{0,2}o\b|cartao|cr.{0,2}dito|\bcredito\b/.test(n)) {
       if (ultimo) res.cartao = ultimo;
       if (parc) res.parcelas = parseInt(parc[1]);
-      if (ultimo || parc) continue;
+      continue;
     }
     if (/\bparcel/.test(n) && parc) { res.parcelas = parseInt(parc[1]); continue; }
     if (/\bfrete\b/.test(n) && ultimo) { res.frete = ultimo; continue; }
     if (/\bprazo\b|\bentrega\b/.test(n) && !money.length) { res.prazo = raw.replace(/^.*?(prazo( de entrega)?|entrega)\s*[:\-]?\s*/i, '').slice(0, 60); continue; }
-    if (/\b(sub ?total|total geral|valor total|total)\b/.test(n) && ultimo && !/\bunit/.test(n)) {
-      if (!/sub ?total/.test(n) || !res.total) res.total = ultimo;
-      continue;
-    }
-    if (/\bdesconto\b|\btroco\b|\bcnpj\b|\bcpf\b|\btelefone\b|\bfone\b|\bvalidade\b/.test(n)) continue;
+    if (/\btotal\b/.test(n) && ultimo && !/unitario/.test(n) && money.length <= 2) { if (!totalForte) res.total = ultimo; continue; }
+    if (/\bcnpj\b|\bcpf\b|\btelefone\b|\bfone\b|\bvalidade\b|\bcep\b|\bvencimento\b/.test(n)) continue;
 
-    // Linha de item: precisa de texto e de pelo menos um valor em R$
+    // Linha de item: texto + valor total no fim
     if (!money.length || !/[a-z]{3,}/.test(n)) continue;
-    // Remove os valores em R$ e procura a quantidade entre os números soltos que sobraram
     let resto = raw;
     for (let k = money.length - 1; k >= 0; k--) resto = resto.slice(0, money[k].i) + ' '.repeat(money[k].len) + resto.slice(money[k].i + money[k].len);
-    const soltos = [...resto.matchAll(/(?:^|\s)(\d+(?:,\d{1,3})?)(?=\s|$)/g)].map(m => ({ v: _clNum(m[1]), i: m.index }));
+    const soltos = [...resto.matchAll(/(?:^|\s)(\d{1,5})(?=\s|$)/g)].map(m => ({ v: +m[1], i: m.index }));
     const total = ultimo;
-    let unit = money.length >= 2 ? money[money.length - 2].v : 0;
-    // quantidade: número solto que melhor explica total = qtd × unitário
-    let qtd = 0;
-    if (unit) {
-      const cand = soltos.filter(s => s.v > 0 && Math.abs(s.v * unit - total) <= Math.max(0.05, total * 0.02));
-      qtd = cand.length ? cand[cand.length - 1].v : 0;
-      if (!qtd && total && unit) { const q = total / unit; if (Math.abs(q - Math.round(q)) < 0.02) qtd = Math.round(q); }
-    } else if (soltos.length) {
-      qtd = soltos[soltos.length - 1].v;
-      if (qtd > 0 && total) unit = total / qtd;
+    let qtd = 0, unit = 0;
+    // Procura o par quantidade × unitário que explica o total (ignora colunas de desconto/acréscimo)
+    // candidatos na ordem em que aparecem na linha (quantidade costuma vir antes do unitário)
+    const cands = [...money.slice(0, -1).map(m => ({ v: m.v, i: m.i })), ...soltos].filter(c => c.v > 0).sort((a, b) => a.i - b.i);
+    const tol = v => Math.max(0.06, v * 0.01);
+    outer: for (let a = 0; a < cands.length; a++) for (let b = a + 1; b < cands.length; b++) {
+      if (Math.abs(cands[a].v * cands[b].v - total) <= tol(total)) { qtd = cands[a].v; unit = cands[b].v; break outer; }
     }
-    // descrição: texto sem números de código no início e sem valores
-    let desc = resto.replace(/(?:^|\s)\d+(?:,\d{1,3})?(?=\s|$)/g, ' ')
+    if (!qtd && money.length >= 2) {
+      unit = money[money.length - 2].v;
+      if (unit) { const q = total / unit; if (Math.abs(q - Math.round(q)) < 0.02) qtd = Math.round(q); }
+    }
+    if (!qtd && !unit && soltos.length) { qtd = soltos[soltos.length - 1].v; if (qtd) unit = total / qtd; }
+    let desc = resto.replace(/(?:^|\s)\d+(?=\s|$)/g, ' ')
       .replace(/^\s*(?:item|cod\.?|código)?\s*[\d.\-\/]*\s*/i, '')
-      .replace(/\b(un|und|unid|pc|pç|sc|kg|m2|m3|m²|m³|mt|ml|lt|cx|rl|gl|br|vb|par)\b\.?\s*$/i, '')
-      .replace(/R\$/g, '').replace(/[|_*•]+/g, ' ').replace(/\s+/g, ' ').trim();
-    if (desc.length < 3) continue;
-    res.itens.push({ desc, qtd, unit: +unit.toFixed(4), total, raw });
+      .replace(/\b(un|und|unid|pc|pç|sc|kg|m2|m3|m²|m³|mt|ml|lt|cx|rl|gl|br|barra|vb|par|metro|peca|peça)\b\.?\s*$/i, '')
+      .replace(/R\$/g, '').replace(/[|_*•—–]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (desc.length < 3 || /^(codigo|produto|descri)/i.test(_clNorm(desc))) continue;
+    res.itens.push({ desc, qtd, unit: +(unit || 0).toFixed(4), total, raw });
   }
-  if (!res.total && res.itens.length) res.total = +res.itens.reduce((a, i) => a + (i.total || 0), 0).toFixed(2);
+  const somaItens = +res.itens.reduce((a, i) => a + (i.total || 0), 0).toFixed(2);
+  if (!res.produtos && somaItens) res.produtos = somaItens;
+  if (!res.total) res.total = res.produtos ? +(res.produtos - res.desconto + res.frete).toFixed(2) : 0;
+  // "Pagamento à vista" sem valor separado: o à vista é o total do orçamento
+  if (res.aVista && !res.pix) res.pix = res.total;
   return res;
 }
 

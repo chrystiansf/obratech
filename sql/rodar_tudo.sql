@@ -56,6 +56,7 @@ alter table public.compras_cotacoes add column if not exists valor_pix    numeri
 alter table public.compras_cotacoes add column if not exists valor_cartao numeric(14,2) default 0;
 alter table public.compras_cotacoes add column if not exists parcelas     integer;
 alter table public.compras_cotacoes add column if not exists orcamento_id uuid;
+alter table public.compras_cotacoes add column if not exists detalhe      jsonb;
 
 create table if not exists public.compras_orcamentos (
   id            uuid primary key default gen_random_uuid(),
