@@ -817,6 +817,12 @@
           <div class="ct">Cotacoes por Solicitacao</div>
           <div class="cs">Compare precos de fornecedores e selecione o vencedor</div>
         </div>
+        <div class="ca">
+          <select class="sel" id="cot-filtro" style="height:34px;font-size:12px;width:200px" onchange="renderCotacoes()">
+            <option value="ativas">Em cotacao</option>
+            <option value="todas">Todas (inclui historico)</option>
+          </select>
+        </div>
       </div>
       <div id="cot-tbl"></div>
     </div>
@@ -1146,7 +1152,7 @@
 <!-- JavaScript Modules -->
 <script src="js/utils.js?v=20261006b"></script>
 <script src="js/icons.js?v=20261006b"></script>
-<script src="js/supabase.js?v=20261006b"></script>
+<script src="js/supabase.js?v=20261006c"></script>
 <script src="js/auth.js?v=20261006b"></script>
 <script src="js/nav.js?v=20261006b"></script>
 <script src="js/dashboard.js?v=20261006b"></script>
@@ -1159,7 +1165,7 @@
 <script src="js/contratos.js?v=20261006b"></script>
 <script src="js/orcamento.js?v=20261006b"></script>
 <script src="js/demandas.js?v=20261006b"></script>
-<script src="js/compras.js?v=20261006b"></script>
+<script src="js/compras.js?v=20261006c"></script>
 <script src="js/caixa.js?v=20261006b"></script>
 <script src="js/fornecedores.js?v=20261006b"></script>
 <script src="js/qualidade.js?v=20261006b"></script>

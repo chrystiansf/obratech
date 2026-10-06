@@ -128,7 +128,7 @@ function _criarPedidoFromSolicitacao(sol){
     solicitacaoId:sol.id,
     obraId:sol.obraId,
     fornecedor:cotVenc?.fornecedor||'',
-    valorTotal:cotVenc?.valorTotal||0,
+    valorTotal:cotVenc?(cotVenc.valorTotal||_cotMelhor(cotVenc)):0,
     previsaoEntrega:cotVenc?.prazoEntrega||'',
     status:'pendente',
     obs:'',
@@ -168,47 +168,63 @@ function solReceber(id){
 // COTACOES
 // ═══════════════════════════════════════════
 
+// Melhor preço de uma cotação = menor valor informado entre total, PIX e cartão
+function _cotMelhor(c){const v=[c.valorTotal,c.valorPix,c.valorCartao].map(Number).filter(x=>x>0);return v.length?Math.min(...v):0;}
+function _cotParcela(c){return c.valorCartao>0&&c.parcelas>1?c.valorCartao/c.parcelas:0;}
+
 function renderCotacoes(){
-  const sols=(DB.solicitacoes||[]).filter(s=>s.status==='cotando'||s.status==='aberta');
+  const filtro=document.getElementById('cot-filtro')?.value||'ativas';
+  const temCot=id=>(DB.cotacoes||[]).some(c=>String(c.solicitacaoId)===String(id));
+  const sols=(DB.solicitacoes||[]).filter(s=>s.status==='cotando'||s.status==='aberta'||(filtro==='todas'&&temCot(s.id)));
   const el=document.getElementById('cot-tbl');
   if(!sols.length){
-    el.innerHTML='<div class="t-empty">Nenhuma solicitacao em cotacao. Mude o status de uma solicitacao para "Cotando".</div>';
+    el.innerHTML='<div class="t-empty">'+(filtro==='todas'?'Nenhuma cotacao registrada.':'Nenhuma solicitacao em cotacao. Mude o status de uma solicitacao para "Cotando" ou veja o historico.')+'</div>';
     return;
   }
 
   el.innerHTML=sols.map(s=>{
     const o=DB.obras.find(x=>String(x.id)===String(s.obraId));
     const cots=(DB.cotacoes||[]).filter(c=>String(c.solicitacaoId)===String(s.id));
-    const menorValor=cots.length?Math.min(...cots.filter(c=>c.valorTotal>0).map(c=>c.valorTotal)):0;
+    const melhores=cots.map(_cotMelhor).filter(v=>v>0);
+    const menorValor=melhores.length?Math.min(...melhores):0;
+    const fechada=!(s.status==='cotando'||s.status==='aberta');
+    const stLbl={aprovada:'Aprovada',recebida:'Recebida',cancelada:'Cancelada'}[s.status]||'';
 
     return`<div class="card" style="margin-bottom:12px">
       <div class="ch">
         <div>
-          <div class="ct">${s.item}</div>
+          <div class="ct">${s.item}${fechada&&stLbl?` <span class="b bn" style="font-size:11px;vertical-align:2px">${stLbl}</span>`:''}</div>
           <div class="cs">${s.quantidade||'—'} ${s.unidade||'un'} — ${o?.nome||'Sem obra'}</div>
         </div>
         <div class="ca">
-          <button class="btn sm pri" onclick="openModalCotacao(null,'${s.id}')">+ Cotacao</button>
-          ${cots.length>=2?`<button class="btn sm" onclick="gerarMapaCotacaoPDF('${s.id}')">Mapa PDF</button>`:''}
+          ${!fechada?`<button class="btn sm pri" onclick="openModalCotacao(null,'${s.id}')">+ Cotacao</button>`:''}
+          ${cots.length?`<button class="btn sm" onclick="gerarMapaCotacaoPDF('${s.id}')"><svg class=ot-i><use href=#i-file-text></use></svg> Mapa de precos</button>`:''}
         </div>
       </div>
-      ${cots.length?`<table class="tbl" style="margin-top:10px">
-        <tr><th>Fornecedor</th><th style="text-align:right">Valor Unit.</th><th style="text-align:right">Valor Total</th><th>Prazo</th><th>Obs</th><th></th></tr>
+      ${cots.length?`<div style="overflow-x:auto"><table class="tbl" style="margin-top:10px">
+        <tr><th>Fornecedor</th><th style="text-align:right">Valor Unit.</th><th style="text-align:right">Valor Total</th><th style="text-align:right">No PIX</th><th style="text-align:right">No Cartao</th><th style="text-align:center">Parcelas</th><th>Prazo</th><th>Obs</th><th></th></tr>
         ${cots.map(c=>{
-          const isMenor=c.valorTotal>0&&c.valorTotal===menorValor;
-          return`<tr style="${isMenor?'background:rgba(22,163,74,.08);':''}${c.vencedor?'border-left:3px solid var(--green);':''}">
-            <td class="n">${c.fornecedor||'—'}${c.vencedor?' <span class="b bg" style="font-size:9px">Vencedor</span>':''}</td>
-            <td style="text-align:right">${fmtR(c.valorUnit||0)}</td>
-            <td style="text-align:right;font-weight:600;${isMenor?'color:var(--green)':''}">${fmtR(c.valorTotal||0)}</td>
+          const melhor=_cotMelhor(c);
+          const isMenor=melhor>0&&melhor===menorValor;
+          const destaque=v=>isMenor&&Number(v)>0&&Number(v)===melhor?'color:var(--green);font-weight:700':'';
+          const parc=_cotParcela(c);
+          return`<tr style="${isMenor?'background:var(--ot-ok-soft);':''}${c.vencedor?'box-shadow:inset 3px 0 0 var(--green);':''}">
+            <td class="n">${c.fornecedor||'—'}${c.vencedor?' <span class="b bg" style="font-size:10px">Vencedor</span>':''}${isMenor&&cots.length>1?' <span class="b bg" style="font-size:10px">Menor preco</span>':''}</td>
+            <td style="text-align:right">${c.valorUnit?fmtR(c.valorUnit):'—'}</td>
+            <td style="text-align:right;${destaque(c.valorTotal)}">${c.valorTotal?fmtR(c.valorTotal):'—'}</td>
+            <td style="text-align:right;${destaque(c.valorPix)}">${c.valorPix?fmtR(c.valorPix):'—'}</td>
+            <td style="text-align:right;${destaque(c.valorCartao)}">${c.valorCartao?fmtR(c.valorCartao):'—'}</td>
+            <td style="text-align:center;white-space:nowrap">${c.parcelas>1?c.parcelas+'x'+(parc?` <span style="font-size:11px;color:var(--txt3)">de ${fmtR(parc)}</span>`:''):(c.valorCartao?'1x':'—')}</td>
             <td style="font-size:11px">${c.prazoEntrega||'—'}</td>
             <td style="font-size:11px;color:var(--txt3)">${c.obs||'—'}</td>
             <td><div class="ta-actions">
-              ${!c.vencedor?`<button class="btn sm" onclick="cotSelecionar('${c.id}','${s.id}')" title="Selecionar vencedor" style="color:var(--green)">Selecionar</button>`:''}
-              <button class="btn sm ico" onclick="cotDel('${c.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
+              ${!c.vencedor&&!fechada?`<button class="btn sm" onclick="cotSelecionar('${c.id}','${s.id}')" title="Selecionar vencedor" style="color:var(--green)">Selecionar</button>`:''}
+              <button class="btn sm ico" onclick="openModalCotacao('${c.id}','${s.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+              <button class="btn sm ico" onclick="cotDel('${c.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
             </div></td>
           </tr>`;
         }).join('')}
-      </table>`:`<div class="t-empty" style="margin-top:10px">Nenhuma cotacao. Clique em "+ Cotacao" para adicionar.</div>`}
+      </table></div>`:`<div class="t-empty" style="margin-top:10px">Nenhuma cotacao. Clique em "+ Cotacao" para adicionar.</div>`}
     </div>`;
   }).join('');
 }
@@ -372,12 +388,22 @@ function openModalCotacao(editId, solId){
       <div class="fg"><label class="lbl">Fornecedor *</label><select class="sel" id="cot-forn">${fornOpts}</select></div>
       <div class="fg"><label class="lbl">Valor Unitario (R$)</label><input type="number" class="inp" id="cot-vunit" value="${c?.valorUnit||''}" min="0" step="0.01" placeholder="0.00" oninput="_cotCalcTotal()"></div>
       <div class="fg"><label class="lbl">Valor Total (R$)</label><input type="number" class="inp" id="cot-vtotal" value="${c?.valorTotal||''}" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label class="lbl">Valor no PIX (R$)</label><input type="number" class="inp" id="cot-vpix" value="${c?.valorPix||''}" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label class="lbl">Valor no Cartao de Credito (R$)</label><input type="number" class="inp" id="cot-vcartao" value="${c?.valorCartao||''}" min="0" step="0.01" placeholder="0.00" oninput="_cotCalcParcela()"></div>
+      <div class="fg"><label class="lbl">Qtd. de Parcelas</label><input type="number" class="inp" id="cot-parcelas" value="${c?.parcelas||''}" min="1" max="48" step="1" placeholder="Ex: 10" oninput="_cotCalcParcela()"><div id="cot-parcela-info" style="font-size:12px;color:var(--txt3);min-height:16px"></div></div>
       <div class="fg"><label class="lbl">Prazo de Entrega</label><input class="inp" id="cot-prazo" value="${c?.prazoEntrega||''}" placeholder="Ex: 5 dias uteis"></div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Observacoes</label><input class="inp" id="cot-obs" value="${c?.obs||''}" placeholder="Condicoes, frete..."></div>
     </div>
   </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="salvarCotacao('${editId||''}','${sId}')">Salvar</button></div></div></div>`;
   // Calcular total se tiver qtd
-  if(sol&&sol.quantidade) window._cotQtd=sol.quantidade;
+  window._cotQtd=sol&&sol.quantidade?sol.quantidade:0;
+  _cotCalcParcela();
+}
+function _cotCalcParcela(){
+  const v=parseFloat(document.getElementById('cot-vcartao')?.value)||0;
+  const n=parseInt(document.getElementById('cot-parcelas')?.value)||0;
+  const el=document.getElementById('cot-parcela-info');
+  if(el) el.textContent=v>0&&n>1?n+'x de '+fmtR(v/n):'';
 }
 
 function _cotCalcTotal(){
@@ -393,20 +419,45 @@ function salvarCotacao(editId,solId){
     fornecedor:forn,
     valorUnit:parseFloat(document.getElementById('cot-vunit').value)||0,
     valorTotal:parseFloat(document.getElementById('cot-vtotal').value)||0,
+    valorPix:parseFloat(document.getElementById('cot-vpix').value)||0,
+    valorCartao:parseFloat(document.getElementById('cot-vcartao').value)||0,
+    parcelas:parseInt(document.getElementById('cot-parcelas').value)||0,
     prazoEntrega:document.getElementById('cot-prazo').value.trim(),
     obs:document.getElementById('cot-obs').value.trim(),
   };
+  if(!dados.valorTotal&&!dados.valorPix&&!dados.valorCartao){toast('⚠️','Informe ao menos um valor (total, PIX ou cartao)!');return;}
+  if(dados.parcelas>1&&!dados.valorCartao){toast('⚠️','Informe o valor no cartao para usar parcelas.');return;}
+  const row={fornecedor:dados.fornecedor,valor_unit:dados.valorUnit,valor_total:dados.valorTotal,valor_pix:dados.valorPix,valor_cartao:dados.valorCartao,parcelas:dados.parcelas||null,prazo_entrega:dados.prazoEntrega,obs:dados.obs};
   if(editId){
     const c=(DB.cotacoes||[]).find(x=>x.id===editId);
-    if(c){Object.assign(c,dados);supaUpdate('compras_cotacoes',editId,{fornecedor:dados.fornecedor,valor_unit:dados.valorUnit,valor_total:dados.valorTotal,prazo_entrega:dados.prazoEntrega,obs:dados.obs});}
+    if(c){Object.assign(c,dados);_cotSupaSalvar(editId,row,false);}
   } else {
     const novoId=uuidv4();
     const novo={id:novoId,solicitacaoId:solId,...dados,vencedor:false,_supa:true};
     if(!DB.cotacoes) DB.cotacoes=[];
     DB.cotacoes.push(novo);
-    supaInsert('compras_cotacoes',{id:novoId,solicitacao_id:solId,fornecedor:dados.fornecedor,valor_unit:dados.valorUnit,valor_total:dados.valorTotal,prazo_entrega:dados.prazoEntrega,obs:dados.obs,vencedor:false});
+    _cotSupaSalvar(novoId,{...row,solicitacao_id:solId,vencedor:false},true);
   }
   save();closeModal();renderCotacoes();toast('✅',editId?'Cotacao atualizada!':'Cotacao adicionada!');
+}
+
+// Salva no Supabase; se as colunas novas (PIX/cartao/parcelas) ainda nao existirem,
+// salva o restante e avisa para rodar o SQL (sql/compras_cotacoes_pagamento.sql)
+async function _cotSupaSalvar(id,row,novo){
+  if(!supa||!_empresaId) return;
+  const tentar=async r=>novo
+    ? await supa.from('compras_cotacoes').insert({...r,id,empresa_id:_empresaId})
+    : await supa.from('compras_cotacoes').update({...r,atualizado_em:new Date().toISOString()}).eq('id',id).eq('empresa_id',_empresaId);
+  try{
+    let {error}=await tentar(row);
+    if(error&&/atualizado_em/.test(error.message||'')){({error}=await (novo?tentar(row):supa.from('compras_cotacoes').update(row).eq('id',id).eq('empresa_id',_empresaId)));}
+    if(error&&/valor_pix|valor_cartao|parcelas/.test(error.message||'')){
+      const {valor_pix,valor_cartao,parcelas,...base}=row;
+      ({error}=await (novo?tentar(base):supa.from('compras_cotacoes').update(base).eq('id',id).eq('empresa_id',_empresaId)));
+      toast('⚠️','Cotacao salva, mas PIX/cartao/parcelas so ficam no banco apos rodar o SQL de atualizacao no Supabase.');
+    }
+    if(error){console.error('cotacao supa',error.message);toast('❌','Erro ao salvar cotacao: '+error.message.substring(0,70));}
+  }catch(e){console.error('cotacao supa',e.message);}
 }
 
 // ═══════════════════════════════════════════
@@ -417,7 +468,7 @@ function gerarMapaCotacaoPDF(solId){
   const sol=(DB.solicitacoes||[]).find(s=>s.id===solId);
   if(!sol){toast('⚠️','Solicitacao nao encontrada.');return;}
   const cots=(DB.cotacoes||[]).filter(c=>String(c.solicitacaoId)===String(solId));
-  if(cots.length<2){toast('⚠️','Adicione ao menos 2 cotacoes.');return;}
+  if(!cots.length){toast('⚠️','Nenhuma cotacao registrada.');return;}
   const o=DB.obras.find(x=>String(x.id)===String(sol.obraId));
   const doc=new jsPDF();
   const W=doc.internal.pageSize.getWidth();
@@ -440,36 +491,50 @@ function gerarMapaCotacaoPDF(solId){
 
   // Tabela comparativa
   y=pSec(doc,y,'Cotacoes Recebidas');
-  const menorValor=Math.min(...cots.filter(c=>c.valorTotal>0).map(c=>c.valorTotal));
+  const melhores=cots.map(_cotMelhor).filter(v=>v>0);
+  const menorValor=melhores.length?Math.min(...melhores):0;
+  const v=x=>Number(x)>0?fmtR(x):'—';
   doc.autoTable({
     startY:y,
-    head:[['Fornecedor','Valor Unit.','Valor Total','Prazo','Obs','Resultado']],
-    body:cots.map(c=>[
-      c.fornecedor||'—',
-      fmtR(c.valorUnit||0),
-      fmtR(c.valorTotal||0),
-      c.prazoEntrega||'—',
-      (c.obs||'—').substring(0,30),
-      c.vencedor?'VENCEDOR':c.valorTotal===menorValor?'Menor preco':'—'
-    ]),
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7.5,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
-    bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    head:[['Fornecedor','Valor Unit.','Valor Total','No PIX','No Cartao','Parcelas','Prazo','Resultado']],
+    body:cots.map(c=>{
+      const parc=_cotParcela(c);
+      return [
+        c.fornecedor||'—',
+        v(c.valorUnit),
+        v(c.valorTotal),
+        v(c.valorPix),
+        v(c.valorCartao),
+        c.parcelas>1?c.parcelas+'x'+(parc?' de '+fmtR(parc):''):(c.valorCartao?'1x':'—'),
+        c.prazoEntrega||'—',
+        c.vencedor?'VENCEDOR':(_cotMelhor(c)===menorValor&&menorValor>0?'Menor preco':'—')
+      ];
+    }),
+    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:2,right:2}},
+    bodyStyles:{...bStyle(),fontSize:7,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:2,right:2}},
     alternateRowStyles:altRow(),
-    columnStyles:{0:{cellWidth:40,halign:'left'},1:{cellWidth:26,halign:'center'},2:{cellWidth:28,halign:'center',fontStyle:'bold'},3:{cellWidth:28,halign:'center'},4:{cellWidth:35,halign:'center'},5:{cellWidth:28,halign:'center'}},
+    columnStyles:{0:{cellWidth:34,halign:'left'},1:{cellWidth:20},2:{cellWidth:22},3:{cellWidth:22},4:{cellWidth:22},5:{cellWidth:26},6:{cellWidth:22},7:{cellWidth:24}},
     didParseCell(d){
-      if(d.section==='body'){
-        if(d.column.index===5){
-          if(d.cell.raw==='VENCEDOR'){d.cell.styles.textColor=[22,101,52];d.cell.styles.fontStyle='bold';}
-          else if(d.cell.raw==='Menor preco'){d.cell.styles.textColor=[22,101,52];}
-        }
-        if(d.column.index===2){
-          const val=cots[d.row.index]?.valorTotal;
-          if(val===menorValor&&val>0) d.cell.styles.textColor=[22,101,52];
-        }
+      if(d.section!=='body') return;
+      const c=cots[d.row.index]; if(!c) return;
+      if(d.column.index===7){
+        if(d.cell.raw==='VENCEDOR'){d.cell.styles.textColor=[22,101,52];d.cell.styles.fontStyle='bold';}
+        else if(d.cell.raw==='Menor preco'){d.cell.styles.textColor=[22,101,52];}
       }
+      const val={2:c.valorTotal,3:c.valorPix,4:c.valorCartao}[d.column.index];
+      if(val!==undefined&&Number(val)>0&&Number(val)===menorValor){d.cell.styles.textColor=[22,101,52];d.cell.styles.fontStyle='bold';}
     },
     margin:{left:M,right:M},
   });
+  // Observacoes de cada cotacao (texto livre fica fora da tabela para nao apertar as colunas)
+  const comObs=cots.filter(c=>c.obs);
+  if(comObs.length){
+    y=doc.lastAutoTable.finalY+6;
+    y=pSec(doc,y,'Observacoes dos Fornecedores');
+    doc.autoTable({startY:y,head:[['Fornecedor','Observacao']],body:comObs.map(c=>[c.fornecedor||'—',c.obs]),
+      headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7.5,cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+      bodyStyles:{...bStyle(),cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},columnStyles:{0:{cellWidth:45}},margin:{left:M,right:M}});
+  }
   y=doc.lastAutoTable.finalY+15;
 
   // Assinaturas
@@ -531,6 +596,20 @@ function gerarOrdemCompraPDF(pedId){
     margin:{left:M,right:M},
   });
   y=doc.lastAutoTable.finalY+6;
+
+  // Condicoes de pagamento cotadas pelo fornecedor vencedor
+  if(cot&&(cot.valorPix||cot.valorCartao)){
+    const linhas=[];
+    if(cot.valorTotal) linhas.push(['Valor total cotado',fmtR(cot.valorTotal)]);
+    if(cot.valorPix) linhas.push(['No PIX',fmtR(cot.valorPix)]);
+    if(cot.valorCartao) linhas.push(['No cartao de credito',fmtR(cot.valorCartao)+(cot.parcelas>1?'  ('+cot.parcelas+'x de '+fmtR(cot.valorCartao/cot.parcelas)+')':'')]);
+    y=pSec(doc,y,'Condicoes de Pagamento');
+    doc.autoTable({startY:y,body:linhas,
+      bodyStyles:{...bStyle(),cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+      columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:[70,75,90],halign:'center'},1:{cellWidth:142,halign:'center'}},
+      margin:{left:M,right:M}});
+    y=doc.lastAutoTable.finalY+6;
+  }
 
   if(p.obs){
     y=pSec(doc,y,'Observacoes');
