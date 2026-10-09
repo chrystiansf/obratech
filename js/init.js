@@ -315,12 +315,12 @@ function parseImportRows(rows){
     // Aceita Date (xlsx), DD/MM/AAAA, AAAA-MM-DD, MM/DD/AAAA
     if(v instanceof Date){return v.toISOString().split('T')[0];}
     const s=String(v||'').trim();
-    if(!s||s==='0')return new Date().toISOString().split('T')[0];
+    if(!s||s==='0')return hojeISO();
     const d1=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if(d1){const y=d1[3].length===2?'20'+d1[3]:d1[3];const m=d1[2].padStart(2,'0');const d=d1[1].padStart(2,'0');return `${y}-${m}-${d}`;}
     const d2=s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})$/);
     if(d2)return s.replace(/\//g,'-');
-    return new Date().toISOString().split('T')[0];
+    return hojeISO();
   }
   function parseVal(v){
     // Se já é número (xlsx retorna numeric), usar direto
@@ -570,12 +570,12 @@ function _parseImportLancs(rows){
   function parseData(v){
     if(v instanceof Date){return v.toISOString().split('T')[0];}
     const s=String(v||'').trim();
-    if(!s||s==='0')return new Date().toISOString().split('T')[0];
+    if(!s||s==='0')return hojeISO();
     const d1=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if(d1){const y=d1[3].length===2?'20'+d1[3]:d1[3];const m=d1[2].padStart(2,'0');const d=d1[1].padStart(2,'0');return `${y}-${m}-${d}`;}
     const d2=s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})$/);
     if(d2)return s.replace(/\//g,'-');
-    return new Date().toISOString().split('T')[0];
+    return hojeISO();
   }
   function parseVal(v){
     if(typeof v==='number') return Math.abs(v);
@@ -681,7 +681,7 @@ async function executarImportFinanceiro(){
 window.addEventListener('load',()=>{
   initTheme();updateSbObra();fillSelects();renderDash();
   // Set default dates
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeISO();
   const ini=new Date();ini.setDate(1);
   if(document.getElementById('pt-data'))document.getElementById('pt-data').value=hoje;
   if(document.getElementById('fol-de'))document.getElementById('fol-de').value=ini.toISOString().split('T')[0];

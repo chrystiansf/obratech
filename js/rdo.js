@@ -161,12 +161,13 @@ function rdoMarcarTodos(estado){
 
 function renderRDO(){
   document.getElementById('rdo-date-lbl').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  document.getElementById('rdo-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rdo-data').value=hojeISO();
   document.getElementById('rdo-no-obra').style.display=DB.obras.length?'none':'flex';
   rdoFotos=[];renderFotoGrid();renderRDOHist();rdoRenderPresenca();rdoRenderPresencaTercs();
   // Re-renderizar presença ao mudar obra ou data
-  document.getElementById('rdo-obra')?.addEventListener('change',()=>{rdoRenderPresenca();rdoRenderPresencaTercs();});
-  document.getElementById('rdo-data')?.addEventListener('change',()=>{rdoRenderPresenca();rdoRenderPresencaTercs();});
+  // (uma vez só — antes cada abertura da aba somava um ouvinte a mais)
+  const ro=document.getElementById('rdo-obra');if(ro&&!ro._otOuvinte){ro._otOuvinte=1;ro.addEventListener('change',()=>{rdoRenderPresenca();rdoRenderPresencaTercs();renderRDOHist();});}
+  const rd=document.getElementById('rdo-data');if(rd&&!rd._otOuvinte){rd._otOuvinte=1;rd.addEventListener('change',()=>{rdoRenderPresenca();rdoRenderPresencaTercs();});}
 }
 function renderFotoGrid(){
   document.getElementById('rdo-fotos').innerHTML=rdoFotos.map((f,i)=>{
@@ -286,7 +287,7 @@ async function saveRDO(status){
   if(status==='finalizado'){
     await gerarRDOPDF(rdo);
     ['rdo-servicos','rdo-obs','rdo-mat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    document.getElementById('rdo-data').value=new Date().toISOString().split('T')[0];
+    document.getElementById('rdo-data').value=hojeISO();
     rdoClima='Ensolarado';
     document.querySelectorAll('.clima-btn').forEach(b=>{b.style.background='transparent';b.style.borderColor='';b.style.color='';});
     rdoFotos=[];renderFotoGrid();rdoRenderPresenca();
@@ -296,13 +297,14 @@ async function saveRDO(status){
 function renderRDOHist(){
   const oId=document.getElementById('rdo-obra')?.value||getObra()?.id;
   const filtro=window._rdoHistFiltro||'obra';
-  const rdos=(filtro==='todos'?DB.rdos:DB.rdos.filter(r=>!oId||String(r.obraId)===String(oId))).sort((a,b)=>b.data.localeCompare(a.data));
+  const rdos=(filtro==='todos'?DB.rdos:DB.rdos.filter(r=>!oId||String(r.obraId)===String(oId))).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
   const el=document.getElementById('rdo-hist');
-  if(!rdos.length){el.innerHTML='<div class="t-empty">Nenhum RDO registrado.</div>';return;}
+  if(!DB.rdos.length){el.innerHTML='<div class="t-empty">Nenhum RDO registrado.</div>';return;}
   const btnSt=(v)=>filtro===v?'background:var(--primary);color:#fff':'';
   el.innerHTML=`<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px"><div style="display:flex;gap:4px"><button class="btn sm" style="${btnSt('obra')}" onclick="window._rdoHistFiltro='obra';renderRDOHist()">Esta obra</button><button class="btn sm" style="${btnSt('todos')}" onclick="window._rdoHistFiltro='todos';renderRDOHist()">Todas as obras</button></div><span style="font-size:11px;color:var(--txt3)">${rdos.length} relatório(s)</span>`
     +`<button class="btn sm" onclick="exportRDOsLote()" title="Exportar todos em lote"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar Lote</button></div>`
     +`<div style="display:flex;flex-direction:column;gap:6px">`
+    +(rdos.length?'':'<div class="t-empty">Nenhum RDO desta obra. Toque em "Todas as obras" para ver os outros.</div>')
     +rdos.map(r=>{
       const obra=DB.obras.find(o=>String(o.id)===String(r.obraId));
       return `<div onclick="visualizarRDO('${r.id}')" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;cursor:pointer;transition:.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">

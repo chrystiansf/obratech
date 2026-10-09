@@ -72,13 +72,13 @@ function openModal(type,editId=null,editId2=null){
       } else {
         const novoId=uuidv4();
         const newObra={id:novoId,...dados,_supa:true};
-        DB.obras.push(newObra);
+        DB.obras.push(newObra);window._otNovaObra=novoId;
         if(!DB.sel) DB.sel=novoId;
         supaInsert('obras',{id:novoId,nome:dados.nome,tipo:dados.tipo,status_manual:dados.statusManual||null,orcamento:dados.orc,area_m2:dados.m2,data_ini:dados.dataIni||null,data_fim:dados.dataFim||null,local:dados.local,responsavel:dados.resp,cliente:dados.cli,obs:dados.obs});
       }
       save();renderObras();updateSbObra();renderDash();toast('✅',o?'Obra atualizada!':'Obra cadastrada!');
       // Com uma obra ativa, a obra recém-criada passa a ser a ativa (senão ela sumiria da tela)
-      if(!o&&typeof _obraAtiva!=='undefined'&&_obraAtiva) setTimeout(()=>otDefinirObra(DB.obras[DB.obras.length-1].id),50);
+      if(!o&&typeof _obraAtiva!=='undefined'&&_obraAtiva) setTimeout(()=>otDefinirObra(window._otNovaObra),50);
       else if(typeof _otAtualizarChip==='function') _otAtualizarChip();
       return true;
     };
@@ -183,7 +183,7 @@ function openModal(type,editId=null,editId2=null){
         <input type="number" class="inp" id="l-valor" value="${l?.valor||''}" placeholder="0.00" min="0" step="0.01">
       </div>
       <div class="fg"><label class="lbl">Data</label>
-        <input type="date" class="inp" id="l-data" value="${l?.data||new Date().toISOString().split('T')[0]}">
+        <input type="date" class="inp" id="l-data" value="${l?.data||hojeISO()}">
       </div>
       <div class="fg"><label class="lbl">Obra</label>
         <select class="sel" id="l-obra" onchange="_refreshLancEtapas(this.value)">${DB.obras.map(o=>`<option value="${o.id}"${(l?.obraId||obra?.id)==o.id?' selected':''}>${o.nome}</option>`).join('')}</select>
@@ -315,7 +315,7 @@ function openModal(type,editId=null,editId2=null){
       </div>
       <div class="fg"><label class="lbl">Tipo *</label><select class="sel" id="mv-tipo"><option>Entrada</option><option>Saída</option></select></div>
       <div class="fg"><label class="lbl">Quantidade *</label><input type="number" class="inp" id="mv-qtd" min="0" step="0.1" placeholder="0"></div>
-      <div class="fg"><label class="lbl">Data</label><input type="date" class="inp" id="mv-data" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="fg"><label class="lbl">Data</label><input type="date" class="inp" id="mv-data" value="${hojeISO()}"></div>
       <div class="fg"><label class="lbl">Nota Fiscal</label><input class="inp" id="mv-nf" placeholder="NF 00123"></div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Observação</label><input class="inp" id="mv-obs" placeholder="Obs opcional"></div>
     </div>`;
@@ -325,7 +325,7 @@ function openModal(type,editId=null,editId2=null){
       const tipo=tipoRaw==='Saída'?'Saida':tipoRaw;
       const obraId=document.getElementById('mv-obra').value||null;
       const saldoObra=DB.movs.filter(m=>String(m.estId)===String(est.id)&&String(m.obraId)===String(obraId)).reduce((a,m)=>a+(m.tipo==='Entrada'?m.qtd:-m.qtd),0);
-      if(tipo==='Saída'&&qtd>saldoObra){toast('⚠️',`Saldo insuficiente nessa obra! Disponível: ${saldoObra} ${est.un}`);return false;}
+      if(tipo==='Saida'&&qtd>saldoObra){toast('⚠️',`Saldo insuficiente nessa obra! Disponível: ${saldoObra} ${est.un}`);return false;}
       const mvData=document.getElementById('mv-data').value;
       const mvNf=document.getElementById('mv-nf').value.trim();
       const mvObs=document.getElementById('mv-obs').value.trim();
@@ -446,7 +446,7 @@ function openModal(type,editId=null,editId2=null){
     </div>
     <div class="g g2">
       <div class="fg"><label class="lbl">Data do Pagamento *</label>
-        <input type="date" class="inp" id="pg-data" value="${pgtoEx?.data||new Date().toISOString().split('T')[0]}">
+        <input type="date" class="inp" id="pg-data" value="${pgtoEx?.data||hojeISO()}">
       </div>
       <div class="fg"><label class="lbl">Valor (R$) *</label>
         <input type="number" class="inp" id="pg-valor" value="${pgtoEx?.valor||''}" min="0" step="0.01" placeholder="0.00"

@@ -122,6 +122,10 @@ const _finFiltros={
 };
 let _finDropAberto=null; // id do drop aberto
 
+// id da caixa de seleção de cada opção (o mesmo na criação e na busca; aceita qualquer texto e ids UUID)
+function _finChkId(campo,v){return 'cf-chk-'+campo+'-'+Array.from(String(v)).map(c=>/[a-zA-Z0-9_-]/.test(c)?c:'_'+c.codePointAt(0)+'_').join('');}
+const _alfa=(a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base',numeric:true});
+
 function _finOpcoes(campo){
   // Retorna valores únicos existentes nos lançamentos para o campo
   const vals=new Set();
@@ -132,8 +136,8 @@ function _finOpcoes(campo){
     else if(campo==='cc')vals.add(l.cc||'—');
     else if(campo==='forn')vals.add(l.forn||'—');
   });
-  if(campo==='obra') return [...vals].map(v=>JSON.parse(v));
-  return [...vals].sort();
+  if(campo==='obra') return [...vals].map(v=>JSON.parse(v)).sort((a,b)=>_alfa(a.nome,b.nome));
+  return [...vals].sort(_alfa);
 }
 
 function _finToggleDrop(campo,e){
@@ -198,8 +202,7 @@ function _finCheckItem(campo,val,isObra){
   if(pend.has(key)){pend.delete(key);}
   else{pend.add(key);}
   // Atualizar checkbox visualmente
-  const safeKey=CSS.escape(key);
-  const chk=document.getElementById('cf-chk-'+campo+'-'+safeKey);
+  const chk=document.getElementById(_finChkId(campo,key));
   if(chk)chk.checked=pend.has(key);
   // Atualizar "Selecionar Tudo"
   const opcoes=_finOpcoes(campo);
@@ -233,7 +236,7 @@ function _finAtualizarChkDrop(campo,isObra){
   const allChk=document.getElementById(`cf-all-${campo}`);
   if(allChk)allChk.checked=(filtro===null||filtro.size===todos.length);
   todos.forEach(v=>{
-    const chk=document.getElementById(`cf-chk-${campo}-${CSS.escape(v)}`);
+    const chk=document.getElementById(_finChkId(campo,v));
     if(chk)chk.checked=filtro===null||filtro.has(v);
   });
 }
@@ -245,7 +248,7 @@ function _finAtualizarChkDropPendente(campo,isObra){
   const allChk=document.getElementById('cf-all-'+campo);
   if(allChk)allChk.checked=pend.size===todos.length;
   todos.forEach(v=>{
-    const chk=document.getElementById('cf-chk-'+campo+'-'+CSS.escape(v));
+    const chk=document.getElementById(_finChkId(campo,v));
     if(chk)chk.checked=pend.has(v);
   });
 }
@@ -275,20 +278,18 @@ function _finBuildDrop(campo){
         const checked=filtro===null||filtro.has(String(o.id));
         const c=obraColor(DB.obras.find(x=>String(x.id)===String(o.id))||{});
         const dotC=c==='g'?'var(--green)':c==='r'?'var(--red)':c==='fin'?'var(--green)':'var(--txt3)';
-        const safeId=String(o.id).replace(/[^a-zA-Z0-9_-]/g,'');
         return `<div class="cf-item" data-campo="${campo}" data-val="${o.id}" data-isobra="1" onclick="_finItemClick(this);event.stopPropagation()">
-          <input type="checkbox" id="cf-chk-${campo}-${safeId}" ${checked?'checked':''} onclick="_finItemClick(this.parentElement);event.stopPropagation()">
+          <input type="checkbox" id="${_finChkId(campo,o.id)}" ${checked?'checked':''} onclick="_finItemClick(this.parentElement);event.stopPropagation()">
           <span class="cf-dot" style="background:${dotC}"></span>
-          <span style="flex:1">${o.nome}</span>
+          <span style="flex:1">${escHtml(o.nome)}</span>
         </div>`;
       }).join('')
     : opcoes.map(v=>{
-        const safe=CSS.escape(v);
         const checked=filtro===null||filtro.has(v);
         const dot=campo==='tipo'?`<span class="cf-dot" style="background:${CORES_TIPO[v]||'var(--txt3)'}"></span>`:'';
         return `<div class="cf-item" data-campo="${campo}" data-val="${v.replace(/"/g,'&quot;')}" data-isobra="0" onclick="_finItemClick(this);event.stopPropagation()">
-          <input type="checkbox" id="cf-chk-${campo}-${safe}" ${checked?'checked':''} onclick="_finItemClick(this.parentElement);event.stopPropagation()">
-          ${dot}<span style="flex:1">${v}</span>
+          <input type="checkbox" id="${_finChkId(campo,v)}" ${checked?'checked':''} onclick="_finItemClick(this.parentElement);event.stopPropagation()">
+          ${dot}<span style="flex:1">${escHtml(v)}</span>
         </div>`;
       }).join('');
 
@@ -346,14 +347,6 @@ function finPeriodo(v){
   renderFin();
 }
 
-// Data em aaaa-mm-dd (aceita dd/mm/aaaa e data com hora) para comparar períodos
-function _dataISO(v){
-  if(!v) return '';
-  const s=String(v).trim();
-  const br=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
-  if(br) return br[3]+'-'+br[2]+'-'+br[1];
-  return s.slice(0,10);
-}
 
 // Regra única de filtro do financeiro (tela, PDF e Excel usam a mesma)
 function _finPassa(l){
@@ -387,9 +380,9 @@ function renderFin(){
   // Popular seletor rápido de obra
   const finObraRapido = document.getElementById('fin-obra-rapido');
   if(finObraRapido){
-    const curVal = finObraRapido.value;
+    const curVal = _finFiltros.obra&&_finFiltros.obra.size===1 ? [..._finFiltros.obra][0] : '';
     finObraRapido.innerHTML = '<option value="">Todas as obras</option>' +
-      DB.obras.map(o=>`<option value="${o.id}"${curVal===String(o.id)?' selected':''}>${o.nome}</option>`).join('');
+      DB.obras.slice().sort((a,b)=>_alfa(a.nome,b.nome)).map(o=>`<option value="${o.id}"${curVal===String(o.id)?' selected':''}>${escHtml(o.nome)}</option>`).join('');
   }
   const isObra=true;
   const _finBuscaDesc=(document.getElementById('fin-busca-desc')?.value||'').toLowerCase().trim();
@@ -468,7 +461,7 @@ function renderFin(){
   setTimeout(()=>{
     mkChart('ch-rv',{type:'doughnut',data:{labels:['Gasto','Saldo do orçamento'],datasets:[{data:[dep||0.01,Math.max(saldoOrc,0)||0.01],backgroundColor:[CP.redA,CP.grnA],borderColor:[CP.red,CP.grn],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:CP.t,font:{size:9}}}}}});
     const ms=meses6();
-    mkChart('ch-fin-mensal',{type:'bar',data:{labels:ms.map(m=>m.l),datasets:[{label:'Despesas',data:ms.map(m=>lans.filter(l=>l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.redA,borderColor:CP.red,borderWidth:2,borderRadius:3}]},options:BO});
+    mkChart('ch-fin-mensal',{type:'bar',data:{labels:ms.map(m=>m.l),datasets:[{label:'Despesas',data:ms.map(m=>lans.filter(l=>l.tipo==='Despesa'&&dataLocal(l.data)?.getMonth()===m.m&&dataLocal(l.data)?.getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0)),backgroundColor:CP.redA,borderColor:CP.red,borderWidth:2,borderRadius:3}]},options:BO});
   },50);
 }
 function finFiltroKpi(tipo){

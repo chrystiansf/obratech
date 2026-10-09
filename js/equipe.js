@@ -7,10 +7,10 @@ function swTab(btn,id){
   if(id==='t-ponto'){
     // Inicializa semana atual
     const sw=document.getElementById('pt-semana');
-    if(sw&&!sw.value)sw.value=new Date().toISOString().split('T')[0];
+    if(sw&&!sw.value)sw.value=hojeISO();
     renderGradePresenca();renderPontos();
-    sw?.addEventListener('change',renderGradePresenca);
-    document.getElementById('pt-obra')?.addEventListener('change',renderGradePresenca);
+    if(sw&&!sw._otOuvinte){sw._otOuvinte=1;sw.addEventListener('change',renderGradePresenca);}
+    const po=document.getElementById('pt-obra');if(po&&!po._otOuvinte){po._otOuvinte=1;po.addEventListener('change',()=>{renderGradePresenca();renderPontos();});}
   }
 }
 function renderEquipe(){fillSelects();renderColabs();renderPontos();}
@@ -49,7 +49,7 @@ const DIAS_SEMANA=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 function renderGradePresenca(){
   const semanaEl=document.getElementById('pt-semana');
   if(!semanaEl||!semanaEl.value)return;
-  const obraId=parseInt(document.getElementById('pt-obra').value)||null;
+  const obraId=document.getElementById('pt-obra').value||null;
   const seg=semanaIni(semanaEl.value);
   const diasISO=Array.from({length:7},(_,i)=>toISO(addDias(seg,i)));
 
@@ -80,20 +80,20 @@ function renderGradePresenca(){
     const diaria=Number(col.diaria||col.salario||0);
     // Verificar presenças já salvas
     const presentes=diasISO.map(d=>{
-      return DB.pontos.some(p=>p.colabId===col.id&&p.data===d&&(!obraId||p.obraId===obraId)&&p.presente===true);
+      return DB.pontos.some(p=>String(p.colabId)===String(col.id)&&p.data===d&&(!obraId||String(p.obraId)===String(obraId))&&p.presente===true);
     });
     html+=`<tr>
       <td class="n" style="font-size:12px">${col.nome}<div style="font-size:10px;color:var(--txt3)">${col.funcao||''}</div></td>
       <td style="text-align:center;font-size:11px;color:var(--green);font-weight:600">${fmtR(diaria)}</td>
       ${diasISO.map((d,i)=>{
         const fds=i>=5;
-        const pt=DB.pontos.find(p=>p.colabId===col.id&&p.data===d&&(!obraId||p.obraId===obraId)&&p.presente);
+        const pt=DB.pontos.find(p=>String(p.colabId)===String(col.id)&&p.data===d&&(!obraId||String(p.obraId)===String(obraId))&&p.presente);
         const val=pt?(pt.tipo==='meia_diaria'?'M':'P'):'';
         const bg=val==='P'?'#1F7A50':val==='M'?'#8A5A00':'var(--bg3)';
         const clr=val?'#fff':'var(--txt3)';
         return`<td style="text-align:center;background:${fds?'rgba(255,255,255,.02)':''}">
           <select data-colab="${col.id}" data-data="${d}"
-            onchange="atualizarSubtotal(${col.id},'${diasISO.join(',')}')"
+            onchange="atualizarSubtotal('${col.id}','${diasISO.join(',')}')"
             style="width:52px;height:24px;font-size:10px;font-weight:700;border-radius:5px;border:1px solid var(--border);background:${bg};color:${clr};cursor:pointer;text-align:center">
             <option value="" ${!val?'selected':''}>--</option>
             <option value="P" ${val==='P'?'selected':''}>Dia</option>
@@ -116,7 +116,7 @@ function renderGradePresenca(){
 
 function atualizarSubtotal(colabId, diasStr){
   const dias=diasStr.split(',');
-  const col=DB.colabs.find(x=>x.id===colabId);
+  const col=DB.colabs.find(x=>String(x.id)===String(colabId));
   const diaria=Number(col?.diaria||col?.salario||0);
   let diasInt=0,meios=0,totalVal=0;
   dias.forEach(d=>{
@@ -134,7 +134,7 @@ function atualizarSubtotal(colabId, diasStr){
 function marcarTodos(val){
   document.querySelectorAll('#presenca-grade select[data-colab]').forEach(cb=>{
     cb.value=val?'P':'';
-    const colabId=parseInt(cb.dataset.colab);
+    const colabId=cb.dataset.colab;
     const semanaEl=document.getElementById('pt-semana');
     if(semanaEl&&semanaEl.value){
       const seg=semanaIni(semanaEl.value);
@@ -147,7 +147,7 @@ function marcarTodos(val){
 function salvarPresenca(){
   const semanaEl=document.getElementById('pt-semana');
   if(!semanaEl||!semanaEl.value){toast('⚠️','Selecione uma data!');return;}
-  const obraId=parseInt(document.getElementById('pt-obra').value)||null;
+  const obraId=document.getElementById('pt-obra').value||null;
   const seg=semanaIni(semanaEl.value);
   const diasISO=Array.from({length:7},(_,i)=>toISO(addDias(seg,i)));
 
@@ -156,7 +156,7 @@ function salvarPresenca(){
     diasISO.forEach(d=>{
       const cb=document.querySelector(`select[data-colab="${col.id}"][data-data="${d}"]`);
       if(!cb)return;
-      const prev=DB.pontos.findIndex(p=>p.colabId===col.id&&p.data===d&&(!obraId||p.obraId===obraId));
+      const prev=DB.pontos.findIndex(p=>String(p.colabId)===String(col.id)&&p.data===d&&(!obraId||String(p.obraId)===String(obraId)));
       if(prev!==-1){
         const old=DB.pontos[prev];
         if(old&&typeof old.id==='string'&&old.id.includes('-'))supaDelete('pontos',old.id);
@@ -181,7 +181,8 @@ function salvarPresenca(){
 
 function renderPontos(){
   const filt=document.getElementById('pt-filter')?.value;
-  const pts=DB.pontos.filter(p=>p.presente&&(!filt||p.colabId==filt)).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,40);
+  const fob=document.getElementById('pt-obra')?.value||'';
+  const pts=DB.pontos.filter(p=>p.presente&&(!filt||String(p.colabId)===String(filt))&&(!fob||String(p.obraId)===String(fob))).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))).slice(0,40);
   const el=document.getElementById('ponto-tbl');
   if(!pts.length){el.innerHTML='<div class="t-empty">Nenhuma presença registrada.</div>';return;}
   el.innerHTML=`<table class="tbl">

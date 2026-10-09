@@ -50,7 +50,7 @@ function buildObraDropdown(){
   const items=document.getElementById('d-filter-items');
   if(!items)return;
   items.innerHTML=DB.obras.map(o=>{
-    const checked=_obrasFiltro===null||_obrasFiltro.includes(o.id);
+    const checked=_obrasFiltro===null||_obrasFiltro.map(String).includes(String(o.id));
     const cor=obraColor(o);
     const bg=cor==='g'?'var(--green)':cor==='r'?'var(--red)':cor==='b'?'var(--primary)':'var(--txt3)';
     return `<div class="d-filter-item" onclick="toggleObraCheck('${o.id}',event)">
@@ -72,7 +72,9 @@ function filterObraDropdown(q){
 
 function toggleObraCheck(id,e){
   e.stopPropagation();
-  if(_obrasFiltro===null) _obrasFiltro=DB.obras.map(o=>o.id);
+  id=String(id);
+  if(_obrasFiltro===null) _obrasFiltro=DB.obras.map(o=>String(o.id));
+  _obrasFiltro=_obrasFiltro.map(String);
   const idx=_obrasFiltro.indexOf(id);
   if(idx>=0) _obrasFiltro.splice(idx,1);
   else _obrasFiltro.push(id);
@@ -124,8 +126,8 @@ function updateFilterLabel(){
   }
   // Atualizar checkboxes
   document.querySelectorAll('#d-filter-items .d-filter-item input[type=checkbox]').forEach(chk=>{
-    const id=parseInt(chk.id.replace('d-chk-',''));
-    chk.checked=_obrasFiltro===null||_obrasFiltro.includes(id);
+    const id=chk.id.replace('d-chk-','');
+    chk.checked=_obrasFiltro===null||_obrasFiltro.some(x=>String(x)===id);
   });
   const allChk=document.getElementById('d-chk-all');
   if(allChk)allChk.checked=_obrasFiltro===null;
@@ -133,7 +135,7 @@ function updateFilterLabel(){
 
 function getObrasAtivas(){
   if(_obrasFiltro===null) return DB.obras;
-  return DB.obras.filter(o=>_obrasFiltro.includes(o.id));
+  return DB.obras.filter(o=>_obrasFiltro.map(String).includes(String(o.id)));
 }
 
 function dashSelecionarObra(){
@@ -220,7 +222,7 @@ function renderDashCharts(obras){
   setTimeout(()=>{
     const ms=meses6();
     const recs=ms.map(m=>(DB.aportes||[]).filter(a=>obras.some(o=>String(o.id)===String(a.obraId))&&new Date(a.data+'T12:00').getMonth()===m.m&&new Date(a.data+'T12:00').getFullYear()===m.y).reduce((s,a)=>s+Number(a.valor||0),0));
-    const deps=ms.map(m=>DB.lancs.filter(l=>obras.some(o=>o.id===l.obraId)&&l.tipo==='Despesa'&&new Date(l.data).getMonth()===m.m&&new Date(l.data).getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0));
+    const deps=ms.map(m=>DB.lancs.filter(l=>obras.some(o=>String(o.id)===String(l.obraId))&&l.tipo==='Despesa'&&dataLocal(l.data)?.getMonth()===m.m&&dataLocal(l.data)?.getFullYear()===m.y).reduce((a,l)=>a+Number(l.valor),0));
     mkChart('ch-fluxo',{type:'line',data:{labels:ms.map(m=>m.l),datasets:[{label:'Aportes',data:recs,borderColor:CP.grn,backgroundColor:CP.grnA,fill:true,tension:.4},{label:'Despesas',data:deps,borderColor:CP.red,backgroundColor:CP.redA,fill:true,tension:.4}]},options:BO});
     mkChart('ch-avancos',{type:'bar',data:{labels:obras.map(o=>o.nome.split(' ').slice(0,2).join(' ')),datasets:[{label:'Avanço %',data:obras.map(obraPct),backgroundColor:obras.map(o=>obraColor(o)==='r'?CP.redA:obraColor(o)==='g'?CP.grnA:CP.priA),borderColor:obras.map(o=>obraColor(o)==='r'?CP.red:obraColor(o)==='g'?CP.grn:CP.pri),borderWidth:2,borderRadius:3}]},options:{...BO,scales:{...BO.scales,y:{...BO.scales.y,max:100}}}});
     // Paleta de 20 cores distintas para nunca repetir
@@ -233,7 +235,7 @@ function renderDashCharts(obras){
     ];
     // Buscar todas as categorias com valor (dinâmico)
     const allCats=[...new Set([...(DB.categorias||[]),...DB.lancs.map(l=>l.cat).filter(Boolean)])];
-    const cvals=allCats.map(cat=>DB.lancs.filter(l=>obras.some(o=>o.id===l.obraId)&&l.cat===cat&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0));
+    const cvals=allCats.map(cat=>DB.lancs.filter(l=>obras.some(o=>String(o.id)===String(l.obraId))&&l.cat===cat&&l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0));
     const catsFilt=allCats.map((c,i)=>({nome:c,val:cvals[i],bg:_cPal[i%_cPal.length][0],border:_cPal[i%_cPal.length][1]})).filter(c=>c.val>0);
     mkChart('ch-categorias',{type:'doughnut',data:{labels:catsFilt.length?catsFilt.map(c=>c.nome):['Sem dados'],datasets:[{data:catsFilt.length?catsFilt.map(c=>c.val):[1],backgroundColor:catsFilt.length?catsFilt.map(c=>c.bg):['#ccc'],borderColor:catsFilt.length?catsFilt.map(c=>c.border):['#aaa'],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:CP.t,font:{size:9},boxWidth:8}}}}});
   },50);
@@ -245,10 +247,10 @@ function renderDash(){
   document.getElementById('d-content').style.display=obras.length?'':'none';
   if(!obras.length)return;
   // Usar obras filtradas para KPIs e gráficos
-  if(_obrasFiltro!==null)_obrasFiltro=_obrasFiltro.filter(id=>obras.some(o=>o.id===id));
+  if(_obrasFiltro!==null)_obrasFiltro=_obrasFiltro.filter(id=>obras.some(o=>String(o.id)===String(id)));
   buildObraDropdown();
   const filtObras=getObrasAtivas();
-  const filtLancs=DB.lancs.filter(l=>filtObras.some(o=>o.id===l.obraId));
+  const filtLancs=DB.lancs.filter(l=>filtObras.some(o=>String(o.id)===String(l.obraId)));
   const filtRec=(DB.aportes||[]).filter(a=>filtObras.some(o=>String(o.id)===String(a.obraId))).reduce((s,a)=>s+Number(a.valor||0),0);
   const filtDep=filtLancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
   const filtSaldo=filtRec-filtDep;
@@ -262,9 +264,9 @@ function renderDash(){
     <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-triangle-alert></use></svg> NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--yellow)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${ncsAb?'Atenção':'Tudo OK'}</div></div>`;
   // Alertas
   const alts=[];
-  DB.ncs.filter(n=>n.status!=='Fechada'&&n.prazo&&new Date(n.prazo)<new Date()).forEach(n=>{const o=DB.obras.find(x=>x.id==n.obraId);alts.push({t:'r',msg:`NC vencida: ${n.desc.substring(0,35)} — ${o?.nome||''}`});});
+  DB.ncs.filter(n=>n.status!=='Fechada'&&n.prazo&&n.prazo<hojeISO()).forEach(n=>{const o=DB.obras.find(x=>x.id==n.obraId);alts.push({t:'r',msg:`NC vencida: ${n.desc.substring(0,35)} — ${o?.nome||''}`});});
   DB.estoque.forEach(e=>{const saldo=DB.movs.filter(m=>m.estId===e.id).reduce((a,m)=>a+(m.tipo==='Entrada'?m.qtd:-m.qtd),0);if(saldo>0&&saldo<=Number(e.min))alts.push({t:'y',msg:`Estoque mínimo: ${e.material} (${saldo} ${e.un})`});});
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeISO();
   obras.forEach(o=>{if(o.dataFim&&o.dataFim<hoje&&obraPct(o)<100)alts.push({t:'y',msg:`Prazo vencido: ${o.nome}`});});
   if(!alts.length)alts.push({t:'g',msg:'Nenhum alerta crítico no momento.'});
   document.getElementById('d-alertas').innerHTML='<div class="tl">'+alts.map(a=>`<div class="tli"><div class="tld ${a.t}"></div><div class="tltx">${a.msg}</div></div>`).join('')+'</div>';

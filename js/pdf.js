@@ -798,7 +798,7 @@ function exportFinXLS() {
   for (let r = 1; r <= obraRows.length; r++) { const c = wsObra[XLSX.utils.encode_cell({ r, c: 1 })]; if (c) c.z = '#,##0.00'; }
   XLSX.utils.book_append_sheet(wb, wsObra, 'Resumo por Obra');
 
-  XLSX.writeFile(wb, 'Financeiro_ObraTech_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  XLSX.writeFile(wb, 'Financeiro_ObraTech_' + hojeISO() + '.xlsx');
   toast('📊', 'Planilha financeira exportada (' + lans.length + ' lancamentos)!');
 }
 
@@ -900,11 +900,14 @@ function exportFinPDF() {
 // 5. QUALIDADE — NAO CONFORMIDADES
 // ─────────────────────────────────────────────────────────────────
 function exportQualPDF() {
-  if (!DB.ncs.length) { toast('⚠️', 'Nenhuma NC registrada!'); return; }
-  const total = DB.ncs.length;
-  const ab    = DB.ncs.filter(n => n.status !== 'Fechada').length;
-  const alta  = DB.ncs.filter(n => n.grau === 'Alta').length;
-  const venc  = DB.ncs.filter(n => n.status !== 'Fechada' && n.prazo && new Date(n.prazo) < new Date()).length;
+  // Mesmo filtro de obra da tela de Qualidade
+  const fObra = document.getElementById('qual-obra-filter')?.value || '';
+  const NCS = fObra ? DB.ncs.filter(n => String(n.obraId) === String(fObra)) : DB.ncs;
+  if (!NCS.length) { toast('⚠️', 'Nenhuma NC registrada!'); return; }
+  const total = NCS.length;
+  const ab    = NCS.filter(n => n.status !== 'Fechada').length;
+  const alta  = NCS.filter(n => n.grau === 'Alta').length;
+  const venc  = NCS.filter(n => n.status !== 'Fechada' && n.prazo && String(n.prazo).slice(0,10) < hojeISO()).length;
   const doc   = new jsPDF();
   let y = pHdr(doc, 'Relatorio de Qualidade', total + ' nao conformidades   —   ' + new Date().toLocaleDateString('pt-BR'));
   y += 4;
@@ -918,7 +921,7 @@ function exportQualPDF() {
   y += ch + 8;
 
   // ── NCs criticas abertas
-  const ncsAlta = DB.ncs.filter(n => n.grau === 'Alta' && n.status !== 'Fechada');
+  const ncsAlta = NCS.filter(n => n.grau === 'Alta' && n.status !== 'Fechada');
   if (ncsAlta.length) {
     y = pSec(doc, y, 'NCs Criticas — Grau Alto (Abertas)');
     doc.autoTable({
@@ -959,7 +962,7 @@ function exportQualPDF() {
   doc.autoTable({
     startY: y,
     head: [['No.','Obra','Etapa','Descricao','Prazo','Grau','Responsavel','Status']],
-    body: DB.ncs.map(n => {
+    body: NCS.map(n => {
       const o = DB.obras.find(x => x.id == n.obraId);
       return [String(n.numero||'—'), (o?.nome||'—').substring(0,13), (n.etapa||'—').substring(0,11),
         (n.desc||'—').substring(0,36), n.prazo ? fmtDt(n.prazo) : '—',
@@ -1504,15 +1507,16 @@ function exportMovsPDF(){
 }
 
 function exportContratosPDF(){
-  if(!DB.contratos.length){toast('⚠️','Nenhum contrato cadastrado!');return;}
+  const CTS=typeof _contFiltrados==='function'?_contFiltrados():DB.contratos;   // mesmos filtros da tela
+  if(!CTS.length){toast('⚠️','Nenhum contrato nos filtros atuais!');return;}
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const W=297, H=210, ml=9, mr=9, cw=279;
   const today=new Date().toLocaleDateString('pt-BR');
 
-  const totalValor=DB.contratos.reduce((a,ct)=>a+Number(ct.valor||0),0);
-  const totalPago =DB.contratos.reduce((a,ct)=>a+_contPago(ct.id),0);
+  const totalValor=CTS.reduce((a,ct)=>a+Number(ct.valor||0),0);
+  const totalPago =CTS.reduce((a,ct)=>a+_contPago(ct.id),0);
   const devedor   =totalValor-totalPago;
-  const atrasados =DB.contratos.filter(ct=>contStatus(ct)==='atrasado').length;
+  const atrasados =CTS.filter(ct=>contStatus(ct)==='atrasado').length;
   const pctPago   =totalValor>0?Math.round(totalPago/totalValor*100):0;
 
   let pg=1, y=0;
@@ -1523,7 +1527,7 @@ function exportContratosPDF(){
     doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(255,255,255);
     doc.text('RELATÓRIO DE CONTRATOS',ml,14);
     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...PX.lgray);
-    doc.text(DB.contratos.length+' contratos  ·  Emitido em '+today, W-mr, 10, {align:'right'});
+    doc.text(CTS.length+' contratos  ·  Emitido em '+today, W-mr, 10, {align:'right'});
     doc.text('ObraTech — Sistema de Gestão de Obras', W-mr, 17, {align:'right'});
     y=28;
   }
@@ -1559,7 +1563,7 @@ function exportContratosPDF(){
 
   // ── KPIs ──────────────────────────────────────────────────────────
   const kw=(cw-9)/4, kh=22;
-  [[ml+0*(kw+3),'Total Contratos',String(DB.contratos.length),'cadastrados',false],
+  [[ml+0*(kw+3),'Total Contratos',String(CTS.length),'cadastrados',false],
    [ml+1*(kw+3),'Valor Total',String(fmtR(totalValor)),'contratado',false],
    [ml+2*(kw+3),'Total Pago',String(fmtR(totalPago)),pctPago+'% quitado',false],
    [ml+3*(kw+3),'Saldo Devedor',String(fmtR(devedor)),atrasados?atrasados+' em atraso':'Sem atrasos',atrasados>0]
@@ -1587,7 +1591,7 @@ function exportContratosPDF(){
   secTitle('CONTRATOS');
 
   const ST={ativo:'Ativo',quitado:'Quitado',atrasado:'Atrasado'};
-  const ctRows=DB.contratos.sort((a,b)=>(a.obraId||0)-(b.obraId||0)||(a.id-b.id)).map(ct=>{
+  const ctRows=CTS.slice().sort((a,b)=>ordAlfa(DB.obras.find(o=>String(o.id)===String(a.obraId))?.nome,DB.obras.find(o=>String(o.id)===String(b.obraId))?.nome)||ordAlfa(a.numero,b.numero)).map(ct=>{
     const pago=_contPago(ct.id);
     const dev=Number(ct.valor||0)-pago;
     const obra=DB.obras.find(o=>o.id==ct.obraId);
@@ -1713,9 +1717,10 @@ function exportEstoquePDF(){
   const today=new Date().toLocaleDateString('pt-BR');
 
   // Filtros ativos — ler o filtro global do estoque (let, não window)
-  const obras=(_estObrasFiltro===null||_estObrasFiltro.size===0)
+  if(_estObrasFiltro!==null&&_estObrasFiltro.size===0){toast('⚠️','Nenhuma obra selecionada no filtro.');return;}
+  const obras=_estObrasFiltro===null
     ? DB.obras
-    : DB.obras.filter(o=>_estObrasFiltro.has(o.id));
+    : DB.obras.filter(o=>_estObrasFiltro.has(String(o.id)));
   const obraIds=obras.map(o=>o.id);
 
   // Calcular saldo por material por obra

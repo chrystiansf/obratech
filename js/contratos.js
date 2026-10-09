@@ -4,12 +4,24 @@ function contStatus(ct){
   const total=Number(ct.valor)||0;
   const pago=_contPago(ct.id);
   if(pago>=total&&total>0) return 'quitado';
-  const hoje=new Date().toISOString().split('T')[0];
-  if(ct.prazo&&ct.prazo<hoje&&pago<total) return 'atrasado';
+  const hoje=hojeISO();
+  if(ct.prazo&&String(ct.prazo).slice(0,10)<hoje&&pago<total) return 'atrasado';
   return 'ativo';
 }
 function _contPago(ctId){
   return DB.pgtos.filter(p=>String(p.contratoId)===String(ctId)).reduce((a,p)=>a+Number(p.valor||0),0);
+}
+// Filtros da tela de contratos (busca, status, obra) — a tela e o PDF usam a mesma regra
+function _contFiltrados(){
+  const q=(document.getElementById('cont-search')?.value||'').toLowerCase().trim();
+  const sf=document.getElementById('cont-status-filter')?.value||'';
+  const of=document.getElementById('cont-obra-filter')?.value||'';
+  return (DB.contratos||[]).filter(c=>{
+    if(q&&![c.numero,c.descricao,c.forn].some(v=>String(v||'').toLowerCase().includes(q)))return false;
+    if(sf&&contStatus(c)!==sf)return false;
+    if(of&&String(c.obraId)!==String(of))return false;
+    return true;
+  });
 }
 function contStatusBadge(ct){
   const s=contStatus(ct);
@@ -36,16 +48,8 @@ function renderContratos(){
   const sf=document.getElementById('cont-status-filter')?.value||'';
   // Popular filtro de obras
   const ctObraFilter=document.getElementById('cont-obra-filter');
-  if(ctObraFilter&&ctObraFilter.options.length<=1){
-    DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;ctObraFilter.appendChild(opt);});
-  }
-  const obraFiltro=ctObraFilter?.value||'';
-  const filtrados=cts.filter(c=>{
-    if(q&&!c.numero?.toLowerCase().includes(q)&&!c.descricao?.toLowerCase().includes(q)&&!c.forn?.toLowerCase().includes(q))return false;
-    if(sf&&contStatus(c)!==sf)return false;
-    if(obraFiltro&&String(c.obraId)!==String(obraFiltro))return false;
-    return true;
-  });
+  otPreencherObras(ctObraFilter);
+  const filtrados=_contFiltrados();
 
   const el=document.getElementById('cont-tbl');
   if(!filtrados.length){
@@ -63,7 +67,7 @@ function renderContratos(){
           <td style="font-size:11px;color:var(--txt2)">${ct.forn||'—'}</td>
           <td style="font-size:11px;color:var(--txt3)">${DB.obras.find(o=>String(o.id)===String(ct.obraId))?.nome||'—'}</td>
           <td style="font-size:11px">${ct.assinatura?fmtDt(ct.assinatura):'—'}</td>
-          <td style="font-size:11px;color:${ct.prazo&&ct.prazo<new Date().toISOString().split('T')[0]&&pago<Number(ct.valor||0)?'var(--red)':'var(--txt)'}">${ct.prazo?fmtDt(ct.prazo):'—'}</td>
+          <td style="font-size:11px;color:${ct.prazo&&ct.prazo<hojeISO()&&pago<Number(ct.valor||0)?'var(--red)':'var(--txt)'}">${ct.prazo?fmtDt(ct.prazo):'—'}</td>
           <td style="text-align:right;font-weight:600">${fmtR(Number(ct.valor||0))}</td>
           <td style="text-align:right;color:var(--green);font-weight:600">${fmtR(pago)}</td>
           <td style="text-align:right;color:${dev>0?'var(--red)':'var(--green)'};font-weight:600">${fmtR(dev)}</td>
@@ -119,9 +123,7 @@ function renderMedicoes(){
 
   // Popular filtro de obras
   const mObraFilter=document.getElementById('med-obra-filter');
-  if(mObraFilter&&mObraFilter.options.length<=1){
-    DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;mObraFilter.appendChild(opt);});
-  }
+  otPreencherObras(mObraFilter);
 
   if(!DB.medicoes) DB.medicoes=[];
   let meds=[...DB.medicoes];
@@ -177,7 +179,7 @@ async function aprovarMedicao(id){
   if(!m||!confirm('Aprovar esta medição? Isso gerará um lançamento financeiro e um pagamento no contrato.'))return;
   m.status='aprovado';
   m.aprovadoPor=DB.user.nome;
-  m.aprovadoEm=new Date().toISOString().split('T')[0];
+  m.aprovadoEm=hojeISO();
   supaUpdate('medicoes',id,{status:'aprovado',aprovado_por:DB.user.nome,aprovado_em:m.aprovadoEm});
 
   const ct=DB.contratos.find(c=>c.id===m.contratoId);

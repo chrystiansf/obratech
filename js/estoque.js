@@ -94,7 +94,7 @@ function estBuildObrasDrop(){
       <span>Selecionar Tudo</span>
     </div>` +
     obras.map(o => {
-      const checked = _estObrasFiltro===null || _estObrasFiltro.has(o.id);
+      const checked = _estObrasFiltro===null || _estObrasFiltro.has(String(o.id));
       const cor = obraColor(o);
       const dotC = cor==='g'?'var(--green)':cor==='r'?'var(--red)':cor==='fin'?'var(--green)':'var(--txt3)';
       return `<div class="d-filter-item" onclick="estToggleObra('${o.id}',event)">
@@ -103,11 +103,14 @@ function estBuildObrasDrop(){
         <span style="flex:1">${o.nome}</span>
       </div>`;
     }).join('');
+  // mantém a busca digitada (a lista é refeita a cada clique)
+  const q=document.getElementById('est-obra-search')?.value;if(q)estFiltrarDropObras(q);
   estAtualizarLblObras();
 }
 function estToggleObra(id, e){
   e.stopPropagation();
-  if (_estObrasFiltro===null) _estObrasFiltro = new Set(DB.obras.map(o=>o.id));
+  id=String(id);
+  if (_estObrasFiltro===null) _estObrasFiltro = new Set(DB.obras.map(o=>String(o.id)));
   if (_estObrasFiltro.has(id)) _estObrasFiltro.delete(id);
   else _estObrasFiltro.add(id);
   if (_estObrasFiltro.size === DB.obras.length) _estObrasFiltro = null;
@@ -136,7 +139,7 @@ function estAtualizarLblObras(){
     lbl.textContent='Nenhuma obra'; cnt.style.display='none';
   } else if (_estObrasFiltro.size===1){
     const id=[..._estObrasFiltro][0];
-    lbl.textContent=DB.obras.find(o=>o.id===id)?.nome||'1 obra'; cnt.style.display='none';
+    lbl.textContent=DB.obras.find(o=>String(o.id)===String(id))?.nome||'1 obra'; cnt.style.display='none';
   } else {
     lbl.textContent=_estObrasFiltro.size+' obras'; cnt.textContent=_estObrasFiltro.size; cnt.style.display='inline';
   }
@@ -150,7 +153,7 @@ function _estSaldo(estId, obraId){
 }
 function _estObrasAtivas(){
   if (_estObrasFiltro===null) return DB.obras;
-  return DB.obras.filter(o=>_estObrasFiltro.has(o.id));
+  return DB.obras.filter(o=>_estObrasFiltro.has(String(o.id)));
 }
 
 function renderEstoqueSaldo(){
@@ -232,7 +235,7 @@ function renderEstoqueSaldo(){
             <td style="font-size:11px;color:var(--txt2)">${o?.nome||'—'}</td>
             <td><span class="b ${m.tipo==='Entrada'?'bg':'br'}">${m.tipo}</span></td>
             <td style="font-weight:600;color:${m.tipo==='Entrada'?'var(--green)':'var(--red)'}">
-              ${m.tipo==='Saída'?'−':'+'}${m.qtd} ${e?.un||''}
+              ${m.tipo!=='Entrada'?'−':'+'}${m.qtd} ${e?.un||''}
             </td>
             <td style="font-size:11px">${m.nf||'—'}</td>
             <td><div class="ta-actions">
@@ -265,14 +268,16 @@ function editMov(id){
   const est=DB.estoque.find(x=>x.id===m.estId);if(!est)return;
   // Cria modal de edição inline
   const old=m.tipo,oldQtd=m.qtd;
-  const nTipo=prompt(`Tipo (Entrada/Saída) [atual: ${m.tipo}]:`,m.tipo);
-  if(!nTipo||!['Entrada','Saída'].includes(nTipo)){toast('⚠️','Tipo inválido. Use "Entrada" ou "Saída"');return;}
+  const nTipoRaw=prompt(`Tipo (Entrada/Saída) [atual: ${m.tipo==='Entrada'?'Entrada':'Saída'}]:`,m.tipo==='Entrada'?'Entrada':'Saída');
+  // Gravado sempre como 'Entrada' ou 'Saida' (sem acento), igual ao cadastro de movimentação
+  const nTipo=/^entrada$/i.test((nTipoRaw||'').trim())?'Entrada':/^sa[ií]da$/i.test((nTipoRaw||'').trim())?'Saida':null;
+  if(!nTipo){toast('⚠️','Tipo inválido. Use "Entrada" ou "Saída"');return;}
   const nQtd=parseFloat(prompt(`Nova quantidade [atual: ${m.qtd}]:`,m.qtd));
   if(!nQtd||nQtd<=0){toast('⚠️','Quantidade inválida!');return;}
   // Reverter movimentação antiga
   est.qtd=old==='Entrada'?est.qtd-oldQtd:est.qtd+oldQtd;
   // Aplicar nova
-  if(nTipo==='Saída'&&nQtd>est.qtd){toast('⚠️',`Estoque insuficiente! Disponível: ${est.qtd}`);est.qtd=old==='Entrada'?est.qtd+oldQtd:est.qtd-oldQtd;return;}
+  if(nTipo==='Saida'&&nQtd>est.qtd){toast('⚠️',`Estoque insuficiente! Disponível: ${est.qtd}`);est.qtd=old==='Entrada'?est.qtd+oldQtd:est.qtd-oldQtd;return;}
   est.qtd=nTipo==='Entrada'?est.qtd+nQtd:est.qtd-nQtd;
   m.tipo=nTipo;m.qtd=nQtd;
   const nObs=prompt('Observação (opcional):',m.obs||'');

@@ -21,8 +21,8 @@ function _cxAportesFiltrados(ignorarInv) {
   const f = _cxFiltros();
   return (DB.aportes || []).filter(a => {
     if (f.obra && String(a.obraId) !== String(f.obra)) return false;
-    if (f.de && a.data < f.de) return false;
-    if (f.ate && a.data > f.ate) return false;
+    if (f.de && _dataISO(a.data) < f.de) return false;
+    if (f.ate && _dataISO(a.data) > f.ate) return false;
     if (!ignorarInv && _cxInvFiltro && String(a.investidorId) !== String(_cxInvFiltro)) return false;
     return true;
   });
@@ -32,8 +32,8 @@ function _cxDespesasFiltradas() {
   return DB.lancs.filter(l => {
     if (l.tipo !== 'Despesa') return false;
     if (f.obra && String(l.obraId) !== String(f.obra)) return false;
-    if (f.de && l.data < f.de) return false;
-    if (f.ate && l.data > f.ate) return false;
+    if (f.de && _dataISO(l.data) < f.de) return false;
+    if (f.ate && _dataISO(l.data) > f.ate) return false;
     return true;
   });
 }
@@ -187,7 +187,7 @@ function cxAbrirAporte(editId) {
       </div>
     </div>
     <div class="fg" style="grid-column:span 2"><label class="lbl">Obra *</label><select class="sel" id="ap-obra">${obraOpts}</select></div>
-    <div class="fg"><label class="lbl">Data *</label><input type="date" class="inp" id="ap-data" value="${a?.data || new Date().toISOString().split('T')[0]}"></div>
+    <div class="fg"><label class="lbl">Data *</label><input type="date" class="inp" id="ap-data" value="${a?.data || hojeISO()}"></div>
     <div class="fg"><label class="lbl">Valor (R$) *</label><input type="number" class="inp" id="ap-valor" min="0" step="0.01" value="${a?.valor || ''}" placeholder="0,00"></div>
     <div class="fg"><label class="lbl">Forma</label><select class="sel" id="ap-forma">${formaOpts}</select></div>
     <div class="fg"><label class="lbl">Descrição</label><input class="inp" id="ap-desc" value="${escHtml(a?.desc || '')}" placeholder="Ex: 1ª parcela"></div>
@@ -351,7 +351,7 @@ function exportCaixaXLS() {
   fmtNum(wsEx, 4, exRows.length); fmtNum(wsEx, 5, exRows.length);
   XLSX.utils.book_append_sheet(wb, wsEx, 'Fluxo de Caixa');
 
-  XLSX.writeFile(wb, 'Caixa_ObraTech_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  XLSX.writeFile(wb, 'Caixa_ObraTech_' + hojeISO() + '.xlsx');
   toast('📊', 'Planilha do caixa exportada!');
 }
 
@@ -418,6 +418,6 @@ function exportCaixaPDF() {
     margin: { left: 9, right: 9 }
   });
   pFtr(doc);
-  doc.save('Fluxo_Caixa_ObraTech_' + new Date().toISOString().split('T')[0] + '.pdf');
+  doc.save('Fluxo_Caixa_ObraTech_' + hojeISO() + '.pdf');
   toast('📄', 'Relatório de fluxo de caixa exportado!');
 }

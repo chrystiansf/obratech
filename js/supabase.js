@@ -730,7 +730,7 @@ function mapColab(r){return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admiss
 function mapLanc(r){return{_pgtoId:r.pagamento_id||undefined,_medicaoId:r.medicao_id||undefined,id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:r.fotos||[],autor:r.autor||'',_supa:true};}
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
-function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
+function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:/^sa[ií]da$/i.test(r.tipo||'')?'Saida':r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
 function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true};}
 function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,fotos:r.fotos?JSON.parse(r.fotos):([]),_supa:true};}
 function mapTerceirizado(r){return{id:r.id,nome:r.nome,empresa:r.empresa,funcao:r.funcao||'',cpf:r.cpf||'',celular:r.celular||'',obraId:r.obra_id,_supa:true};}
@@ -1056,6 +1056,7 @@ function _limparDadosLocais(){
 // Obs.: a proteção definitiva é feita no banco (RLS); isto evita expor dados na tela e no cache local.
 function _aplicarEscopoUsuario(frescos){
   _escopoPermissoes();
+  if(typeof otOrdenarListas==='function') otOrdenarListas();
   if(typeof _otFiltrar==='function') _otFiltrar(frescos);   // obra ativa (js/obra-ativa.js)
 }
 function _escopoPermissoes(){
@@ -1088,7 +1089,7 @@ function _sanitizarDB(){
   Object.keys(DB).forEach(k=>{if(Array.isArray(DB[k]))DB[k]=DB[k].map(x=>_semTags(x));});
 }
 
-function save(){try{localStorage.setItem(KEY,JSON.stringify(typeof _otDbCompleto==='function'?_otDbCompleto():DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
+function save(){try{if(typeof otOrdenarListas==='function')otOrdenarListas();localStorage.setItem(KEY,JSON.stringify(typeof _otDbCompleto==='function'?_otDbCompleto():DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
 function nid(){const id=DB.nid++;save();return id;}
 function uuidv4(){
   if(crypto&&crypto.randomUUID) return crypto.randomUUID();

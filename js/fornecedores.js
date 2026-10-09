@@ -300,7 +300,7 @@ function gerarChecklistPDF(){
   }
 
   pFtr(doc);
-  const arq='Checklist_'+obraNome.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)+'_'+new Date().toISOString().split('T')[0]+'.pdf';
+  const arq='Checklist_'+obraNome.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)+'_'+hojeISO()+'.pdf';
   doc.save(arq);
   toast('📄','Relatorio de Inspecao gerado!');
   }catch(err){console.error('Checklist PDF erro:',err);toast('❌','Erro ao gerar PDF: '+err.message.substring(0,60));}

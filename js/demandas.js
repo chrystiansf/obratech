@@ -41,10 +41,10 @@ function renderDemandas(){
 
   const demCards=demandas.sort((a,b)=>{
     const po={alta:0,media:1,baixa:2};
-    return (po[a.prioridade]||1)-(po[b.prioridade]||1);
+    return (po[a.prioridade]??1)-(po[b.prioridade]??1);
   }).map(d=>{
     const obra=DB.obras.find(o=>String(o.id)===String(d.obraId));
-    const venc=d.prazo&&new Date(d.prazo)<new Date()&&d.status!=='concluida';
+    const venc=d.prazo&&String(d.prazo).slice(0,10)<hojeISO()&&d.status!=='concluida';
     const prCor={alta:'var(--red)',media:'var(--yellow)',baixa:'var(--green)'};
     const statusBg={pendente:'rgba(220,38,38,.10)',andamento:'rgba(234,179,8,.12)',concluida:'rgba(22,163,74,.10)'};
     const statusBorder={pendente:'rgba(220,38,38,.35)',andamento:'rgba(234,179,8,.40)',concluida:'rgba(22,163,74,.35)'};

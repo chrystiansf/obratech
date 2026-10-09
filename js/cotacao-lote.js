@@ -453,7 +453,7 @@ async function salvarCotacaoLote() {
   const pix = Number(_cl.cond.pix) || 0, cartao = Number(_cl.cond.cartao) || 0, parcelas = parseInt(_cl.cond.parcelas) || 0;
   const frete = Number(_cl.cond.frete) || 0, prazo = (_cl.cond.prazo || '').trim(), obs = (_cl.cond.obs || '').trim();
   const orcId = uuidv4();
-  const orc = { id: orcId, fornecedor: forn, data: new Date().toISOString().slice(0, 10), valorTotal: +soma.toFixed(2), valorPix: pix, valorCartao: cartao, parcelas, frete, prazoEntrega: prazo, obs, origem: _cl.origem, _supa: true };
+  const orc = { id: orcId, fornecedor: forn, data: hojeISO(), valorTotal: +soma.toFixed(2), valorPix: pix, valorCartao: cartao, parcelas, frete, prazoEntrega: prazo, obs, origem: _cl.origem, _supa: true };
   (DB.orcamentosCompra = DB.orcamentosCompra || []).unshift(orc);
   _clSupa('compras_orcamentos', orcId, { fornecedor: forn, data: orc.data, valor_total: orc.valorTotal, valor_pix: pix, valor_cartao: cartao, parcelas: parcelas || null, frete, prazo_entrega: prazo, obs, origem: _cl.origem }, true);
   // Cada item vira uma cotação (PIX e cartão rateados proporcionalmente ao valor do item)
@@ -601,6 +601,6 @@ function gerarMapaComparativoPDF() {
   doc.setFontSize(7); doc.setTextColor(110, 110, 110);
   doc.text('Verde = menor preco do item.  * = fornecedor vencedor selecionado.', M, fy);
   pFtr(doc);
-  doc.save('Mapa_Comparativo_' + new Date().toISOString().slice(0, 10) + '.pdf');
+  doc.save('Mapa_Comparativo_' + hojeISO() + '.pdf');
   toast('📄', 'Mapa comparativo gerado!');
 }

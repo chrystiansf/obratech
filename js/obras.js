@@ -40,9 +40,7 @@ function renderObras(){
 }
 function renderMovsPanel(){
   const selObra=document.getElementById('mov-filtro-obra');
-  if(selObra&&selObra.options.length<=1){
-    DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;selObra.appendChild(opt);});
-  }
+  otPreencherObras(selObra);
   const oId=selObra?.value||'';
   const tipo=document.getElementById('mov-filtro-tipo')?.value||'';
   const mat=(document.getElementById('mov-filtro-mat')?.value||'').toLowerCase();

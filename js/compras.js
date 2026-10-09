@@ -29,9 +29,7 @@ function renderSolicitacoes(){
 
   // Popular filtro de obras
   const selObra=document.getElementById('sol-obra-filter');
-  if(selObra&&selObra.options.length<=1){
-    DB.obras.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;selObra.appendChild(opt);});
-  }
+  otPreencherObras(selObra);
 
   let sols=(DB.solicitacoes||[]).slice();
   if(obraF) sols=sols.filter(s=>String(s.obraId)===String(obraF));
@@ -184,8 +182,8 @@ function solReceber(id){
   // Lancar despesa financeira
   if(ped&&ped.valorTotal>0){
     const lancId=uuidv4();
-    DB.lancs.push({id:lancId,obraId:s.obraId,tipo:'Despesa',desc:'[COMPRA] '+s.item,cat:'Materiais',cc:'',valor:ped.valorTotal,data:new Date().toISOString().split('T')[0],forn:ped.fornecedor||'',nf:'',_supa:true});
-    supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:'[COMPRA] '+s.item,categoria:'Materiais',centro_custo:'',valor:ped.valorTotal,data:new Date().toISOString().split('T')[0],fornecedor:ped.fornecedor||'',nota_fiscal:'',obra_id:s.obraId||null});
+    DB.lancs.push({id:lancId,obraId:s.obraId,tipo:'Despesa',desc:'[COMPRA] '+s.item,cat:'Materiais',cc:'',valor:ped.valorTotal,data:hojeISO(),forn:ped.fornecedor||'',nf:'',_supa:true});
+    supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:'[COMPRA] '+s.item,categoria:'Materiais',centro_custo:'',valor:ped.valorTotal,data:hojeISO(),fornecedor:ped.fornecedor||'',nota_fiscal:'',obra_id:s.obraId||null});
   }
 
   save();renderSolicitacoes();renderPedidos();
@@ -377,8 +375,8 @@ function pedReceber(id){
     // Lancar despesa financeira
     if(p.valorTotal>0){
       const lancId=uuidv4();
-      DB.lancs.push({id:lancId,obraId:p.obraId,tipo:'Despesa',desc:'[COMPRA] '+sol.item,cat:'Materiais',cc:'',valor:p.valorTotal,data:new Date().toISOString().split('T')[0],forn:p.fornecedor||'',nf:'',_supa:true});
-      supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:'[COMPRA] '+sol.item,categoria:'Materiais',centro_custo:'',valor:p.valorTotal,data:new Date().toISOString().split('T')[0],fornecedor:p.fornecedor||'',nota_fiscal:'',obra_id:p.obraId||null});
+      DB.lancs.push({id:lancId,obraId:p.obraId,tipo:'Despesa',desc:'[COMPRA] '+sol.item,cat:'Materiais',cc:'',valor:p.valorTotal,data:hojeISO(),forn:p.fornecedor||'',nf:'',_supa:true});
+      supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:'[COMPRA] '+sol.item,categoria:'Materiais',centro_custo:'',valor:p.valorTotal,data:hojeISO(),fornecedor:p.fornecedor||'',nota_fiscal:'',obra_id:p.obraId||null});
     }
   }
 
