@@ -577,7 +577,7 @@ function gerarMapaCotacaoPDF(solId){
     startY:y,
     head:[['Descricao','Obra','Urgencia','Orcamentos']],
     body:[[sol.item+(sol.quantidade?' ('+sol.quantidade+' '+(sol.unidade||'')+')':''),o?.nome||'—',sol.urgencia||'normal',String(cots.length)]],
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     margin:{left:M,right:M},
   });
@@ -599,7 +599,7 @@ function gerarMapaCotacaoPDF(solId){
         v(c.detalhe?.desconto),c.prazoEntrega||'—',
         c.vencedor?'VENCEDOR':(_cotMelhor(c)===menorValor&&menorValor>0&&cots.length>1?'Menor preco':'—')];
     }),
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:2,right:2}},
+    headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:7,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:2,right:2}},
     bodyStyles:{...bStyle(),fontSize:7,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:2,right:2}},
     alternateRowStyles:altRow(),
     columnStyles:{0:{cellWidth:34,halign:'left'},1:{cellWidth:22},2:{cellWidth:22},3:{cellWidth:22},4:{cellWidth:24},5:{cellWidth:18},6:{cellWidth:24},7:{cellWidth:26}},
@@ -623,7 +623,7 @@ function gerarMapaCotacaoPDF(solId){
       doc.autoTable({startY:y,head:[['Descricao','Qtd.','Unitario','Total']],
         body:it.map(i=>[i.desc,i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]),
         foot:[[{content:'Soma dos itens'+(c.detalhe.desconto?'  (desconto '+fmtR(c.detalhe.desconto)+')':''),colSpan:3,styles:{halign:'right'}},{content:fmtR(c.detalhe.produtos||it.reduce((a,i)=>a+(i.total||0),0))}]],
-        headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:7.5,cellPadding:{top:1.5,bottom:1.5,left:3,right:3}},
+        headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:7.5,cellPadding:{top:1.5,bottom:1.5,left:3,right:3}},
         bodyStyles:{...bStyle(),fontSize:7.5,cellPadding:{top:1.5,bottom:1.5,left:3,right:3}},footStyles:{fillColor:[240,241,244],textColor:[30,30,30],fontStyle:'bold',fontSize:7.5,halign:'right'},
         columnStyles:{0:{cellWidth:102},1:{cellWidth:22,halign:'right'},2:{cellWidth:32,halign:'right'},3:{cellWidth:36,halign:'right'}},margin:{left:M,right:M}});
       y=doc.lastAutoTable.finalY+3;
@@ -650,13 +650,15 @@ function gerarMapaCotacaoPDF(solId){
   toast('📄','Mapa de cotacao gerado!');
 }
 
-function gerarOrdemCompraPDF(pedId){
+async function gerarOrdemCompraPDF(pedId){
   const p=(DB.pedidosCompra||[]).find(x=>x.id===pedId);
-  if(!p){toast('⚠️','Pedido nao encontrado.');return;}
+  if(!p){toast('⚠️','Pedido não encontrado.');return;}
   const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(p.solicitacaoId));
   const o=DB.obras.find(x=>String(x.id)===String(p.obraId));
   const cot=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(p.solicitacaoId)&&c.vencedor);
   const doc=new jsPDF();
+  await _pdfUsarFontesMarca(doc);                 // Manrope + Tenor Sans, como no RDO (Helvetica se não carregar)
+  const FS=doc.__fonte?'Manrope':'helvetica';
   const M=9;
 
   let y=pHdr(doc,'Ordem de Compra',(o?.nome||'')+'  —  '+(p.fornecedor||''));
@@ -667,14 +669,15 @@ function gerarOrdemCompraPDF(pedId){
   const fornObj=(DB.fornecedores||[]).find(f=>(typeof f==='object'?f.nome:f)===p.fornecedor);
   doc.autoTable({
     startY:y,
+    styles:{font:FS},
     body:[
       ['Fornecedor',p.fornecedor||'—'],
       ['CNPJ',fornObj?.cnpj||'—'],
       ['Contato',fornObj?.contato||fornObj?.telefone||'—'],
-      ['Previsao de Entrega',p.previsaoEntrega||'—'],
+      ['Previsão de Entrega',p.previsaoEntrega||'—'],
     ],
     bodyStyles:{...bStyle(),fontSize:8,cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
-    columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:[70,75,90],halign:'center'},1:{cellWidth:142,halign:'center'}},
+    columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:corEmpresa(),halign:'center'},1:{cellWidth:142,halign:'center'}},
     margin:{left:M,right:M},
   });
   y=doc.lastAutoTable.finalY+6;
@@ -683,11 +686,12 @@ function gerarOrdemCompraPDF(pedId){
   y=pSec(doc,y,'Itens do Pedido');
   doc.autoTable({
     startY:y,
+    styles:{font:FS},
     head:[['Item','Unidade','Quantidade','Valor Unit.','Valor Total']],
     body:(cot?.detalhe?.itens?.length?cot.detalhe.itens.map(i=>[i.desc,'',i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]):[[sol?.item||'—',sol?.unidade||'un',sol?.quantidade||'—',fmtR(cot?.valorUnit||0),fmtR(p.valorTotal||0)]])
       .concat(cot?.detalhe?.desconto?[['Desconto','','','','- '+fmtR(cot.detalhe.desconto)]]:[]),
     foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(p.valorTotal||0)}]],
-    headStyles:{fillColor:[70,75,90],textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
+    headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     footStyles:totRow(),
     columnStyles:{0:{cellWidth:65,halign:'center'},1:{cellWidth:22,halign:'center'},2:{cellWidth:28,halign:'center'},3:{cellWidth:35,halign:'center'},4:{cellWidth:42,halign:'center',fontStyle:'bold'}},
@@ -700,18 +704,18 @@ function gerarOrdemCompraPDF(pedId){
     const linhas=[];
     if(cot.valorTotal) linhas.push(['Valor total cotado',fmtR(cot.valorTotal)]);
     if(cot.valorPix) linhas.push(['No PIX',fmtR(cot.valorPix)]);
-    if(cot.valorCartao) linhas.push(['No cartao de credito',fmtR(cot.valorCartao)+(cot.parcelas>1?'  ('+cot.parcelas+'x de '+fmtR(cot.valorCartao/cot.parcelas)+')':'')]);
-    y=pSec(doc,y,'Condicoes de Pagamento');
-    doc.autoTable({startY:y,body:linhas,
+    if(cot.valorCartao) linhas.push(['No cartão de crédito',fmtR(cot.valorCartao)+(cot.parcelas>1?'  ('+cot.parcelas+'x de '+fmtR(cot.valorCartao/cot.parcelas)+')':'')]);
+    y=pSec(doc,y,'Condições de Pagamento');
+    doc.autoTable({startY:y,body:linhas,styles:{font:FS},
       bodyStyles:{...bStyle(),cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
-      columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:[70,75,90],halign:'center'},1:{cellWidth:142,halign:'center'}},
+      columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:corEmpresa(),halign:'center'},1:{cellWidth:142,halign:'center'}},
       margin:{left:M,right:M}});
     y=doc.lastAutoTable.finalY+6;
   }
 
   if(p.obs){
-    y=pSec(doc,y,'Observacoes');
-    doc.autoTable({startY:y,body:[[p.obs]],bodyStyles:{...bStyle(),fontSize:8},margin:{left:M,right:M}});
+    y=pSec(doc,y,'Observações');
+    doc.autoTable({startY:y,body:[[p.obs]],styles:{font:FS},bodyStyles:{...bStyle(),fontSize:8},margin:{left:M,right:M}});
     y=doc.lastAutoTable.finalY+6;
   }
 
@@ -722,9 +726,9 @@ function gerarOrdemCompraPDF(pedId){
   [['Comprador',DB.user.nome||''],['Fornecedor',p.fornecedor||'']].forEach((a,i)=>{
     const ax=M+i*assinW;
     doc.setDrawColor(150,150,150);doc.line(ax+4,y+8,ax+assinW-6,y+8);
-    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(40,40,40);
+    _pdfSans(doc,'bold');doc.setFontSize(7);doc.setTextColor(40,40,40);
     doc.text(a[0].toUpperCase(),ax+assinW/2,y+12,{align:'center'});
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(100,100,100);
+    _pdfSans(doc,'normal');doc.setFontSize(6.5);doc.setTextColor(100,100,100);
     doc.text(a[1],ax+assinW/2,y+16,{align:'center'});
   });
 

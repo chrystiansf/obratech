@@ -161,8 +161,6 @@ function pHdr(doc, title, sub, _accent) {
   const claro = f => ce.map(c => Math.round(255 - (255 - c) * f));
   // Fundo com cor da empresa
   doc.setFillColor(...ce); doc.rect(0, 0, W, hdrH, 'F');
-  // Linha accent inferior
-  doc.setFillColor(...claro(0.55)); doc.rect(0, hdrH, W, 1.2, 'F');
 
   const sepX = W * 0.45;
   const emitido = 'Emitido em ' + new Date().toLocaleDateString('pt-BR');
