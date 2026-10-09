@@ -411,7 +411,7 @@ async function enviarConviteEquipe(){
 
   try{
     // Gerar senha provisória
-    const senha=gerarSenhaForte();
+    const senha=gerarSenhaLegivel();
 
     // Criar usuário via SDK signUp — salvar sessão atual antes para restaurar depois
     const {data:sessaoAtual} = await supa.auth.getSession();
@@ -419,7 +419,7 @@ async function enviarConviteEquipe(){
 
     const {data:signUpData, error:signUpErr} = await supa.auth.signUp({
       email, password: senha,
-      options: { data: {nome, papel, empresa_id: _empresaId} }
+      options: { data: {nome, papel, senha_provisoria:true} }
     });
 
     // Restaurar sessão do admin imediatamente
@@ -475,20 +475,15 @@ async function enviarConviteEquipe(){
             <div><svg class=ot-i><use href=#i-mail></use></svg> <strong>Email:</strong> ${email}</div>
             <div><svg class=ot-i><use href=#i-key></use></svg> <strong>Senha:</strong> <strong style="color:var(--primary);font-size:15px;letter-spacing:1px">${senha}</strong></div>
           </div>
-          <div style="margin-top:10px;padding:10px 12px;background:rgba(238,90,36,.12);border-radius:8px;border:1px solid rgba(238,90,36,.3)">
-            <div style="font-size:11px;color:var(--yellow);font-weight:600;margin-bottom:4px"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Importante — Confirmação de email</div>
-            <div style="font-size:11px;color:var(--txt2);line-height:1.6">
-              O funcionário receberá um <strong>email de confirmação</strong> do Supabase antes de conseguir logar.<br>
-              Se quiser que ele acesse sem confirmar o email, vá em:<br>
-              <strong>Supabase → Authentication → Providers → Email → desative "Confirm email"</strong>
-            </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--txt2);line-height:1.6">
+            ${ic('lock','sm')} No primeiro acesso com essa senha provisória, o sistema pede para ${escHtml(nome.split(' ')[0])} criar a própria senha.
           </div>
           <div style="margin-top:10px;font-size:11px;color:var(--txt3)">
             <svg class=ot-i><use href=#i-lock></use></svg> Módulos: ${permissoes.map(p=>MODULOS_SISTEMA.find(m=>m.id===p)?.label||p).join(" · ")}
           </div>
         </div>
         <div class="mof">
-          <button class="btn pri" onclick="navigator.clipboard.writeText('Acesso ObraTech\nSite: obratech.eng.br\nEmail: ${email}\nSenha: ${senha}\n\nObs: Confirme o email antes de logar.').then(()=>toast('✅','Copiado para WhatsApp!'))"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Copiar para WhatsApp</button>
+          <button class="btn pri" onclick="navigator.clipboard.writeText('Acesso ObraTech\nSite: obratech.eng.br\nEmail: ${email}\nSenha: ${senha}\n\nNo primeiro acesso o sistema vai pedir para voce criar sua propria senha.').then(()=>toast('✅','Copiado para WhatsApp!'))"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Copiar para WhatsApp</button>
           <button class="btn" onclick="closeModal()">Fechar</button>
         </div>
       </div></div>`;
@@ -872,7 +867,7 @@ async function enviarConviteCliente(){
 
   try{
     // Gerar senha provisória legível
-    const senhaTemp=gerarSenhaForte();
+    const senhaTemp=gerarSenhaLegivel();
     const url=window.location.origin;
 
     // ETAPA 1: Criar usuário no Supabase Auth
@@ -884,7 +879,7 @@ async function enviarConviteCliente(){
       email,
       password: senhaTemp,
       options:{
-        data:{nome, papel:'cliente', empresa_id:_empresaId},
+        data:{nome, papel:'cliente', senha_provisoria:true},
         emailRedirectTo: url
       }
     });
@@ -960,70 +955,53 @@ async function enviarConviteCliente(){
 
     // ETAPA 4: Enviar email de boas-vindas via resetPasswordForEmail
     // Isso envia um link mágico que confirma o email E permite acesso direto
-    await supa.auth.resetPasswordForEmail(email, {
-      redirectTo: url+'?portal=cliente'
-    });
+    let emailEnviado=true;
+    try{
+      const {error:mailErr}=await supa.auth.resetPasswordForEmail(email,{redirectTo:url+'/?nova_senha=1'});
+      if(mailErr) emailEnviado=false;
+    }catch(e){emailEnviado=false;}
 
     // ETAPA 5: Mostrar credenciais + mensagem para o gestor
     const obrasSelecionadas=obrasSel.map(id=>DB.obras.find(o=>o.id===id)?.nome||'').filter(Boolean).join(', ');
     const root=document.getElementById('modal-root');
     const msgTexto=`Olá, ${nome}!
 
-Seu acesso ao Portal do Cliente foi criado.
+Seu acesso ao Portal do Cliente da obra foi criado.
 
-🌐 Acesse: ${url}
-📧 Email: ${email}
-🔑 Senha: ${senhaTemp}
+1. Você vai receber um e-mail para criar sua senha (confira também o spam/lixo eletrônico).
+2. Clique no link do e-mail, crie sua senha e pronto.
 
-Obras disponíveis: ${obrasSelecionadas}
+Se o e-mail não chegar, entre em ${url} com:
+E-mail: ${email}
+Senha provisória: ${senhaTemp}
+(no primeiro acesso o sistema pede para você criar sua própria senha)
 
-⚠️ IMPORTANTE: Se receber um email do sistema pedindo confirmação, ignore-o. Use apenas as credenciais acima para acessar.
-
-Após o primeiro acesso, recomendamos trocar a senha em Configurações.`;
+Obras disponíveis: ${obrasSelecionadas}`;
 
     root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
-      <div class="mo" style="max-width:500px">
+      <div class="mo" style="max-width:520px">
         <div class="moh">
-          <div class="mot"><svg class=ot-i><use href=#i-circle-check></use></svg> Acesso Criado com Sucesso</div>
-          <div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div>
+          <div class="mot">${ic('circle-check')} Acesso criado</div>
+          <div class="mox" onclick="closeModal();renderClientes()">${ic('x')}</div>
         </div>
         <div class="mob">
-          <!-- Credenciais -->
-          <div style="background:linear-gradient(135deg,var(--primary),#7b5cf0);border-radius:12px;padding:18px;margin-bottom:14px;color:white">
-            <div style="font-size:11px;opacity:.8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Credenciais de acesso — ${nome}</div>
-            <div style="display:grid;gap:8px">
-              <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-globe></use></svg> Endereço</span>
-                <span style="font-size:12px;font-weight:700">${url}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-mail></use></svg> Email</span>
-                <span style="font-size:13px;font-weight:700">${email}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-key></use></svg> Senha</span>
-                <span style="font-size:16px;font-weight:800;letter-spacing:2px">${senhaTemp}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px">
-                <span style="font-size:11px;opacity:.8"><svg class=ot-i><use href=#i-hard-hat></use></svg> Obras</span>
-                <span style="font-size:11px;font-weight:600">${obrasSelecionadas}</span>
-              </div>
-            </div>
+          <div class="al ${emailEnviado?'s':'w'}" style="margin-bottom:14px">${ic(emailEnviado?'mail':'triangle-alert')}<div>${emailEnviado
+            ?`Enviamos um e-mail para <strong>${escHtml(email)}</strong> com o link para <strong>criar a senha</strong>. Ao clicar, ${escHtml(nome.split(' ')[0])} cria a senha e já entra no portal.`
+            :`Não foi possível enviar o e-mail agora. Envie a mensagem abaixo com a senha provisória.`}</div></div>
+          <div class="g g2" style="margin-bottom:14px">
+            <div class="fg"><span class="lbl">E-mail</span><div class="ot-num" style="font-size:14px">${escHtml(email)}</div></div>
+            <div class="fg"><span class="lbl">Senha provisória (reserva)</span><div class="ot-num" style="font-size:16px;font-weight:600;letter-spacing:.5px">${senhaTemp}</div></div>
+            <div class="fg" style="grid-column:span 2"><span class="lbl">Obras liberadas</span><div style="font-size:13px">${escHtml(obrasSelecionadas)}</div></div>
           </div>
-          <!-- Mensagem pronta -->
-          <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
-            <div style="font-size:11px;color:var(--txt3);margin-bottom:6px;font-weight:600"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Mensagem pronta para WhatsApp/Email:</div>
-            <div id="msg-convite" style="font-size:12px;line-height:1.7;color:var(--txt2);white-space:pre-line">${msgTexto}</div>
+          <div style="background:var(--bg3);border-radius:10px;padding:12px">
+            <div style="font-size:12px;color:var(--txt3);margin-bottom:6px;font-weight:600">Mensagem pronta para WhatsApp:</div>
+            <div id="msg-convite" style="font-size:12px;line-height:1.6;color:var(--txt2);white-space:pre-line">${escHtml(msgTexto)}</div>
           </div>
-          <div style="background:var(--yglow);border:1px solid var(--yellow);border-radius:8px;padding:10px;font-size:11px;color:var(--txt2)">
-            <svg class=ot-i><use href=#i-triangle-alert></use></svg> <strong>Importante:</strong> Vá em <strong>Supabase → Authentication → Providers → Email</strong> e desmarque <strong>"Confirm email"</strong> para que a senha funcione imediatamente.
-          </div>
+          <div style="font-size:12px;color:var(--txt3);margin-top:10px">No primeiro acesso com a senha provisória, o sistema obriga o cliente a criar a própria senha.</div>
         </div>
         <div class="mof">
-          <button class="btn pri" onclick="(()=>{const t=document.getElementById('msg-convite').innerText;navigator.clipboard?.writeText(t).then(()=>toast('📋','Mensagem copiada! Cole no WhatsApp ou email.'));})()">
-            <svg class=ot-i><use href=#i-clipboard-list></use></svg> Copiar Mensagem
-          </button>
-          <button class="btn" onclick="closeModal();renderClientes()"><svg class=ot-i><use href=#i-check></use></svg> Fechar</button>
+          <button class="btn pri" onclick="(()=>{const t=document.getElementById('msg-convite').innerText;navigator.clipboard?.writeText(t).then(()=>toast('📋','Mensagem copiada! Cole no WhatsApp.'));})()">${ic('clipboard-list')} Copiar mensagem</button>
+          <button class="btn" onclick="closeModal();renderClientes()">Fechar</button>
         </div>
       </div></div>`;
 

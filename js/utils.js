@@ -42,3 +42,12 @@ function _semTags(v){
     const o={};for(const k in v)o[k]=typeof v[k]==='string'&&/^(data:|https?:|blob:)/.test(v[k])?v[k]:_semTags(v[k]);return o;}
   return v;
 }
+
+// Senha provisória legível e segura o suficiente para o 1º acesso (ex.: Obra-K7P4-38).
+// No primeiro login o sistema obriga a pessoa a criar a própria senha.
+function gerarSenhaLegivel(){
+  const P=['Obra','Torre','Casa','Viga','Laje','Bloco','Piso','Muro'],C='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n;};
+  let m='';for(let i=0;i<4;i++)m+=C[rnd(C.length)];
+  return P[rnd(P.length)]+'-'+m+'-'+String(10+rnd(90));
+}

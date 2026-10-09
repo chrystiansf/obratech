@@ -30,7 +30,26 @@ document.addEventListener('blur',function(e){
 async function initObraTech(){
   initTheme();
   initSupabase();
-  
+
+  // Veio pelo link do e-mail (criar/redefinir senha)? Mostrar a tela de senha antes de qualquer coisa
+  if(supa && window._fluxoNovaSenha){
+    window._aguardandoNovaSenha = true;
+    let sess=null;
+    for(let i=0;i<10&&!sess;i++){
+      try{ sess=(await supa.auth.getSession()).data.session; }catch(e){}
+      if(!sess) await new Promise(r=>setTimeout(r,400));
+    }
+    document.getElementById('loading-screen').style.display='none';
+    if(sess){ mostrarTelaNovaSenha(sess, true); }
+    else {
+      window._aguardandoNovaSenha = false;
+      history.replaceState(null,'',location.origin+location.pathname);
+      mostrarLogin();
+      authMsg('Este link expirou ou já foi usado. Clique em "Esqueci minha senha" para receber outro.','error');
+    }
+    return;
+  }
+
   if(!supa){
     load();
     mostrarApp();
@@ -89,6 +108,7 @@ async function initObraTech(){
           return;
         }
         _usuarioAtual=session.user;
+        if(session.user?.user_metadata?.senha_provisoria){ mostrarTelaNovaSenha(session, true); return; }
         toast('👋','Bem-vindo, '+cachedNome.split(' ')[0]+'!');
         if(cachedPapel==='cliente'){
           carregarDadosCliente(session.user.id);

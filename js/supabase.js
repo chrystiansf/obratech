@@ -15,6 +15,8 @@ let supa = null;
 let _usuarioAtual = null;
 let _empresaId = null;
 let _papelAtual = null;
+// Link do e-mail de criação/redefinição de senha? (verificado antes do Supabase limpar a URL)
+window._fluxoNovaSenha = /type=(recovery|invite)/.test(location.hash) || /[?&]nova_senha=1/.test(location.search);
 let _empresaLogo = null; // URL da logo da empresa (Supabase Storage)
 let _empresaCor = '#0A193C'; // cor primaria dos relatorios (hex)
 
@@ -153,8 +155,10 @@ async function fazerCadastro(){
 }
 
 // ── Auth: reset senha ─────────────────────────────────────────
-function mostrarTelaNovaSenha(session){
+function mostrarTelaNovaSenha(session, primeiroAcesso){
   window._aguardandoNovaSenha = true;
+  const titulo = primeiroAcesso ? 'Crie sua senha' : 'Definir nova senha';
+  const sub = primeiroAcesso ? 'Bem-vindo! Para continuar, crie uma senha pessoal de acesso.' : 'Digite sua nova senha de acesso';
   // Ocultar tudo e mostrar tela de nova senha
   document.getElementById('app').style.display='none';
   document.getElementById('portal-cliente').style.display='none';
@@ -164,13 +168,13 @@ function mostrarTelaNovaSenha(session){
   authEl.innerHTML=`
   <div class="ot-auth-card">
     <img class="ot-auth-logo" src="brand/logo/obratech-logo-horizontal.svg" alt="OBRATECH">
-    <div class="ot-auth-sub" style="margin-bottom:24px"><strong style="display:block;font-size:20px;font-weight:600;color:var(--ot-grafite-900);margin:12px 0 4px">Definir nova senha</strong>Digite sua nova senha de acesso</div>
+    <div class="ot-auth-sub" style="margin-bottom:24px"><strong style="display:block;font-size:20px;font-weight:600;color:var(--ot-grafite-900);margin:12px 0 4px">${titulo}</strong>${sub}</div>
     <div id="nova-senha-msg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:13px"></div>
     <div class="ot-field"><label for="nova-senha-inp">Nova senha</label>
       <input id="nova-senha-inp" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" onkeydown="if(event.key==='Enter')confirmarNovaSenha()"></div>
     <div class="ot-field" style="margin-bottom:20px"><label for="nova-senha-conf">Confirmar senha</label>
       <input id="nova-senha-conf" type="password" placeholder="Digite novamente" autocomplete="new-password" onkeydown="if(event.key==='Enter')confirmarNovaSenha()"></div>
-    <button class="ot-auth-btn" onclick="confirmarNovaSenha()">Salvar nova senha</button>
+    <button class="ot-auth-btn" onclick="confirmarNovaSenha()">Salvar e entrar</button>
   </div>`;
 }
 
@@ -198,22 +202,16 @@ async function confirmarNovaSenha(){
   if(btn){ btn.disabled=true; btn.textContent='Salvando...'; }
 
   try{
-    const {error} = await supa.auth.updateUser({password: senha});
+    const {error} = await supa.auth.updateUser({password: senha, data:{senha_provisoria:false}});
     if(error) throw error;
 
     msgEl.style.display='block';
     msgEl.style.background='#f0fff4';
     msgEl.style.color='#0a6';
-    msgEl.textContent='Senha atualizada com sucesso! Entrando no sistema...';
-
+    msgEl.textContent='Senha salva! Entrando no sistema...';
     window._aguardandoNovaSenha = false;
-
-    // Fazer logout e login novo com nova senha
-    setTimeout(async ()=>{
-      try{ await supa.auth.signOut({scope:'local'}); }catch(e){ console.warn('signOut:',e.message); }
-      mostrarLogin();
-      authMsg('Senha atualizada! Faça login com sua nova senha.','success');
-    }, 1500);
+    // Já está logado: recarrega sem o link na URL e entra normalmente
+    setTimeout(()=>location.replace(location.origin + location.pathname), 900);
 
   }catch(e){
     if(btn){ btn.disabled=false; btn.textContent='Salvar Nova Senha'; }
@@ -295,6 +293,11 @@ function mostrarApp(){
 
 // ── Escutar mudanças de sessão ────────────────────────────────
 async function iniciarSessao(session){
+  if(session?.user?.user_metadata?.senha_provisoria){
+    document.getElementById('loading-screen').style.display='none';
+    mostrarTelaNovaSenha(session, true);
+    return;
+  }
   if(!session){ mostrarLogin(); return; }
   try{
     _usuarioAtual = session.user;
