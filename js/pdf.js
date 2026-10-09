@@ -68,6 +68,27 @@ function _pdfCarregarImg(src, maxPx, fmt, q) {
   });
 }
 
+// Recorta a imagem para a proporção pedida, centralizando (equivalente a object-fit: cover)
+function _pdfRecorteCover(src, prop, largPx, q) {
+  return new Promise((ok, err) => {
+    const img = new Image();
+    img.onload = () => {
+      const W = largPx, H = Math.round(largPx / prop);
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      let sw, sh, sx, sy;
+      if (iw / ih > prop) { sh = ih; sw = ih * prop; sx = (iw - sw) / 2; sy = 0; }
+      else { sw = iw; sh = iw / prop; sx = 0; sy = (ih - sh) / 2; }
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+      ok(cv.toDataURL('image/jpeg', q || 0.85));
+    };
+    img.onerror = () => err(new Error('Imagem inválida'));
+    img.src = src;
+  });
+}
+
 // Prepara a logo da empresa uma única vez (reduzida) para uso rápido nos PDFs
 function prepararLogoPDF() {
   const src = (typeof _empresaLogo !== 'undefined') ? _empresaLogo : null;
@@ -85,6 +106,44 @@ function prepararLogoPDF() {
 }
 setTimeout(prepararLogoPDF, 2500);
 setTimeout(prepararLogoPDF, 8000);
+
+// ── Fontes da marca nos PDFs (Manrope + Tenor Sans) — embutidas no arquivo
+// Em teste: por enquanto só o RDO chama _pdfUsarFontesMarca(doc). Os demais relatórios seguem em Helvetica.
+const _PDF_FONTES = {
+  'Manrope-Regular': 'brand/fonts/Manrope-Regular.ttf',
+  'Manrope-Medium': 'brand/fonts/Manrope-Medium.ttf',
+  'Manrope-SemiBold': 'brand/fonts/Manrope-SemiBold.ttf',
+  'Manrope-Bold': 'brand/fonts/Manrope-Bold.ttf',
+  'TenorSans-Regular': 'brand/fonts/TenorSans-Regular.ttf',
+};
+let _pdfFontesB64 = null, _pdfFontesProm = null;
+function _pdfCarregarFontes() {
+  if (_pdfFontesB64) return Promise.resolve(_pdfFontesB64);
+  if (_pdfFontesProm) return _pdfFontesProm;
+  _pdfFontesProm = Promise.all(Object.entries(_PDF_FONTES).map(async ([nome, url]) => {
+    const r = await fetch(url); if (!r.ok) throw new Error('Fonte ' + url + ' HTTP ' + r.status);
+    const by = new Uint8Array(await r.arrayBuffer()); let bin = '';
+    for (let i = 0; i < by.length; i += 0x8000) bin += String.fromCharCode.apply(null, by.subarray(i, i + 0x8000));
+    return [nome, btoa(bin)];
+  })).then(arr => (_pdfFontesB64 = Object.fromEntries(arr)))
+    .catch(e => { console.warn('Fontes do PDF indisponíveis, usando Helvetica:', e.message); _pdfFontesProm = null; return null; });
+  return _pdfFontesProm;
+}
+// Registra as fontes no documento. Estilos: normal=Regular, medium=Medium, bold=SemiBold,
+// extrabold=Bold (Manrope não tem itálico: 'italic' usa o Regular). Tenor Sans tem um único peso.
+async function _pdfUsarFontesMarca(doc) {
+  const f = await _pdfCarregarFontes(); if (!f) return false;
+  const reg = (arq, familia, estilo) => { doc.addFileToVFS(arq + '.ttf', f[arq]); doc.addFont(arq + '.ttf', familia, estilo); };
+  reg('Manrope-Regular', 'Manrope', 'normal'); reg('Manrope-Regular', 'Manrope', 'italic');
+  reg('Manrope-Medium', 'Manrope', 'medium'); reg('Manrope-SemiBold', 'Manrope', 'bold');
+  reg('Manrope-Bold', 'Manrope', 'extrabold');
+  reg('TenorSans-Regular', 'TenorSans', 'normal'); reg('TenorSans-Regular', 'TenorSans', 'bold');
+  doc.__fonte = true; doc.setFont('Manrope', 'normal');
+  return true;
+}
+// Seleção de fonte que respeita o documento: com fontes da marca usa Manrope/Tenor, senão Helvetica
+function _pdfSans(doc, estilo) { doc.setFont(doc.__fonte ? 'Manrope' : 'helvetica', estilo || 'normal'); }
+function _pdfTitulo(doc) { if (doc.__fonte) doc.setFont('TenorSans', 'normal'); else doc.setFont('helvetica', 'bold'); }
 
 // ── Cabeçalho corporativo — cor da empresa, logo se disponivel
 function pHdr(doc, title, sub, _accent) {
@@ -122,7 +181,7 @@ function pHdr(doc, title, sub, _accent) {
   // Sem logo: nome da empresa à esquerda
   if (!temLogo) {
     const nomeEmp = localStorage.getItem('_ot_empresa_nome') || 'OBRATECH';
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    _pdfTitulo(doc); doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
     doc.text(nomeEmp.toUpperCase(), 10, hdrH / 2 + 1.5);
   }
@@ -132,10 +191,10 @@ function pHdr(doc, title, sub, _accent) {
   doc.line(sepX, 6, sepX, hdrH - 6);
 
   // Direita: título, subtítulo e data de emissão
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+  _pdfTitulo(doc); doc.setFontSize(12);
   doc.setTextColor(255, 255, 255);
   doc.text(title.toUpperCase(), W - 10, sub ? hdrH / 2 - 3.5 : hdrH / 2 - 1, { align: 'right' });
-  doc.setFont('helvetica', 'normal');
+  _pdfSans(doc, 'normal');
   if (sub) {
     doc.setFontSize(8); doc.setTextColor(...claro(0.18));
     doc.text(String(sub).substring(0, 70), W - 10, hdrH / 2 + 2.5, { align: 'right' });
@@ -155,7 +214,7 @@ function pFtr(doc) {
     doc.setPage(i);
     doc.setDrawColor(...PX.silver); doc.setLineWidth(0.3);
     doc.line(9, 285, W - 9, 285);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    _pdfSans(doc, 'normal'); doc.setFontSize(6.5);
     doc.setTextColor(...PX.lgray);
     doc.text('ObraTech — Sistema de Gestão de Obras', 9, 290);
     doc.text('Pag. ' + i + ' / ' + n, W / 2, 290, { align: 'center' });
@@ -197,16 +256,16 @@ function pKpi(doc, x, y, w, h, label, value, sub, _valColor) {
   // topo com cor da empresa
   doc.setFillColor(...corEmpresa()); doc.rect(x, y, w, 1.5, 'F');
   // label
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+  _pdfSans(doc, 'normal'); doc.setFontSize(6.5);
   doc.setTextColor(...PX.gray);
   doc.text(label.toUpperCase(), x + 4, y + 8);
   // valor
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  _pdfTitulo(doc); doc.setFontSize(11);
   doc.setTextColor(...PX.ink);
   doc.text(String(value), x + 4, y + 17);
   // sub
   if (sub) {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    _pdfSans(doc, 'normal'); doc.setFontSize(6.5);
     doc.setTextColor(...PX.lgray);
     doc.text(String(sub).substring(0, 22), x + 4, y + 23);
   }
@@ -217,7 +276,7 @@ function pKpi(doc, x, y, w, h, label, value, sub, _valColor) {
 function pSec(doc, y, title, _color, pw) {
   const W = pw || 210;
   doc.setFillColor(...corEmpresa()); doc.rect(9, y, 3, 8, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+  _pdfTitulo(doc); doc.setFontSize(8);
   doc.setTextColor(...PX.ink);
   doc.text(title.toUpperCase(), 15, y + 6);
   doc.setDrawColor(...PX.silver); doc.setLineWidth(0.25);
@@ -243,6 +302,9 @@ function pBar(doc, x, y, w, h, pct, _color) {
 async function gerarRDOPDF(rdo, opts) {
   if (!rdo) { toast('⚠️', 'Sem RDO selecionado!'); return; }
   const doc = new jsPDF();
+  await _pdfUsarFontesMarca(doc);                 // Manrope + Tenor Sans (Helvetica se não carregar)
+  const FS = doc.__fonte ? 'Manrope' : 'helvetica';
+  const TIT = 'Relatório Diário de Obra';
   const W = doc.internal.pageSize.getWidth();
   const M = 14; // margem lateral padrao
   const CW = W - M * 2; // largura util
@@ -251,7 +313,7 @@ async function gerarRDOPDF(rdo, opts) {
 
   // Helper: checar paginacao
   const checkPage = (need, hdrTitle) => {
-    if (y + need > 275) { doc.addPage(); y = pHdr(doc, 'Relatorio Diario de Obra', (obra?.nome||'-') + '  -  ' + fmtDt(rdo.data)) + 6; }
+    if (y + need > 275) { doc.addPage(); y = pHdr(doc, TIT, (obra?.nome||'-') + '  -  ' + fmtDt(rdo.data)) + 6; }
   };
 
   // Helper: presenca didParseCell — só vermelho para FALTA
@@ -270,20 +332,21 @@ async function gerarRDOPDF(rdo, opts) {
   // ═══════════════════════════════════════════════════════════════
   // HEADER
   // ═══════════════════════════════════════════════════════════════
-  let y = pHdr(doc, 'Relatorio Diario de Obra', (obra?.nome || '-') + '  -  ' + fmtDt(rdo.data));
+  let y = pHdr(doc, TIT, (obra?.nome || '-') + '  -  ' + fmtDt(rdo.data));
   y += 2;
 
   // ── Badge de status
   const statusTxt = finalizado ? 'FINALIZADO' : 'RASCUNHO';
   const statusColor = finalizado ? [22, 130, 60] : [180, 90, 0];
   doc.setFillColor(...statusColor);
-  const stW = doc.getTextWidth(statusTxt) * 0.36 + 12;
+  doc.setFont(FS, 'bold'); doc.setFontSize(6.5);
+  const stW = doc.getTextWidth(statusTxt) + 7;
   doc.roundedRect(M, y, stW, 5.5, 1.5, 1.5, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(255, 255, 255);
+  doc.setTextColor(255, 255, 255);
   doc.text(statusTxt, M + stW / 2, y + 4, { align: 'center' });
   // Data de emissao ao lado
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...PX.gray);
-  doc.text('EMISSAO: ' + new Date().toLocaleDateString('pt-BR'), M + stW + 5, y + 4);
+  doc.setFont(FS, 'normal'); doc.setFontSize(7); doc.setTextColor(...PX.gray);
+  doc.text('EMISSÃO: ' + new Date().toLocaleDateString('pt-BR'), M + stW + 5, y + 4);
   y += 10;
 
   // ═══════════════════════════════════════════════════════════════
@@ -293,9 +356,9 @@ async function gerarRDOPDF(rdo, opts) {
     doc.setFillColor(250, 251, 253); doc.rect(bx, by, bw, bh, 'F');
     doc.setDrawColor(...PX.silver); doc.setLineWidth(0.2); doc.rect(bx, by, bw, bh, 'S');
     doc.setFillColor(...PX.navy); doc.rect(bx, by, bw, 1.2, 'F');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...PX.gray);
+    doc.setFont(FS, 'normal'); doc.setFontSize(6); doc.setTextColor(...PX.gray);
     doc.text(label.toUpperCase(), bx + 5, by + 7);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...PX.ink);
+    _pdfTitulo(doc); doc.setFontSize(9.5); doc.setTextColor(...PX.ink);
     doc.text(String(value).substring(0, 35), bx + 5, by + 14.5);
   };
   const bw1 = CW * 0.5 - 1.5, bw2 = CW * 0.25 - 1, bw3 = CW * 0.25 - 0.5;
@@ -308,17 +371,18 @@ async function gerarRDOPDF(rdo, opts) {
   // ═══════════════════════════════════════════════════════════════
   // EXECUCAO DO DIA
   // ═══════════════════════════════════════════════════════════════
-  y = pSec(doc, y, 'Execucao do Dia');
+  y = pSec(doc, y, 'Execução do Dia');
   const execData = [
-    ['SERVICOS EXECUTADOS', rdo.serv || 'Nao informado.'],
-    ['OCORRENCIAS / OBS', rdo.obs || 'Nenhuma ocorrencia.'],
+    ['SERVIÇOS EXECUTADOS', rdo.serv || 'Não informado.'],
+    ['OCORRÊNCIAS / OBS.', rdo.obs || 'Nenhuma ocorrência.'],
     ['MATERIAIS RECEBIDOS', rdo.mat || 'Sem recebimentos.']
   ];
   doc.autoTable({
     startY: y,
-    head: [['CAMPO', 'DESCRICAO']],
+    head: [['CAMPO', 'DESCRIÇÃO']],
     body: execData,
     theme: 'plain',
+    styles: { font: FS },
     tableWidth: CW,
     headStyles: hStyle(),
     bodyStyles: { ...bStyle(), minCellHeight: 12, valign: 'top', cellPadding: {top:3.5,bottom:3.5,left:5,right:5} },
@@ -328,7 +392,7 @@ async function gerarRDOPDF(rdo, opts) {
     },
     margin: { left: M, right: M },
     didParseCell: function(data) {
-      if (data.section === 'body' && data.column.index === 1 && data.cell.raw && data.cell.raw.indexOf('Nao informado') === -1 && data.cell.raw.indexOf('Nenhuma') === -1 && data.cell.raw.indexOf('Sem ') === -1) {
+      if (data.section === 'body' && data.column.index === 1 && data.cell.raw && data.cell.raw.indexOf('Não informado') === -1 && data.cell.raw.indexOf('Nenhuma') === -1 && data.cell.raw.indexOf('Sem ') === -1) {
         data.cell.styles.textColor = PX.ink;
       } else if (data.section === 'body' && data.column.index === 1) {
         data.cell.styles.textColor = PX.lgray;
@@ -346,18 +410,19 @@ async function gerarRDOPDF(rdo, opts) {
   colabsOrdenados.forEach(col => {
     const pt = DB.pontos.find(p => String(p.colabId) === String(col.id) && p.data === rdo.data && p.presente);
     let status = 'FALTA';
-    if (pt && pt.tipo === 'meia_diaria') status = 'MEIA DIARIA';
+    if (pt && pt.tipo === 'meia_diaria') status = 'MEIA DIÁRIA';
     else if (pt) status = 'PRESENTE';
     presColabRows.push([(col.nome||'').toUpperCase(), (col.funcao||'-').toUpperCase(), status]);
   });
   if (presColabRows.length) {
     checkPage(20 + presColabRows.length * 7);
-    y = pSec(doc, y, 'Lista de Presenca - Mao de Obra Civil (' + presColabRows.length + ')');
+    y = pSec(doc, y, 'Lista de Presença — Mão de Obra Civil (' + presColabRows.length + ')');
     doc.autoTable({
       startY: y,
-      head: [['N', 'NOME', 'FUNCAO / CARGO', 'PRESENCA']],
+      head: [['Nº', 'NOME', 'FUNÇÃO / CARGO', 'PRESENÇA']],
       body: presColabRows.map((r, i) => [i + 1, ...r]),
       theme: 'plain',
+      styles: { font: FS },
       tableWidth: CW,
       headStyles: hStyle(),
       bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15, cellPadding: {top:3,bottom:3,left:5,right:5} },
@@ -385,12 +450,13 @@ async function gerarRDOPDF(rdo, opts) {
   });
   if (presTercRows.length) {
     checkPage(20 + presTercRows.length * 7);
-    y = pSec(doc, y, 'Lista de Presenca - Terceirizados (' + presTercRows.length + ')');
+    y = pSec(doc, y, 'Lista de Presença — Terceirizados (' + presTercRows.length + ')');
     doc.autoTable({
       startY: y,
-      head: [['N', 'NOME', 'FUNCAO', 'EMPRESA', 'PRESENCA']],
+      head: [['Nº', 'NOME', 'FUNÇÃO', 'EMPRESA', 'PRESENÇA']],
       body: presTercRows.map((r, i) => [i + 1, ...r]),
       theme: 'plain',
+      styles: { font: FS },
       tableWidth: CW,
       headStyles: hStyle(),
       bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15, cellPadding: {top:3,bottom:3,left:5,right:5} },
@@ -411,46 +477,72 @@ async function gerarRDOPDF(rdo, opts) {
   // REGISTRO FOTOGRAFICO
   // ═══════════════════════════════════════════════════════════════
   if (rdo.fotos && rdo.fotos.length) {
-    // Pré-carregar fotos (converter URL para base64 se necessário)
-    // Carregar todas em paralelo, reduzidas (muito mais rápido e PDF menor)
+    // Cada foto é recortada (como object-fit: cover) num quadro 4:3 e comprimida em JPEG 0,85
     const fotosCarregadas = await Promise.all(rdo.fotos.map(foto => {
       const imgSrc = foto.data || foto.url || '';
       if (!imgSrc) return null;
-      if (_pdfFotoCache.has(imgSrc)) return _pdfFotoCache.get(imgSrc);
-      return _pdfCarregarImg(imgSrc, 1000, 'jpeg', 0.75)
-        .then(r => { if (_pdfFotoCache.size > 80) _pdfFotoCache.clear(); _pdfFotoCache.set(imgSrc, r.data); return r.data; })
+      const chave = 'cover43|' + imgSrc;
+      if (_pdfFotoCache.has(chave)) return _pdfFotoCache.get(chave);
+      return _pdfCarregarImg(imgSrc, 1600, 'jpeg', 0.92)
+        .then(r => _pdfRecorteCover(r.data, 4 / 3, 1050, 0.85))
+        .then(d => { if (_pdfFotoCache.size > 80) _pdfFotoCache.clear(); _pdfFotoCache.set(chave, d); return d; })
         .catch(() => null);
     }));
+    const itens = rdo.fotos.map((foto, i) => ({ foto, i, img: fotosCarregadas[i] })).filter(x => x.img);
 
-    checkPage(60);
-    y = pSec(doc, y, 'Registro Fotografico (' + rdo.fotos.length + ' foto' + (rdo.fotos.length > 1 ? 's' : '') + ')');
-    const cols = 3, imgW = (CW - 6) / 3, imgH = 44, gapF = 3;
-    let photoY = y;
-    rdo.fotos.forEach((foto, i) => {
-      const imgData = fotosCarregadas[i];
-      if (!imgData) return;
-      const col = i % cols;
-      if (col === 0 && i > 0) photoY += imgH + 12;
-      if (photoY + imgH > 268) {
-        doc.addPage(); photoY = pHdr(doc, 'Relatorio Diario de Obra', (obra?.nome||'-') + '  -  ' + fmtDt(rdo.data)) + 8;
+    // Medidas (mm): 2 por linha com 3,7 de espaço; quadro 4:3 (~89 x 67); legenda 1,6 abaixo
+    const GAP = 3.7, fw = (CW - GAP) / 2, fh = fw * 3 / 4;
+    const LEG = 1.6, legH = 3.4, ENTRE = 6;            // altura da legenda e espaço entre linhas
+    const linhaH = fh + LEG + legH;                      // conteúdo de uma linha
+    const passo = linhaH + ENTRE;
+    const LIMITE = 275;                                  // acima do rodapé
+    const topoCont = () => pHdr(doc, TIT, (obra?.nome || '-') + '  -  ' + fmtDt(rdo.data)) + 8;
+    const linhasQueCabem = y0 => Math.max(0, Math.floor((LIMITE - y0 - linhaH) / passo) + 1);
+
+    if (itens.length) {
+      // Título da seção só se couber pelo menos uma linha de fotos abaixo dele
+      checkPage(14 + linhaH);
+      y = pSec(doc, y, 'Registro Fotográfico (' + itens.length + ' foto' + (itens.length > 1 ? 's' : '') + ')');
+
+      // Distribui em páginas por linhas inteiras (nenhuma foto é cortada entre páginas)
+      const capCont = linhasQueCabem(44) * 2;           // capacidade de uma página de continuação
+      const paginas = [];
+      let resto = itens.slice(), primeira = true;
+      while (resto.length) {
+        const cap = primeira ? Math.max(2, linhasQueCabem(y) * 2) : Math.max(2, capCont);
+        paginas.push(resto.splice(0, cap)); primeira = false;
       }
-      const x = M + col * (imgW + gapF);
-      doc.setFillColor(230, 232, 236); doc.rect(x + 0.5, photoY + 0.5, imgW, imgH, 'F');
-      doc.setFillColor(255, 255, 255); doc.rect(x, photoY, imgW, imgH, 'F');
-      doc.setDrawColor(...PX.silver); doc.setLineWidth(0.2); doc.rect(x, photoY, imgW, imgH, 'S');
-      try { doc.addImage(imgData, 'JPEG', x + 0.8, photoY + 0.8, imgW - 1.6, imgH - 1.6, '', 'FAST'); }
-      catch (e) {
-        doc.setFontSize(7); doc.setTextColor(...PX.gray);
-        doc.text('[Foto ' + (i + 1) + ']', x + imgW / 2, photoY + imgH / 2, { align: 'center' });
-      }
-      doc.setFillColor(...PX.navy); doc.roundedRect(x + 2, photoY + 2, 11, 5, 1, 1, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(255, 255, 255);
-      doc.text('#' + String(i + 1).padStart(2, '0'), x + 7.5, photoY + 5.5, { align: 'center' });
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...PX.ink);
-      const fLabel = (foto.desc || foto.name || 'Foto ' + (i + 1)).substring(0, 32);
-      doc.text(fLabel, x + imgW / 2, photoY + imgH + 5, { align: 'center' });
-    });
-    y = photoY + imgH + 12;
+      // Evitar uma foto sozinha na última página: puxa uma da página anterior
+      const n = paginas.length;
+      if (n > 1 && paginas[n - 1].length === 1 && paginas[n - 2].length > 2) paginas[n - 1].unshift(paginas[n - 2].pop());
+
+      paginas.forEach((fotos, pi) => {
+        let py = y;
+        if (pi > 0) { doc.addPage(); py = topoCont(); }
+        fotos.forEach((it, k) => {
+          const col = k % 2;
+          if (col === 0 && k > 0) py += passo;
+          const x = M + col * (fw + GAP);
+          try { doc.addImage(it.img, 'JPEG', x, py, fw, fh, '', 'FAST'); }
+          catch (e) { doc.setFillColor(240, 241, 244); doc.rect(x, py, fw, fh, 'F'); }
+          doc.setDrawColor(...PX.silver); doc.setLineWidth(0.2); doc.rect(x, py, fw, fh, 'S');
+          // Etiqueta #01: cor principal do relatório, texto branco, SemiBold 7,5 pt, a 2,6 mm das bordas
+          const tag = '#' + String(it.i + 1).padStart(2, '0');
+          doc.setFont(FS, 'bold'); doc.setFontSize(7.5);
+          const tw = doc.getTextWidth(tag) + 3.4, th = 4.8;
+          doc.setFillColor(...corEmpresa()); doc.roundedRect(x + 2.6, py + 2.6, tw, th, 0.9, 0.9, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.text(tag, x + 2.6 + tw / 2, py + 2.6 + th / 2, { align: 'center', baseline: 'middle' });
+          // Legenda: Regular 8,5 pt, cinza, 1,6 mm abaixo (com reticências se não couber)
+          doc.setFont(FS, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...PX.gray);
+          let leg = String(it.foto.desc || it.foto.name || 'Foto ' + (it.i + 1));
+          if (doc.getTextWidth(leg) > fw) { while (leg.length > 1 && doc.getTextWidth(leg + '…') > fw) leg = leg.slice(0, -1); leg = leg.trimEnd() + '…'; }
+          doc.text(leg, x + fw / 2, py + fh + LEG, { align: 'center', baseline: 'top' });
+        });
+        y = py + linhaH + 8;
+      });
+      doc.setTextColor(...PX.ink);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -463,17 +555,17 @@ async function gerarRDOPDF(rdo, opts) {
     doc.setFillColor(250, 251, 253); doc.rect(bx, by, bw, bh, 'F');
     doc.setDrawColor(...PX.silver); doc.setLineWidth(0.2); doc.rect(bx, by, bw, bh, 'S');
     doc.setFillColor(...PX.navy); doc.rect(bx, by, bw, 5.5, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(255, 255, 255);
+    doc.setFont(FS, 'bold'); doc.setFontSize(6.5); doc.setTextColor(255, 255, 255);
     doc.text(titulo, bx + 5, by + 4);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...PX.ink);
+    doc.setFont(FS, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...PX.ink);
     doc.text(conteudo, bx + 5, by + 14);
     // Linha de assinatura
     doc.setDrawColor(...PX.silver); doc.setLineWidth(0.3);
     doc.line(bx + 5, by + bh - 6, bx + bw - 5, by + bh - 6);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(...PX.lgray);
+    doc.setFont(FS, 'normal'); doc.setFontSize(5.5); doc.setTextColor(...PX.lgray);
     doc.text('ASSINATURA', bx + bw / 2, by + bh - 2, { align: 'center' });
   };
-  drawSigBox(M, y, sigW, sigH, 'RESPONSAVEL TECNICO', obra?.resp || '-');
+  drawSigBox(M, y, sigW, sigH, 'RESPONSÁVEL TÉCNICO', obra?.resp || '-');
   drawSigBox(M + sigW + 4, y, sigW, sigH, 'LOCAL E DATA', (obra?.local || '-') + ',  ' + fmtDt(rdo.data));
   doc.setLineWidth(0.2);
 
