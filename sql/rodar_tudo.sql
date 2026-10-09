@@ -85,3 +85,13 @@ create policy compras_orcamentos_empresa on public.compras_orcamentos for all
 do $$ begin
   begin alter publication supabase_realtime add table public.compras_orcamentos; exception when duplicate_object then null; end;
 end $$;
+
+-- Pedidos de compra: previsão de entrega em texto
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema='public' and table_name='compras_pedidos'
+               and column_name='previsao_entrega' and data_type <> 'text') then
+    alter table public.compras_pedidos alter column previsao_entrega type text using previsao_entrega::text;
+  end if;
+end $$;

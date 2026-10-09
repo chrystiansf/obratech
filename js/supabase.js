@@ -703,7 +703,12 @@ async function carregarDadosSupabase(){
     if(pontos.data)        DB.pontos        = pontos.data.map(row=>({id:row.id,colabId:row.colaborador_id,obraId:row.obra_id,data:row.data,presente:row.presente,tipo:row.tipo,_supa:true}));
     if(compraSols.data)    DB.solicitacoes  = compraSols.data.map(mapSolicitacao);
     if(compraCots.data)    DB.cotacoes      = compraCots.data.map(mapCotacao);
-    if(compraPeds.data)    DB.pedidosCompra = compraPeds.data.map(mapPedidoCompra);
+    if(compraPeds.data){
+      // Pedidos criados aqui que ainda não foram gravados no banco: mantém e tenta gravar de novo
+      const pend=(DB.pedidosCompra||[]).filter(p=>p._naoSalvo&&!compraPeds.data.some(x=>x.id===p.id));
+      DB.pedidosCompra = compraPeds.data.map(mapPedidoCompra).concat(pend);
+      if(pend.length&&typeof _pedSupaSalvar==='function') setTimeout(()=>pend.forEach(_pedSupaSalvar),1500);
+    }
     if(invs.data)          DB.investidores  = invs.data.map(mapInvestidor);
     if(aps.data)           DB.aportes       = aps.data.map(mapAporte);
     if(compraOrcs.data)    DB.orcamentosCompra = compraOrcs.data.map(mapOrcamentoCompra);
@@ -737,7 +742,11 @@ function mapCotacao(r){return{id:r.id,solicitacaoId:r.solicitacao_id,fornecedor:
 function mapInvestidor(r){return{id:r.id,nome:r.nome,documento:r.documento||'',telefone:r.telefone||'',email:r.email||'',obs:r.obs||'',_supa:true};}
 function mapAporte(r){return{id:r.id,investidorId:r.investidor_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),forma:r.forma||'',desc:r.descricao||'',_supa:true};}
 function mapOrcamentoCompra(r){return{id:r.id,fornecedor:r.fornecedor,data:r.data,valorTotal:Number(r.valor_total||0),valorPix:Number(r.valor_pix||0),valorCartao:Number(r.valor_cartao||0),parcelas:Number(r.parcelas||0),frete:Number(r.frete||0),prazoEntrega:r.prazo_entrega||'',obs:r.obs||'',origem:r.origem||'',_supa:true};}
-function mapPedidoCompra(r){return{id:r.id,solicitacaoId:r.solicitacao_id,obraId:r.obra_id,fornecedor:r.fornecedor,valorTotal:Number(r.valor_total||0),previsaoEntrega:r.previsao_entrega,status:r.status||'pendente',obs:r.obs,criadoEm:r.criado_em,_supa:true};}
+function mapPedidoCompra(r){
+  // Previsão em texto gravada em obs ("Entrega: Retirada") quando a coluna do banco só aceita data
+  const m=!r.previsao_entrega&&/^Entrega: ([^|]*)(?: \| ([\s\S]*))?$/.exec(r.obs||'');
+  return{id:r.id,solicitacaoId:r.solicitacao_id,obraId:r.obra_id,fornecedor:r.fornecedor,valorTotal:Number(r.valor_total||0),
+    previsaoEntrega:m?m[1].trim():r.previsao_entrega,status:r.status||'pendente',obs:m?(m[2]||''):r.obs,criadoEm:r.criado_em,_supa:true};}
 
 // ── Save: salvar no Supabase ──────────────────────────────────
 // Override da função save() para persistir no Supabase
@@ -924,7 +933,7 @@ function iniciarRealtime(){
         pontos_terceirizados:r=>{DB.pontosTercs=r.map(mapPontoTerc);rdoRenderPresencaTercs();},
         compras_solicitacoes:r=>{DB.solicitacoes=r.map(mapSolicitacao);if(typeof renderSolicitacoes==='function')renderSolicitacoes();},
         compras_cotacoes:r=>{DB.cotacoes=r.map(mapCotacao);if(typeof renderCotacoes==='function')renderCotacoes();},
-        compras_pedidos:r=>{DB.pedidosCompra=r.map(mapPedidoCompra);if(typeof renderPedidos==='function')renderPedidos();},
+        compras_pedidos:r=>{const pend=(DB.pedidosCompra||[]).filter(p=>p._naoSalvo&&!r.some(x=>x.id===p.id));DB.pedidosCompra=r.map(mapPedidoCompra).concat(pend);if(typeof renderPedidos==='function')renderPedidos();},
         compras_orcamentos:r=>{DB.orcamentosCompra=r.map(mapOrcamentoCompra);},
         investidores:r=>{DB.investidores=r.map(mapInvestidor);if(window._paginaAtual==='caixa')renderCaixa();},
         aportes:r=>{DB.aportes=r.map(mapAporte);if(window._paginaAtual==='caixa')renderCaixa();},

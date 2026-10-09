@@ -132,16 +132,44 @@ function _criarPedidoFromSolicitacao(sol){
     previsaoEntrega:cotVenc?.prazoEntrega||'',
     status:'pendente',
     obs:'',
-    _supa:true
+    criadoEm:new Date().toISOString(),
+    _naoSalvo:true
   };
   if(!DB.pedidosCompra) DB.pedidosCompra=[];
   DB.pedidosCompra.push(pedido);
-  supaInsert('compras_pedidos',{
-    id:novoId,solicitacao_id:sol.id,obra_id:sol.obraId||null,
-    fornecedor:pedido.fornecedor,valor_total:pedido.valorTotal,
-    previsao_entrega:pedido.previsaoEntrega||null,status:'pendente',obs:''
-  });
   save();
+  _pedSupaSalvar(pedido);
+  return pedido;
+}
+
+// Grava o pedido no banco. A coluna previsao_entrega pode ser do tipo data no banco antigo,
+// e a previsão vem da cotação como texto ("Retirada", "5 dias"): nesse caso grava a previsão em obs.
+// Enquanto não confirmar a gravação, o pedido fica marcado e não some na sincronização.
+async function _pedSupaSalvar(ped){
+  if(typeof supa==='undefined'||!supa||!_empresaId) return;
+  const base={id:ped.id,empresa_id:_empresaId,solicitacao_id:ped.solicitacaoId,obra_id:ped.obraId||null,
+    fornecedor:ped.fornecedor,valor_total:ped.valorTotal,status:ped.status||'pendente'};
+  const prev=ped.previsaoEntrega||'';
+  const ehData=/^\d{4}-\d{2}-\d{2}$/.test(prev);
+  let {error}=await supa.from('compras_pedidos').insert({...base,previsao_entrega:prev||null,obs:ped.obs||''});
+  if(error&&prev&&!ehData&&/date|invalid input syntax/i.test(error.message||'')){
+    ({error}=await supa.from('compras_pedidos').insert({...base,previsao_entrega:null,obs:'Entrega: '+prev+(ped.obs?' | '+ped.obs:'')}));
+  }
+  if(error){
+    console.error('Pedido de compra não gravado',error.message);
+    toast('❌','Pedido não foi salvo no banco: '+String(error.message).substring(0,80));
+    return;
+  }
+  delete ped._naoSalvo; ped._supa=true; save();
+}
+
+// Recria o pedido de uma solicitação aprovada/recebida que ficou sem pedido
+function pedRecriar(solId){
+  const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(solId));
+  if(!sol) return;
+  const ped=_criarPedidoFromSolicitacao(sol);
+  if(sol.status==='recebida'){ped.status='recebido';}
+  renderPedidos();toast('✅','Pedido recriado!');
 }
 
 function solReceber(id){
@@ -287,14 +315,23 @@ function renderPedidos(){
   peds.sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
 
   const el=document.getElementById('ped-tbl');
+  const semPedido=(DB.solicitacoes||[]).filter(s=>(s.status==='aprovada'||s.status==='recebida')&&!peds.some(p=>String(p.solicitacaoId)===String(s.id)));
+  const aviso=semPedido.length?`<div class="card" style="margin-bottom:12px;border-color:var(--ot-warning,#d97706)">
+    <div style="font-weight:600;margin-bottom:6px">Solicitações aprovadas sem pedido de compra</div>
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:8px">O pedido não chegou a ser salvo no banco. Recrie para emitir a ordem de compra de novo.</div>
+    ${semPedido.map(s=>{const o=DB.obras.find(x=>String(x.id)===String(s.obraId));const c=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(s.id)&&c.vencedor);
+      return`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--border)">
+        <div style="min-width:0"><div class="n">${escHtml(s.item||'—')}</div><div style="font-size:11px;color:var(--txt3)">${escHtml(o?.nome||'—')}${c?' · '+escHtml(c.fornecedor||'')+' · '+fmtR(c.valorTotal||_cotMelhor(c)):''}</div></div>
+        <button class="btn sm pri" onclick="pedRecriar('${s.id}')">Recriar pedido</button></div>`;}).join('')}
+  </div>`:'';
   const STATUS_BADGE={pendente:'<span class="b bn">Pendente</span>',enviado:'<span class="b bb">Enviado</span>',recebido:'<span class="b bg">Recebido</span>'};
 
   if(!peds.length){
-    el.innerHTML='<div class="t-empty">Nenhum pedido de compra. Aprove uma solicitacao para gerar um pedido.</div>';
+    el.innerHTML=aviso+'<div class="t-empty">Nenhum pedido de compra. Aprove uma solicitação para gerar um pedido.</div>';
     return;
   }
 
-  el.innerHTML=`<table class="tbl">
+  el.innerHTML=aviso+`<div style="overflow-x:auto"><table class="tbl">
     <tr><th>Fornecedor</th><th>Item</th><th>Obra</th><th style="text-align:right">Valor</th><th>Prev. Entrega</th><th>Status</th><th></th></tr>
     ${peds.map(p=>{
       const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(p.solicitacaoId));
@@ -304,7 +341,7 @@ function renderPedidos(){
         <td style="font-size:11px">${sol?.item||'—'}</td>
         <td style="font-size:11px">${o?.nome||'—'}</td>
         <td style="text-align:right;font-weight:600">${fmtR(p.valorTotal||0)}</td>
-        <td style="font-size:11px">${p.previsaoEntrega||'—'}</td>
+        <td style="font-size:11px">${p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):escHtml(p.previsaoEntrega)):'—'}</td>
         <td>${STATUS_BADGE[p.status]||STATUS_BADGE.pendente}</td>
         <td><div class="ta-actions">
           ${p.status==='pendente'?`<button class="btn sm" onclick="pedMudarStatus('${p.id}','enviado')">Enviar</button>`:''}
@@ -314,7 +351,7 @@ function renderPedidos(){
         </div></td>
       </tr>`;
     }).join('')}
-  </table>`;
+  </table></div>`;
 }
 
 function pedMudarStatus(id,status){
@@ -674,7 +711,7 @@ async function gerarOrdemCompraPDF(pedId){
       ['Fornecedor',p.fornecedor||'—'],
       ['CNPJ',fornObj?.cnpj||'—'],
       ['Contato',fornObj?.contato||fornObj?.telefone||'—'],
-      ['Previsão de Entrega',p.previsaoEntrega||'—'],
+      ['Previsão de Entrega',p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):p.previsaoEntrega):'—'],
     ],
     bodyStyles:{...bStyle(),fontSize:8,cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:corEmpresa(),halign:'center'},1:{cellWidth:142,halign:'center'}},
