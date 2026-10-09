@@ -702,7 +702,7 @@ async function carregarDadosSupabase(){
     if(pontosTercs.data)   DB.pontosTercs   = pontosTercs.data.map(mapPontoTerc);
     if(pontos.data)        DB.pontos        = pontos.data.map(row=>({id:row.id,colabId:row.colaborador_id,obraId:row.obra_id,data:row.data,presente:row.presente,tipo:row.tipo,_supa:true}));
     if(compraSols.data)    DB.solicitacoes  = compraSols.data.map(mapSolicitacao);
-    if(compraCots.data)    DB.cotacoes      = compraCots.data.map(mapCotacao);
+    if(compraCots.data)    DB.cotacoes      = _cotMesclar(compraCots.data);
     if(compraPeds.data){
       // Pedidos criados aqui que ainda não foram gravados no banco: mantém e tenta gravar de novo
       const pend=(DB.pedidosCompra||[]).filter(p=>p._naoSalvo&&!compraPeds.data.some(x=>x.id===p.id));
@@ -739,6 +739,16 @@ function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,
 function mapPgto(r){return{medicaoId:r.medicao_id||undefined,id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 function mapSolicitacao(r){return{id:r.id,obraId:r.obra_id,etapaId:r.etapa_id,item:r.item,unidade:r.unidade,quantidade:Number(r.quantidade||0),urgencia:r.urgencia||'normal',status:r.status||'aberta',solicitante:r.solicitante,obs:r.obs,criadoEm:r.criado_em,_supa:true};}
+// Cotações vindas do banco. Se a coluna 'detalhe' (itens de cada orçamento) ainda não existe no banco,
+// os itens só existem neste aparelho: mantém os itens locais em vez de apagá-los e avisa na aba Compras.
+function _cotMesclar(rows){
+  const semColuna=rows.length>0&&!rows.some(r=>Object.prototype.hasOwnProperty.call(r,'detalhe'));
+  window._cotSemDetalhe=semColuna;
+  const loc=new Map((DB.cotacoes||[]).map(c=>[String(c.id),c]));
+  return rows.map(r=>{const c=mapCotacao(r);const l=loc.get(String(r.id));
+    if(!c.detalhe&&l&&l.detalhe&&(semColuna||r.detalhe===undefined)) c.detalhe=l.detalhe;
+    return c;});
+}
 function mapCotacao(r){return{id:r.id,solicitacaoId:r.solicitacao_id,fornecedor:r.fornecedor,valorUnit:Number(r.valor_unit||0),valorTotal:Number(r.valor_total||0),valorPix:Number(r.valor_pix||0),valorCartao:Number(r.valor_cartao||0),parcelas:Number(r.parcelas||0),orcamentoId:r.orcamento_id||null,detalhe:(typeof r.detalhe==='string'?(()=>{try{return JSON.parse(r.detalhe)}catch(e){return null}})():r.detalhe)||null,prazoEntrega:r.prazo_entrega,obs:r.obs,vencedor:r.vencedor||false,_supa:true};}
 function mapInvestidor(r){return{id:r.id,nome:r.nome,documento:r.documento||'',telefone:r.telefone||'',email:r.email||'',obs:r.obs||'',_supa:true};}
 function mapAporte(r){return{id:r.id,investidorId:r.investidor_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),forma:r.forma||'',desc:r.descricao||'',_supa:true};}
@@ -933,7 +943,7 @@ function iniciarRealtime(){
         terceirizados:r=>{DB.terceirizados=r.map(mapTerceirizado);renderTerceirizados();},
         pontos_terceirizados:r=>{DB.pontosTercs=r.map(mapPontoTerc);rdoRenderPresencaTercs();},
         compras_solicitacoes:r=>{DB.solicitacoes=r.map(mapSolicitacao);if(typeof renderSolicitacoes==='function')renderSolicitacoes();},
-        compras_cotacoes:r=>{DB.cotacoes=r.map(mapCotacao);if(typeof renderCotacoes==='function')renderCotacoes();},
+        compras_cotacoes:r=>{DB.cotacoes=_cotMesclar(r);if(typeof renderCotacoes==='function')renderCotacoes();},
         compras_pedidos:r=>{const pend=(DB.pedidosCompra||[]).filter(p=>p._naoSalvo&&!r.some(x=>x.id===p.id));DB.pedidosCompra=r.map(mapPedidoCompra).concat(pend);if(typeof renderPedidos==='function')renderPedidos();},
         compras_orcamentos:r=>{DB.orcamentosCompra=r.map(mapOrcamentoCompra);},
         investidores:r=>{DB.investidores=r.map(mapInvestidor);if(window._paginaAtual==='caixa')renderCaixa();},

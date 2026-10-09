@@ -179,6 +179,17 @@ function _cotMelhor(c){const v=[c.valorTotal,c.valorPix,c.valorCartao].map(Numbe
 function _cotParcela(c){return c.valorCartao>0&&c.parcelas>1?c.valorCartao/c.parcelas:0;}
 
 function renderCotacoes(){
+  // Aviso fixo: sem a coluna 'detalhe' no banco, os itens dos orçamentos não ficam salvos
+  setTimeout(()=>{
+    const host=document.getElementById('cot-lista')||document.getElementById('cot-tbl')||document.querySelector('#p-compras .page-cotacoes, #comp-cotacoes');
+    document.getElementById('cot-aviso-detalhe')?.remove();
+    if(!window._cotSemDetalhe||!host) return;
+    const d=document.createElement('div');d.id='cot-aviso-detalhe';d.className='card';
+    d.style.cssText='margin-bottom:12px;border-color:var(--ot-danger,#dc2626)';
+    d.innerHTML='<div style="font-weight:600;margin-bottom:4px">Os itens dos orçamentos não estão sendo salvos no banco</div><div style="font-size:12px;color:var(--txt3)">Falta rodar no Supabase o SQL <b>sql/compras_cotacao_fornecedor.sql</b> (coluna <b>detalhe</b>). Até lá, só o valor final fica salvo; os itens ficam apenas neste aparelho.</div>';
+    host.parentNode.insertBefore(d,host);
+  },0);
+
   const filtro=document.getElementById('cot-filtro')?.value||'ativas';
   const temCot=id=>(DB.cotacoes||[]).some(c=>String(c.solicitacaoId)===String(id));
   const sols=(DB.solicitacoes||[]).filter(s=>s.status==='cotando'||s.status==='aberta'||(filtro==='todas'&&temCot(s.id)));
