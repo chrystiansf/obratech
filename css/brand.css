@@ -154,6 +154,9 @@ button, input, select, textarea { font-family: inherit; }
 .kpi:hover { border-color: var(--ot-border-strong); transform: none; box-shadow: none; }
 .kl { font-family: var(--ot-font-mono); font-size: 11.5px; font-weight: 500; letter-spacing: var(--ot-tracking-label); text-transform: uppercase; color: var(--ot-text-muted); margin-bottom: 10px; }
 .kv { font-size: 26px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 6px; }
+/* Números legíveis: nunca quebram no meio nem vazam do card (js/ajuste-numeros.js reduz a fonte só quando precisa) */
+.kv, .pc-kv, .pcx-big, .pcx-fin-big { white-space: nowrap; max-width: 100%; }
+.g > *, .kpi, .card, .pc-kpi { min-width: 0; }
 .kd { font-size: 12px; font-weight: 500; }
 .kd.neu { color: var(--ot-text-muted); }
 /* KPI selecionado (filtro ativo): o "bloco" */
@@ -319,7 +322,10 @@ body:not(.light) #theme-toggle::before, .light #theme-toggle::before { transform
   .btn { height: 44px; font-size: 14px; }
   .btn.sm { height: 36px; font-size: 13px; }
   .inp, .sel { min-height: 44px; font-size: 15px; }
-  .kv { font-size: 22px; }
+  .kv { font-size: 24px; }
+  .kpi { padding: 14px 14px 12px; }
+  .kl { font-size: 11px; letter-spacing: .06em; margin-bottom: 8px; }
+  .g.g4, .g.g3 { grid-auto-flow: row dense; gap: 10px; }
   .mo { border-radius: 20px 20px 0 0 !important; }
   .tbl-filter-hdr .ta-actions { background: var(--ot-surface); }
   #fin-tbl-wrap::after { background: linear-gradient(transparent, var(--ot-surface)); }
@@ -524,7 +530,11 @@ nav.pcx-bottom, nav.pcx-tabs { flex-direction: row; flex: none; }
   .ocat { padding: 16px; }
   .ocat-resumo { width: 100%; }
   .ocat-resumo > div { flex: 1; min-width: 0; padding: 8px 10px; }
-  .ocat-resumo b { font-size: 14px; }
+  .ocat-resumo { flex-direction: column; }
+  .ocat-resumo > div { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 12px; }
+  .ocat-resumo > div + div { border-left: 0; border-top: 1px solid var(--ot-border); }
+  .ocat-resumo b { font-size: 16px; }
+  .ocat-row > .ocat-num { font-size: 15px; }
   .ocat-cols { display: none; }
   .ocat-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 12px 4px; }
   .ocat-part { grid-column: 1 / -1; grid-row: 2; }
@@ -537,4 +547,20 @@ nav.pcx-bottom, nav.pcx-tabs { flex-direction: row; flex: none; }
   .rel-export-bar { flex-wrap: wrap; }
   .rel-export-bar .sel { width: 100% !important; }
   .rel-export-bar .btn { flex: 1; justify-content: center; }
+}
+
+/* Alertas do dashboard: texto quebra dentro do card no celular */
+.tltx { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+
+/* Barra inferior (celular): itens dividem a largura, nenhum fica cortado */
+#mobile-nav-items { overflow-x: visible; }
+.mni { flex: 1 1 0; min-width: 0; padding: 8px 2px 6px; }
+.mni .mni-lb { font-size: 10.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+/* Celular: seletor de obra do Custo por m² ocupa a largura toda, botões dividem a linha */
+@media (max-width: 768px) {
+  #rel-m2-painel .ch { flex-direction: column; align-items: stretch; }
+  #rel-m2-painel .ca { justify-content: stretch; }
+  #rel-m2-painel .ca .sel { width: 100% !important; }
+  #rel-m2-painel .ca .btn:not(.ico) { flex: 1; justify-content: center; }
 }
