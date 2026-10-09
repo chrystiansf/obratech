@@ -891,13 +891,10 @@ Areia média — 8 m³"></textarea></div>
       </div>
       <div class="ca" style="gap:8px">
         <input class="inp" id="forn-search" placeholder="Buscar fornecedor..." style="height:34px;font-size:12px;width:200px" oninput="renderFornecedores()">
-        <select class="sel" id="forn-tipo-filter" style="height:34px;font-size:12px;width:130px" onchange="renderFornecedores()">
+        <select class="sel" id="forn-tipo-filter" style="height:34px;font-size:12px;width:190px" onchange="renderFornecedores()">
           <option value="">Todos os tipos</option>
-          <option value="Material">Material</option>
-          <option value="Serviço">Serviço</option>
-          <option value="Equipamento">Equipamento</option>
-          <option value="Outro">Outro</option>
         </select>
+        <button class="btn sm" onclick="abrirTiposFornecedor()"><svg class="ot-i" aria-hidden="true"><use href="#i-tag"></use></svg> Tipos</button>
         <button class="btn sm pri" onclick="openModal('fornecedor')">＋ Fornecedor</button>
       </div>
     </div>
@@ -1155,9 +1152,9 @@ Areia média — 8 m³"></textarea></div>
 <script src="js/cotacao-lote.js?v=20261007c"></script>
 <script src="js/compras.js?v=20261007c"></script>
 <script src="js/caixa.js?v=20261006b"></script>
-<script src="js/fornecedores.js?v=20261006b"></script>
+<script src="js/fornecedores.js?v=20261009x"></script>
 <script src="js/qualidade.js?v=20261006b"></script>
-<script src="js/modals.js?v=20261006b"></script>
+<script src="js/modals.js?v=20261009x"></script>
 <script src="js/pdf.js?v=20261009w"></script>
 <script src="js/relatorios.js?v=20261006b"></script>
 <script src="js/init.js?v=20261009a"></script>

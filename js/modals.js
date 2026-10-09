@@ -900,13 +900,7 @@ function openModal(type,editId=null,editId2=null){
     body=`<div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Nome / Razão Social *</label><input class="inp" id="forn-nome" value="${f?.nome||''}" placeholder="Nome da empresa ou pessoa"></div>
       <div class="fg"><label class="lbl">Tipo</label>
-        <select class="sel" id="forn-tipo">
-          <option value="">— Selecione —</option>
-          <option value="Material"${f?.tipo==='Material'?' selected':''}>Material</option>
-          <option value="Serviço"${f?.tipo==='Serviço'?' selected':''}>Serviço</option>
-          <option value="Equipamento"${f?.tipo==='Equipamento'?' selected':''}>Equipamento</option>
-          <option value="Outro"${f?.tipo==='Outro'?' selected':''}>Outro</option>
-        </select>
+        <select class="sel" id="forn-tipo" onchange="fornTipoSelectChange(this)">${fornTiposOptions(f?.tipo||'','— Selecione —')}</select>
       </div>
       <div class="fg"><label class="lbl">CNPJ / CPF</label><input class="inp" id="forn-cnpj" value="${f?.cnpj||''}" placeholder="00.000.000/0000-00"></div>
       <div class="fg"><label class="lbl">Nome do Contato</label><input class="inp" id="forn-contato" value="${f?.contato||''}" placeholder="Nome do responsável"></div>
@@ -1043,13 +1037,7 @@ function _lancCriarFornecedorInline(){
     <div style="font-weight:600;font-size:13px;margin-bottom:10px"><svg class=ot-i><use href=#i-factory></use></svg> Novo Fornecedor</div>
     <div class="g g2" style="gap:8px">
       <div class="fg" style="grid-column:span 2"><input class="inp" id="_nf-nome" placeholder="Nome / Razão Social *" style="font-size:12px"></div>
-      <div class="fg"><select class="sel" id="_nf-tipo" style="font-size:12px">
-        <option value="">— Tipo —</option>
-        <option value="Material">Material</option>
-        <option value="Serviço">Serviço</option>
-        <option value="Equipamento">Equipamento</option>
-        <option value="Outro">Outro</option>
-      </select></div>
+      <div class="fg"><select class="sel" id="_nf-tipo" style="font-size:12px" onchange="fornTipoSelectChange(this)">${fornTiposOptions('','— Tipo —')}</select></div>
       <div class="fg"><input class="inp" id="_nf-cnpj" placeholder="CNPJ / CPF" style="font-size:12px"></div>
       <div class="fg"><input class="inp" id="_nf-tel" placeholder="Telefone / WhatsApp" style="font-size:12px"></div>
       <div class="fg" style="display:flex;align-items:end;justify-content:flex-end;gap:6px">

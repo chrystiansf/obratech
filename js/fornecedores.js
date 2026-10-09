@@ -14,13 +14,17 @@ function renderFornecedores(){
   // KPIs
   const total=(DB.fornecedores||[]).length;
   const comEmail=(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.email).length;
-  const tipos=['Material','Serviço','Equipamento','Outro'];
+  // Filtro de tipos sempre com a lista atual
+  const selF=document.getElementById('forn-tipo-filter');
+  if(selF){selF.innerHTML='<option value="">Todos os tipos</option>'+fornTipos().map(t=>`<option${t===tipoF?' selected':''}>${escHtml(t)}</option>`).join('');selF.value=tipoF;}
+  // Cards: total + os 3 tipos mais usados
+  const cont={};(DB.fornecedores||[]).forEach(f=>{if(typeof f==='object'&&f.tipo)cont[f.tipo]=(cont[f.tipo]||0)+1;});
+  const top=Object.entries(cont).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const _fkAct2=(v)=>tipoF===v?'outline:2px solid var(--primary);outline-offset:-2px;border-radius:10px':'';
   document.getElementById('forn-kpis').innerHTML=`
-    <div class="kpi" onclick="fornFiltroKpi('')" style="cursor:pointer;${_fkAct2('')}"><div class="kl"><svg class=ot-i><use href=#i-factory></use></svg> Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>
-    <div class="kpi" onclick="fornFiltroKpi('Serviço')" style="cursor:pointer;${_fkAct2('Serviço')}"><div class="kl"><svg class=ot-i><use href=#i-wrench></use></svg> Serviços</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Serviço').length}</div><div class="kd neu">fornecedores</div></div>
-    <div class="kpi" onclick="fornFiltroKpi('Material')" style="cursor:pointer;${_fkAct2('Material')}"><div class="kl"><svg class=ot-i><use href=#i-package></use></svg> Materiais</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Material').length}</div><div class="kd neu">fornecedores</div></div>
-    <div class="kpi" onclick="fornFiltroKpi('Equipamento')" style="cursor:pointer;${_fkAct2('Equipamento')}"><div class="kl"><svg class=ot-i><use href=#i-tractor></use></svg> Equipamentos</div><div class="kv">${(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo==='Equipamento').length}</div><div class="kd neu">fornecedores</div></div>`;
+    <div class="kpi" onclick="fornFiltroKpi('')" style="cursor:pointer;${_fkAct2('')}"><div class="kl">${ic('factory')} Total</div><div class="kv">${total}</div><div class="kd neu">cadastrados</div></div>`+
+    top.map(([t,n])=>`<div class="kpi" onclick="fornFiltroKpi(${escHtml(JSON.stringify(t))})" style="cursor:pointer;${_fkAct2(t)}"><div class="kl">${ic('tag')} ${escHtml(t)}</div><div class="kv">${n}</div><div class="kd neu">fornecedor${n!==1?'es':''}</div></div>`).join('')+
+    (top.length<3?`<div class="kpi" onclick="abrirTiposFornecedor()" style="cursor:pointer"><div class="kl">${ic('tag')} Tipos</div><div class="kv">${fornTipos().length}</div><div class="kd neu">gerenciar tipos</div></div>`:'');
 
   const el=document.getElementById('forn-tbl');
   if(!forns.length){
@@ -39,7 +43,7 @@ function renderFornecedores(){
         <div style="font-weight:600">${f.nome||'—'}</div>
         ${f.obs?`<div style="font-size:10px;color:var(--txt3)">${f.obs}</div>`:''}
       </td>
-      <td><span class="b bn" style="font-size:10px">${f.tipo||'—'}</span></td>
+      <td><span class="b bn" style="font-size:11px">${escHtml(f.tipo||'—')}</span></td>
       <td style="font-size:11px;color:var(--txt3)">${f.cnpj||'—'}</td>
       <td style="font-size:11px">${f.contato||'—'}</td>
       <td style="font-size:11px">${f.telefone?`<a href="tel:${f.telefone}" style="color:var(--primary)">${f.telefone}</a>`:'—'}</td>
@@ -52,6 +56,67 @@ function renderFornecedores(){
         </div>
       </td>
     </tr>`).join('')+'</table>';
+}
+
+// ── Tipos de fornecedor (lista editável) ─────────────────────
+// Sugeridos + os que estão em uso nos fornecedores + os criados pelo usuário.
+const FORN_TIPOS_PADRAO=['Material básico','Material elétrico','Material hidráulico','Revestimento','Tintas e acabamento','Madeira','Ferragens','Esquadrias e vidros','Louças e metais','Material','Equipamento','Locação de equipamentos','Serviço','Mão de obra','Outro'];
+function _fornLs(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return[]}}
+function _fornLsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function fornTipos(){
+  const extras=_fornLs('ot_tipos_forn'), ocultos=_fornLs('ot_tipos_forn_ocultos');
+  const emUso=(DB.fornecedores||[]).map(f=>typeof f==='object'?(f.tipo||'').trim():'').filter(Boolean);
+  const set=new Set([...FORN_TIPOS_PADRAO.filter(t=>!ocultos.includes(t)),...extras,...emUso]);
+  return [...set].sort((a,b)=>a==='Outro'?1:b==='Outro'?-1:a.localeCompare(b,'pt-BR'));
+}
+function fornAddTipo(t){
+  t=(t||'').trim();if(!t)return '';
+  const existente=fornTipos().find(x=>x.toLowerCase()===t.toLowerCase());if(existente)return existente;
+  const ex=_fornLs('ot_tipos_forn');ex.push(t);_fornLsSet('ot_tipos_forn',ex);
+  _fornLsSet('ot_tipos_forn_ocultos',_fornLs('ot_tipos_forn_ocultos').filter(x=>x!==t));
+  return t;
+}
+// <option>s para um <select> de tipo, com a opção de criar um novo
+function fornTiposOptions(sel,primeiro){
+  const lista=fornTipos(); if(sel&&!lista.includes(sel)) lista.push(sel);
+  return `<option value="">${primeiro||'— Selecione —'}</option>`+lista.map(t=>`<option${t===sel?' selected':''}>${escHtml(t)}</option>`).join('')+'<option value="__novo__">＋ Novo tipo…</option>';
+}
+function fornTipoSelectChange(el){
+  if(el.value!=='__novo__')return;
+  const t=fornAddTipo(prompt('Nome do novo tipo de fornecedor (ex.: Material elétrico):')||'');
+  el.innerHTML=fornTiposOptions(t,el.options[0]?.textContent);
+  el.value=t||'';
+}
+function abrirTiposFornecedor(){
+  const cont={};(DB.fornecedores||[]).forEach(f=>{if(typeof f==='object'&&f.tipo)cont[f.tipo]=(cont[f.tipo]||0)+1;});
+  const linhas=fornTipos().map(t=>`<tr><td class="n">${escHtml(t)}</td><td style="text-align:center">${cont[t]||0}</td><td><div class="ta-actions">
+      <button class="btn sm ico" title="Renomear" onclick="fornRenomearTipo(${escHtml(JSON.stringify(t))})">${ic('pencil')}</button>
+      <button class="btn sm ico" title="Remover" onclick="fornRemoverTipo(${escHtml(JSON.stringify(t))})">${ic('trash-2')}</button></div></td></tr>`).join('');
+  document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${ic('tag')} Tipos de fornecedor</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
+    <div style="display:flex;gap:8px;margin-bottom:12px"><input class="inp" id="forn-novo-tipo" placeholder="Novo tipo (ex.: Material elétrico)" onkeydown="if(event.key==='Enter')fornCriarTipoModal()"><button class="btn pri" onclick="fornCriarTipoModal()">${ic('plus')} Adicionar</button></div>
+    <div style="max-height:55vh;overflow-y:auto"><table class="tbl"><tr><th>Tipo</th><th style="text-align:center">Fornecedores</th><th></th></tr>${linhas}</table></div>
+  </div><div class="mof"><button class="btn" onclick="closeModal();renderFornecedores()">Fechar</button></div></div></div>`;
+}
+function fornCriarTipoModal(){
+  const el=document.getElementById('forn-novo-tipo');const t=fornAddTipo(el?.value);
+  if(!t){toast('⚠️','Digite o nome do tipo.');return;}
+  abrirTiposFornecedor();toast('✅','Tipo "'+t+'" adicionado.');
+}
+function fornRenomearTipo(antigo){
+  const novo=(prompt('Novo nome para o tipo "'+antigo+'":',antigo)||'').trim();
+  if(!novo||novo===antigo)return;
+  (DB.fornecedores||[]).forEach(f=>{if(typeof f==='object'&&f.tipo===antigo){f.tipo=novo;if(typeof f.id==='string'&&f.id.includes('-'))supaUpdate('fornecedores_cadastro',f.id,{tipo:novo});}});
+  _fornLsSet('ot_tipos_forn',[..._fornLs('ot_tipos_forn').filter(x=>x!==antigo),novo]);
+  if(FORN_TIPOS_PADRAO.includes(antigo))_fornLsSet('ot_tipos_forn_ocultos',[..._fornLs('ot_tipos_forn_ocultos'),antigo]);
+  save();abrirTiposFornecedor();renderFornecedores();toast('✅','Tipo renomeado.');
+}
+function fornRemoverTipo(t){
+  const usados=(DB.fornecedores||[]).filter(f=>typeof f==='object'&&f.tipo===t);
+  if(!confirm(usados.length?`Remover o tipo "${t}"? ${usados.length} fornecedor(es) ficarão sem tipo.`:`Remover o tipo "${t}"?`))return;
+  usados.forEach(f=>{f.tipo='';if(typeof f.id==='string'&&f.id.includes('-'))supaUpdate('fornecedores_cadastro',f.id,{tipo:''});});
+  _fornLsSet('ot_tipos_forn',_fornLs('ot_tipos_forn').filter(x=>x!==t));
+  if(FORN_TIPOS_PADRAO.includes(t))_fornLsSet('ot_tipos_forn_ocultos',[..._fornLs('ot_tipos_forn_ocultos'),t]);
+  save();abrirTiposFornecedor();renderFornecedores();
 }
 
 function fornFiltroKpi(tipo){
