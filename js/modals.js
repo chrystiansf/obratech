@@ -476,29 +476,30 @@ function openModal(type,editId=null,editId2=null){
         // Herdar dados do contrato para conciliação
         forn:ct?.forn||'',tipo:ct?.tipo||'Despesa',cat:ct?.cat||'',
         cc:ct?.cc||'',obraId:ct?.obraId||null,etapa:ct?.etapa||''};
+      const lancCampos=(pid)=>({obraId:pgData.obraId,tipo:pgData.tipo,
+        desc:(ct?.numero?'['+ct.numero+'] ':'')+pgData.desc,
+        cat:pgData.cat,cc:pgData.cc,valor,data,forn:pgData.forn,nf:pgData.nf,etapa:pgData.etapa,_pgtoId:pid});
+      const lancRow=l=>({tipo:l.tipo,descricao:l.desc,categoria:l.cat,centro_custo:l.cc,valor:l.valor,
+        data:l.data,fornecedor:l.forn,nota_fiscal:l.nf,obra_id:l.obraId||null});
       if(isEdit&&pgtoEx){
-        DB.lancs=DB.lancs.filter(l=>l._pgtoId!==pgtoEx.id);
+        // Editar: atualiza o pagamento e o lançamento vinculado (antes só mudava na tela)
         Object.assign(pgtoEx,pgData);
+        supaUpdate('pagamentos',pgtoEx.id,{data:pgData.data,valor:pgData.valor,descricao:pgData.desc,nota_fiscal:pgData.nf,
+          fornecedor:pgData.forn,tipo:pgData.tipo,categoria:pgData.cat,centro_custo:pgData.cc,obra_id:pgData.obraId||null});
+        const lv=DB.lancs.find(l=>String(l._pgtoId)===String(pgtoEx.id));
+        if(lv){ Object.assign(lv,lancCampos(pgtoEx.id)); supaUpdate('lancamentos',lv.id,lancRow(lv)); }
+        else {
+          const nl={id:uuidv4(),...lancCampos(pgtoEx.id),_supa:true}; DB.lancs.push(nl);
+          supaInsert('lancamentos',{id:nl.id,...lancRow(nl)}).then(()=>supaVincular('lancamentos',nl.id,{pagamento_id:pgtoEx.id}));
+        }
       } else {
         pgData.id=uuidv4();
         pgData._supa=true;
         DB.pgtos.push(pgData);
         supaInsert('pagamentos',{id:pgData.id,contrato_id:pgData.contratoId,obra_id:pgData.obraId||null,data:pgData.data,valor:pgData.valor,descricao:pgData.desc,nota_fiscal:pgData.nf,fornecedor:pgData.forn,tipo:pgData.tipo,categoria:pgData.cat,centro_custo:pgData.cc});
-        // Removido supaSync redundante que causava duplicação
-      }
-      const pgId=isEdit?pgtoEx.id:pgData.id;
-      const lancNovoId=uuidv4();
-      const lancData={id:lancNovoId,obraId:pgData.obraId,tipo:pgData.tipo,
-        desc:(ct?.numero?'['+ct.numero+'] ':'')+pgData.desc,
-        cat:pgData.cat,cc:pgData.cc,valor,data,
-        forn:pgData.forn,nf:pgData.nf,etapa:pgData.etapa,_pgtoId:pgId,_supa:true};
-      DB.lancs.push(lancData);
-      // Persistir lançamento conciliado no Supabase
-      if(!isEdit){
-        supaInsert('lancamentos',{id:lancNovoId,tipo:lancData.tipo,descricao:lancData.desc,
-          categoria:lancData.cat,centro_custo:lancData.cc,valor:lancData.valor,
-          data:lancData.data,fornecedor:lancData.forn,nota_fiscal:lancData.nf,
-          obra_id:lancData.obraId||null});
+        // Lançamento conciliado no Financeiro, ligado ao pagamento (pagamento_id)
+        const nl={id:uuidv4(),...lancCampos(pgData.id),_supa:true}; DB.lancs.push(nl);
+        supaInsert('lancamentos',{id:nl.id,...lancRow(nl)}).then(()=>supaVincular('lancamentos',nl.id,{pagamento_id:pgData.id}));
       }
       save();renderContratos();toast('✅',isEdit?'Pagamento atualizado!':'Pagamento registrado e conciliado no Financeiro!');return true;
     };

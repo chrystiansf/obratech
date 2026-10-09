@@ -721,7 +721,7 @@ async function carregarDadosSupabase(){
 function mapObra(r){return{id:r.id,nome:r.nome,tipo:r.tipo,statusManual:r.status_manual,orc:Number(r.orcamento||0),m2:Number(r.area_m2||0),dataIni:r.data_ini,dataFim:r.data_fim,local:r.local,resp:r.responsavel,cli:r.cliente,obs:r.obs,_supa:true};}
 function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,orc:Number(r.orcamento||0),resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
 function mapColab(r){return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,_supa:true};}
-function mapLanc(r){return{id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
+function mapLanc(r){return{_pgtoId:r.pagamento_id||undefined,_medicaoId:r.medicao_id||undefined,id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:r.fotos||[],autor:r.autor||'',_supa:true};}
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
@@ -730,7 +730,7 @@ function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,
 function mapTerceirizado(r){return{id:r.id,nome:r.nome,empresa:r.empresa,funcao:r.funcao||'',cpf:r.cpf||'',celular:r.celular||'',obraId:r.obra_id,_supa:true};}
 function mapPontoTerc(r){return{id:r.id,tercId:r.terceirizado_id,obraId:r.obra_id,data:r.data,presente:r.presente,_supa:true};}
 function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',exec:r.exec||'',obs:r.obs,fotos:(()=>{try{const f=typeof r.fotos==='string'?JSON.parse(r.fotos):r.fotos;return Array.isArray(f)?f:[];}catch(e){return[];}})(),aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
-function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
+function mapPgto(r){return{medicaoId:r.medicao_id||undefined,id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 function mapSolicitacao(r){return{id:r.id,obraId:r.obra_id,etapaId:r.etapa_id,item:r.item,unidade:r.unidade,quantidade:Number(r.quantidade||0),urgencia:r.urgencia||'normal',status:r.status||'aberta',solicitante:r.solicitante,obs:r.obs,criadoEm:r.criado_em,_supa:true};}
 function mapCotacao(r){return{id:r.id,solicitacaoId:r.solicitacao_id,fornecedor:r.fornecedor,valorUnit:Number(r.valor_unit||0),valorTotal:Number(r.valor_total||0),valorPix:Number(r.valor_pix||0),valorCartao:Number(r.valor_cartao||0),parcelas:Number(r.parcelas||0),orcamentoId:r.orcamento_id||null,detalhe:(typeof r.detalhe==='string'?(()=>{try{return JSON.parse(r.detalhe)}catch(e){return null}})():r.detalhe)||null,prazoEntrega:r.prazo_entrega,obs:r.obs,vencedor:r.vencedor||false,_supa:true};}
@@ -828,6 +828,19 @@ async function supaInsert(tabela, dados){
     return dados.id||null;
   }
 }
+// Grava colunas de vínculo (pagamento_id/medicao_id). Se o SQL ainda não foi rodado, só avisa uma vez.
+let _avisouVinculo=false;
+async function supaVincular(tabela,id,campos){
+  if(!supa||!_empresaId||!id) return;
+  try{
+    const {error}=await supa.from(tabela).update(campos).eq('id',id).eq('empresa_id',_empresaId);
+    if(error){
+      console.warn('vínculo',tabela,error.message);
+      if(!_avisouVinculo&&/pagamento_id|medicao_id/.test(error.message||'')){_avisouVinculo=true;toast('⚠️','Rode o SQL de vínculos de pagamentos no Supabase para manter lançamentos e pagamentos ligados.');}
+    }
+  }catch(e){console.warn('vínculo',e.message);}
+}
+
 async function supaUpdate(tabela, id, dados){
   if(!supa||!_empresaId||!id) return;
   if(typeof id !== 'string' || !id.includes('-')){

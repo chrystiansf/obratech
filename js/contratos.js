@@ -191,19 +191,22 @@ async function aprovarMedicao(id){
   DB.lancs.push(lanc);
   supaInsert('lancamentos',{id:lancId,empresa_id:_empresaId,tipo:'Despesa',
     descricao:lanc.desc,categoria:lanc.cat,centro_custo:lanc.cc,
-    valor:lanc.valor,data:lanc.data,fornecedor:lanc.forn,obra_id:lanc.obraId||null});
+    valor:lanc.valor,data:lanc.data,fornecedor:lanc.forn,obra_id:lanc.obraId||null})
+    .then(()=>supaVincular('lancamentos',lancId,{medicao_id:id}));
 
   // 2. Pagamento do contrato (aparece na aba Contratos)
   const pgtoId=uuidv4();
   const pgto={id:pgtoId,contratoId:m.contratoId,obraId:m.obraId,
     data:m.aprovadoEm,valor:m.valorMedido,desc:descricao,
     forn:ct?.forn||'',cat:ct?.cat||'Serviços',cc:ct?.cc||'',
-    _pgtoId:lancId,_supa:true};
+    medicaoId:id,_supa:true};
+  lanc._pgtoId=pgtoId;
   DB.pgtos.push(pgto);
   supaInsert('pagamentos',{id:pgtoId,empresa_id:_empresaId,
     contrato_id:m.contratoId,obra_id:m.obraId,data:m.aprovadoEm,
     valor:m.valorMedido,descricao:descricao,fornecedor:ct?.forn||'',
-    categoria:ct?.cat||'Serviços',centro_custo:ct?.cc||''});
+    categoria:ct?.cat||'Serviços',centro_custo:ct?.cc||''})
+    .then(()=>{supaVincular('pagamentos',pgtoId,{medicao_id:id});supaVincular('lancamentos',lancId,{pagamento_id:pgtoId,medicao_id:id});});
 
   save();
 
@@ -293,8 +296,10 @@ function delMedicao(id){
   const m=DB.medicoes.find(x=>x.id===id); if(!m) return;
   // Pagamento/lançamento gerados na aprovação têm a descrição "[BM-001] ..." e o mesmo valor
   const pref='[BM-'+String(m.numero||'1').padStart(3,'0')+']';
-  const pgs=m.status==='aprovado'?DB.pgtos.filter(p=>String(p.contratoId)===String(m.contratoId)&&String(p.desc||'').startsWith(pref)&&Math.abs(Number(p.valor)-Number(m.valorMedido))<0.01):[];
-  const lcs=m.status==='aprovado'?DB.lancs.filter(l=>String(l.desc||'').startsWith(pref)&&String(l.obraId)===String(m.obraId)&&Math.abs(Number(l.valor)-Number(m.valorMedido))<0.01):[];
+  const mesmoValor=x=>Math.abs(Number(x.valor)-Number(m.valorMedido))<0.01;
+  const pgs=m.status==='aprovado'?DB.pgtos.filter(p=>String(p.medicaoId)===String(id)||(!p.medicaoId&&String(p.contratoId)===String(m.contratoId)&&String(p.desc||'').startsWith(pref)&&mesmoValor(p))):[];
+  const pgIds=new Set(pgs.map(p=>String(p.id)));
+  const lcs=m.status==='aprovado'?DB.lancs.filter(l=>String(l._medicaoId)===String(id)||pgIds.has(String(l._pgtoId))||(!l._medicaoId&&String(l.desc||'').startsWith(pref)&&String(l.obraId)===String(m.obraId)&&mesmoValor(l))):[];
   const msg=m.status==='aprovado'
     ?'Esta medição já foi aprovada. Excluir também '+(pgs.length?'o pagamento ':'')+(pgs.length&&lcs.length?'e ':'')+(lcs.length?'o lançamento financeiro ':'')+'gerados na aprovação?'
     :'Excluir medição?';
@@ -538,11 +543,13 @@ function contFiltroKpi(status){
   renderContratos();
 }
 function delContrato(id){
-  if(!confirm('Excluir contrato? Os pagamentos e as medições deste contrato também serão removidos.'))return;
+  if(!confirm('Excluir contrato? Os pagamentos, os lançamentos vinculados e as medições deste contrato também serão removidos.'))return;
   if(typeof id==='string'&&id.includes('-')) supaDelete('contratos',id);
+  const pgIdsCt=new Set(DB.pgtos.filter(p=>String(p.contratoId)===String(id)).map(p=>String(p.id)));
+  DB.lancs.filter(l=>pgIdsCt.has(String(l._pgtoId))).forEach(l=>{if(typeof l.id==='string'&&l.id.includes('-'))supaDelete('lancamentos',l.id);});
+  DB.lancs=DB.lancs.filter(l=>!pgIdsCt.has(String(l._pgtoId)));
   DB.pgtos.filter(p=>String(p.contratoId)===String(id)).forEach(p=>{if(typeof p.id==='string'&&p.id.includes('-'))supaDelete('pagamentos',p.id);});
   DB.pgtos=DB.pgtos.filter(p=>String(p.contratoId)!==String(id));
-  DB.lancs=DB.lancs.filter(l=>!l._pgtoId||String(l._pgtoId)!==String(id));
   (DB.medicoes||[]).filter(m=>String(m.contratoId)===String(id)).forEach(m=>{if(typeof m.id==='string'&&m.id.includes('-'))supaDelete('medicoes',m.id);});
   DB.medicoes=(DB.medicoes||[]).filter(m=>String(m.contratoId)!==String(id));
   DB.contratos=DB.contratos.filter(c=>String(c.id)!==String(id));
