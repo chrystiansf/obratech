@@ -448,6 +448,7 @@ function executarImportObra(){
   renderObras();
   toast('✅',`Obra "${nome}" importada com ${okCount} lançamentos!`);
   _importLancs=[];
+  if(typeof _obraAtiva!=='undefined'&&_obraAtiva) setTimeout(()=>otDefinirObra(novaObra.id),50);
 
   // Enviar obra e lançamentos ao Supabase em background
   if(supa&&_empresaId){

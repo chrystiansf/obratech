@@ -714,7 +714,8 @@ async function carregarDadosSupabase(){
     if(compraOrcs.data)    DB.orcamentosCompra = compraOrcs.data.map(mapOrcamentoCompra);
 
     _sanitizarDB();
-    _aplicarEscopoUsuario();
+    _aplicarEscopoUsuario('todos');
+    if(typeof otAposCarregar==='function') setTimeout(otAposCarregar,0);
     console.log('Dados carregados:', DB.obras.length, 'obras,', DB.lancs.length, 'lançamentos,', (DB.demandas||[]).length, 'demandas,', (DB.fornecedores||[]).length, 'fornecedores,', (DB.terceirizados||[]).length, 'terceirizados');
   } catch(e){
     console.error('Erro ao carregar dados:', e);
@@ -938,8 +939,10 @@ function iniciarRealtime(){
         investidores:r=>{DB.investidores=r.map(mapInvestidor);if(window._paginaAtual==='caixa')renderCaixa();},
         aportes:r=>{DB.aportes=r.map(mapAporte);if(window._paginaAtual==='caixa')renderCaixa();},
       };
+      const antes={};Object.keys(DB).forEach(k=>{antes[k]=DB[k];});
       if(m[tabela]) m[tabela](_semTags(data));
-      _aplicarEscopoUsuario();
+      _aplicarEscopoUsuario(Object.keys(DB).filter(k=>DB[k]!==antes[k]));
+      if(typeof _obraAtiva!=='undefined'&&_obraAtiva) renderPaginaAtual&&renderPaginaAtual();
       save();
     }catch(e){console.error('Realtime sync error',tabela,e.message);}
   }
@@ -1042,6 +1045,8 @@ function load(){try{const s=localStorage.getItem(KEY);if(s){DB=Object.assign({},
   if(!DB.unidades)DB.unidades=['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'];if(!DB.pgtos)DB.pgtos=[];}}catch(e){}}
 // Apaga do navegador os dados da empresa (cache local) — usado no logout e na troca de usuário
 function _limparDadosLocais(){
+  try{sessionStorage.removeItem('ot_obra_ativa');}catch(e){}
+  if(typeof _obraAtiva!=='undefined'){_obraAtiva=null;_otTudo={};_otPerguntou=false;}
   ['obratech_v1','_ot_cargo','_ot_logo','_ot_logo_pdf','_ot_cor','_ot_empresa_nome'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
   DB={user:{nome:'',cargo:'',ini:''},obras:[],etapas:[],rdos:[],colabs:[],pontos:[],lancs:[],estoque:[],movs:[],ncs:[],contratos:[],pgtos:[],centros:[],categorias:['Mão de Obra','Materiais','Equipamentos','Serviços','Administração','Impostos','Outros'],fornecedores:[],demandas:[],medicoes:[],checklists:[],terceirizados:[],pontosTercs:[],equipeUsuarios:[],solicitacoes:[],cotacoes:[],pedidosCompra:[],orcamentosCompra:[],investidores:[],aportes:[],unidades:['sc','m³','un','kg','lt','m²','ml','cx','pc','vb','gl','t','rl'],sel:null,nid:1};
   if(typeof _empresaLogo!=='undefined') _empresaLogo=null;
@@ -1049,7 +1054,11 @@ function _limparDadosLocais(){
 
 // Limita os dados carregados ao que o usuário pode ver (módulos e obras liberados).
 // Obs.: a proteção definitiva é feita no banco (RLS); isto evita expor dados na tela e no cache local.
-function _aplicarEscopoUsuario(){
+function _aplicarEscopoUsuario(frescos){
+  _escopoPermissoes();
+  if(typeof _otFiltrar==='function') _otFiltrar(frescos);   // obra ativa (js/obra-ativa.js)
+}
+function _escopoPermissoes(){
   if(!_papelAtual||_papelAtual==='admin') return;
   let perms=window._permsAtivas;
   if(!perms){try{perms=JSON.parse(localStorage.getItem('_ot_permissoes')||'null');}catch(e){}}
@@ -1079,7 +1088,7 @@ function _sanitizarDB(){
   Object.keys(DB).forEach(k=>{if(Array.isArray(DB[k]))DB[k]=DB[k].map(x=>_semTags(x));});
 }
 
-function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(typeof _otDbCompleto==='function'?_otDbCompleto():DB));}catch(e){toast('⚠️','Erro ao salvar! Dados podem ser perdidos.');}}
 function nid(){const id=DB.nid++;save();return id;}
 function uuidv4(){
   if(crypto&&crypto.randomUUID) return crypto.randomUUID();

@@ -564,3 +564,55 @@ nav.pcx-bottom, nav.pcx-tabs { flex-direction: row; flex: none; }
   #rel-m2-painel .ca .sel { width: 100% !important; }
   #rel-m2-painel .ca .btn:not(.ico) { flex: 1; justify-content: center; }
 }
+
+/* ---------- Obra ativa (js/obra-ativa.js) ---------- */
+#ot-obra-chip { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 10px; margin-left: auto; margin-right: 10px;
+  max-width: min(46vw, 360px); border-radius: 10px; border: 1px solid var(--ot-border-strong); background: var(--ot-surface);
+  color: var(--ot-text-secondary); font: 500 13px/1 var(--ot-font-sans); cursor: pointer; transition: border-color var(--ot-duration) var(--ot-ease); }
+#ot-obra-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#ot-obra-chip .ot-i { width: 16px; height: 16px; flex-shrink: 0; }
+#ot-obra-chip .oto-seta { width: 14px; height: 14px; opacity: .7; }
+#ot-obra-chip.fixa { border-color: var(--ot-brand); color: var(--ot-text); font-weight: 600; background: color-mix(in srgb, var(--ot-brand) 8%, var(--ot-surface)); }
+#ot-obra-chip.fixa > .ot-i:first-child { color: var(--ot-brand); }
+#ot-obra-chip:hover { border-color: var(--ot-brand); }
+#topbar #theme-toggle { margin-left: 0; }
+
+#ot-obra-escolha { position: fixed; inset: 0; z-index: 3000; background: rgba(8, 10, 14, .62); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.oto-box { position: relative; width: min(640px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; gap: 14px;
+  background: var(--ot-surface); border: 1px solid var(--ot-border); border-radius: 16px; padding: 24px; box-shadow: var(--ot-shadow-lg); }
+.oto-eyebrow { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--ot-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ot-text-muted); }
+.oto-eyebrow i { width: 6px; height: 6px; background: var(--ot-brand); display: inline-block; }
+.oto-head h2 { font: 600 20px/28px var(--ot-font-sans); margin: 6px 0 4px; color: var(--ot-text); }
+.oto-head p { font-size: 13px; line-height: 20px; color: var(--ot-text-muted); margin: 0; padding-right: 28px; }
+.oto-x { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--ot-border); background: transparent; color: var(--ot-text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.oto-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; overflow-y: auto; padding: 2px; }
+.oto-card { position: relative; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; min-height: 92px;
+  border: 1px solid var(--ot-border); border-radius: 12px; background: var(--ot-surface-sunken); color: var(--ot-text); cursor: pointer; font-family: var(--ot-font-sans);
+  transition: border-color var(--ot-duration) var(--ot-ease), background var(--ot-duration) var(--ot-ease); }
+.oto-card:hover, .oto-card:focus-visible { border-color: var(--ot-brand); background: var(--ot-surface); outline: none; }
+.oto-card.ultima { border-color: var(--ot-brand); }
+.oto-nome { font: 600 15px/20px var(--ot-font-sans); padding-right: 64px; overflow-wrap: anywhere; }
+.oto-sub { font-size: 12px; color: var(--ot-text-muted); }
+.oto-st { margin-top: auto; font: 500 11px/14px var(--ot-font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ot-text-muted); }
+.oto-and { color: var(--ot-success, #16a34a); } .oto-atr { color: var(--ot-danger, #dc2626); }
+.oto-tag { position: absolute; top: 12px; right: 12px; font: 500 10px/14px var(--ot-font-mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ot-brand); border: 1px solid var(--ot-brand); border-radius: 999px; padding: 2px 7px; }
+.oto-todas { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 10px; border: 1px dashed var(--ot-border-strong);
+  background: transparent; color: var(--ot-text-secondary); font: 500 13px/1 var(--ot-font-sans); cursor: pointer; }
+.oto-todas:hover { border-color: var(--ot-brand); color: var(--ot-text); }
+.oto-todas .ot-i { width: 16px; height: 16px; }
+
+/* Com obra ativa, os filtros "Obra" de cada aba somem (já está tudo na obra escolhida) */
+body.obra-fixa #d-obra-filter, body.obra-fixa #est-obra-filter, body.obra-fixa #fin-obra-rapido, body.obra-fixa #cont-obra-filter,
+body.obra-fixa #dem-obra-filter, body.obra-fixa #sol-obra-filter, body.obra-fixa #qual-obra-filter, body.obra-fixa #chk-obra-filter,
+body.obra-fixa #med-obra-filter, body.obra-fixa #mov-filtro-obra, body.obra-fixa #cron-obra-sel, body.obra-fixa #orc-obra-sel,
+body.obra-fixa #cx-obra, body.obra-fixa #rel-obra-export, body.obra-fixa #m2-obra-sel, body.obra-fixa #obra-tag { display: none !important; }
+select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color: var(--ot-surface-sunken); }
+
+@media (max-width: 768px) {
+  #ot-obra-chip { height: 36px; max-width: 52vw; font-size: 13px; margin-right: 8px; }
+  #ot-obra-escolha { align-items: flex-end; padding: 0; }
+  .oto-box { border-radius: 20px 20px 0 0; max-height: 92dvh; padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .oto-lista { grid-template-columns: 1fr; }
+  .oto-card { min-height: 0; padding: 12px 14px; }
+}

@@ -76,7 +76,11 @@ function openModal(type,editId=null,editId2=null){
         if(!DB.sel) DB.sel=novoId;
         supaInsert('obras',{id:novoId,nome:dados.nome,tipo:dados.tipo,status_manual:dados.statusManual||null,orcamento:dados.orc,area_m2:dados.m2,data_ini:dados.dataIni||null,data_fim:dados.dataFim||null,local:dados.local,responsavel:dados.resp,cliente:dados.cli,obs:dados.obs});
       }
-      save();renderObras();updateSbObra();renderDash();toast('✅',o?'Obra atualizada!':'Obra cadastrada!');return true;
+      save();renderObras();updateSbObra();renderDash();toast('✅',o?'Obra atualizada!':'Obra cadastrada!');
+      // Com uma obra ativa, a obra recém-criada passa a ser a ativa (senão ela sumiria da tela)
+      if(!o&&typeof _obraAtiva!=='undefined'&&_obraAtiva) setTimeout(()=>otDefinirObra(DB.obras[DB.obras.length-1].id),50);
+      else if(typeof _otAtualizarChip==='function') _otAtualizarChip();
+      return true;
     };
   }
   else if(type==='etapa'){
