@@ -1,479 +1,314 @@
 // ════════════════════════════════════════════════
-// PORTAL DO CLIENTE
+// PORTAL DO CLIENTE — visão do dono da obra (somente leitura)
+// Layout próprio, pensado primeiro para celular.
 // ════════════════════════════════════════════════
 
 let _pcObraId = null;
 let _pcObras = [];
 let _pcDados = {};
-let _pcTabAtiva = 'resumo';
-
-// Cache dos dados do portal para evitar recargas desnecessárias
+let _pcTabAtiva = 'inicio';
 const _pcCache = {};
 
-async function carregarDadosCliente(clienteId){
-  if(!supa||!_empresaId) return;
-  // Mostrar UI imediatamente
-  const userEl=document.getElementById('pc-user-nome');
-  if(userEl) userEl.textContent = DB.user.nome;
-  try{
-    // Paralelizar: permissões + empresa ao mesmo tempo
+const PC_TABS = [
+  { id: 'inicio',     label: 'Início',     icon: 'layout-dashboard' },
+  { id: 'etapas',     label: 'Etapas',     icon: 'calendar-range' },
+  { id: 'diario',     label: 'Diário',     icon: 'clipboard-list' },
+  { id: 'fotos',      label: 'Fotos',      icon: 'camera' },
+  { id: 'financeiro', label: 'Financeiro', icon: 'wallet' },
+];
+
+const pcEsc = s => escHtml(s == null ? '' : String(s));
+const pcDt = d => d ? fmtDt(String(d).slice(0, 10)) : '—';
+function pcDiasAte(d) { if (!d) return null; const h = new Date(); h.setHours(0, 0, 0, 0); return Math.round((new Date(d + 'T12:00') - h) / 864e5); }
+function pcFotoSrc(f) { return typeof f === 'string' ? f : (f && (f.url || f.data || f.src)) || ''; }
+
+// ── Montagem da tela (abas no topo no computador; barra inferior no celular) ──
+function _pcMontarNavegacao() {
+  const tabs = PC_TABS.map(t => `<button class="pcx-tab${t.id === _pcTabAtiva ? ' on' : ''}" data-tab="${t.id}" onclick="pcTab('${t.id}')">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
+  const nav = document.getElementById('pc-nav'); if (nav) nav.innerHTML = tabs;
+  const bot = document.getElementById('pc-bottom'); if (bot) bot.innerHTML = tabs;
+}
+
+async function carregarDadosCliente(clienteId) {
+  _pcMontarNavegacao();
+  const userEl = document.getElementById('pc-user-nome');
+  if (userEl) userEl.textContent = (DB.user.nome || '').split(' ')[0];
+  const av = document.getElementById('pc-avatar');
+  if (av) av.textContent = (DB.user.nome || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  if (!supa || !_empresaId) return;
+  try {
     const [permRes, empRes] = await Promise.all([
-      supa.from('cliente_obras').select('obra_id').eq('cliente_id',clienteId).eq('empresa_id',_empresaId),
-      supa.from('empresas').select('nome').eq('id',_empresaId).maybeSingle()
+      supa.from('cliente_obras').select('obra_id').eq('cliente_id', clienteId).eq('empresa_id', _empresaId),
+      supa.from('empresas').select('nome,logo_url').eq('id', _empresaId).maybeSingle()
     ]);
-
-    if(empRes.data) document.getElementById('pc-empresa-nome').textContent = empRes.data.nome;
-
-    if(!permRes.data?.length){
-      toast('ℹ️','Nenhuma obra liberada. Contate a construtora.');
+    if (empRes.data) {
+      document.getElementById('pc-empresa-nome').textContent = empRes.data.nome || 'Construtora';
+      const logo = document.getElementById('pc-logo');
+      if (logo) logo.innerHTML = empRes.data.logo_url
+        ? `<img src="${pcEsc(empRes.data.logo_url)}" alt="">`
+        : pcEsc((empRes.data.nome || 'C').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase());
+    }
+    if (!permRes.data?.length) {
+      _pcVazio('Nenhuma obra liberada para você ainda.', 'Fale com a construtora para liberar o acesso.');
       return;
     }
-
-    const obraIds = permRes.data.map(p=>p.obra_id);
-    const {data:obras} = await supa.from('obras').select('*').in('id',obraIds).eq('empresa_id',_empresaId);
-    _pcObras = obras||[];
-
+    const obraIds = permRes.data.map(p => p.obra_id);
+    const { data: obras } = await supa.from('obras').select('*').in('id', obraIds).eq('empresa_id', _empresaId);
+    _pcObras = (obras || []).sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
     const sel = document.getElementById('pc-obra-sel');
-    sel.innerHTML = '<option value="">Selecionar obra...</option>' +
-      _pcObras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
-
-    // Auto-selecionar única obra ou primeira
-    if(_pcObras.length>=1){
-      sel.value = _pcObras[0].id;
-      pcCarregarObra(_pcObras[0].id);
-    }
-  }catch(e){ console.error('carregarDadosCliente', e.message); }
+    sel.innerHTML = _pcObras.map(o => `<option value="${o.id}">${pcEsc(o.nome)}</option>`).join('');
+    document.getElementById('pc-obrabar').style.display = _pcObras.length > 1 ? '' : 'none';
+    if (_pcObras.length) { sel.value = _pcObras[0].id; pcCarregarObra(_pcObras[0].id); }
+  } catch (e) { console.error('carregarDadosCliente', e.message); _pcVazio('Não foi possível carregar seus dados.', 'Verifique sua conexão e tente novamente.'); }
 }
 
-async function pcCarregarObra(obraId){
-  if(!obraId){
-    _pcObraId=null;
-    document.getElementById('pc-no-obra').style.display='block';
-    document.getElementById('pc-main').style.display='none';
-    return;
-  }
+function _pcVazio(titulo, sub) {
+  document.getElementById('pc-main').innerHTML = `<div class="pcx-vazio">${ic('hard-hat')}<strong>${pcEsc(titulo)}</strong><span>${pcEsc(sub || '')}</span></div>`;
+}
+
+async function pcCarregarObra(obraId) {
+  if (!obraId) return;
   _pcObraId = obraId;
-  document.getElementById('pc-no-obra').style.display='none';
-  document.getElementById('pc-main').style.display='block';
-
-  // Mostrar skeleton enquanto carrega
-  document.getElementById('pc-main').innerHTML=`
-    <div style="display:flex;flex-direction:column;gap:12px;animation:pulse 1.5s infinite">
-      ${[1,2,3].map(()=>`<div style="height:80px;background:var(--bg3);border-radius:10px;opacity:.6"></div>`).join('')}
-    </div>`;
-
-  // Verificar cache (válido por 60s)
-  const cacheKey = obraId;
-  const cached = _pcCache[cacheKey];
-  if(cached && Date.now()-cached.ts < 60000){
-    _pcDados = cached.dados;
-    pcRenderTab(_pcTabAtiva);
-    return;
-  }
-
-  const eid = _empresaId;
-  try{
-    // Todas as queries em paralelo — tempo total = tempo da mais lenta
-    const [etapas,lancs,rdos,estoque,movs,ncs,contratos,pgtos,colabs] = await Promise.all([
-      supa.from('etapas').select('id,nome,status,pct,inicio,fim,responsavel').eq('empresa_id',eid).eq('obra_id',obraId),
-      supa.from('lancamentos').select('id,tipo,descricao,categoria,valor,data,fornecedor').eq('empresa_id',eid).eq('obra_id',obraId).order('data',{ascending:false}),
-      supa.from('rdos').select('*').eq('empresa_id',eid).eq('obra_id',obraId).order('data',{ascending:false}),
-      supa.from('estoque').select('id,material,unidade,estoque_min').eq('empresa_id',eid),
-      supa.from('movimentacoes').select('id,estoque_id,tipo,quantidade').eq('empresa_id',eid).eq('obra_id',obraId),
-      supa.from('nao_conformidades').select('id,numero,descricao,grau,prazo,status,etapa').eq('empresa_id',eid).eq('obra_id',obraId),
-      supa.from('contratos').select('id,numero,descricao,fornecedor,valor,prazo').eq('empresa_id',eid).eq('obra_id',obraId),
-      supa.from('pagamentos').select('id,contrato_id,valor,data').eq('empresa_id',eid).eq('obra_id',obraId),
-      supa.from('colaboradores').select('id,nome,funcao').eq('empresa_id',eid),
+  const main = document.getElementById('pc-main');
+  main.innerHTML = `<div class="pcx-skel"><div></div><div></div><div></div></div>`;
+  const c = _pcCache[obraId];
+  if (c && Date.now() - c.ts < 60000) { _pcDados = c.dados; pcRenderTab(_pcTabAtiva); return; }
+  const eid = _empresaId, q = t => supa.from(t);
+  try {
+    const [etapas, lancs, rdos, ncs, contratos, pgtos] = await Promise.all([
+      q('etapas').select('id,nome,status,pct,inicio,fim,responsavel').eq('empresa_id', eid).eq('obra_id', obraId).order('inicio'),
+      q('lancamentos').select('id,tipo,descricao,categoria,valor,data,fornecedor').eq('empresa_id', eid).eq('obra_id', obraId).order('data', { ascending: false }),
+      q('rdos').select('*').eq('empresa_id', eid).eq('obra_id', obraId).order('data', { ascending: false }),
+      q('nao_conformidades').select('id,numero,descricao,grau,prazo,status,etapa').eq('empresa_id', eid).eq('obra_id', obraId),
+      q('contratos').select('id,numero,descricao,fornecedor,valor,prazo').eq('empresa_id', eid).eq('obra_id', obraId),
+      q('pagamentos').select('id,contrato_id,valor,data').eq('empresa_id', eid).eq('obra_id', obraId),
     ]);
-
     _pcDados = {
-      obra: _pcObras.find(o=>o.id===obraId),
-      etapas: etapas.data||[], lancs: (lancs.data||[]).filter(l=>l.tipo!=='Receita'), rdos: rdos.data||[],
-      estoque: estoque.data||[], movs: movs.data||[], ncs: ncs.data||[],
-      contratos: contratos.data||[], pgtos: pgtos.data||[], colabs: colabs.data||[]
+      obra: _pcObras.find(o => o.id === obraId),
+      etapas: etapas.data || [],
+      lancs: (lancs.data || []).filter(l => l.tipo !== 'Receita'),
+      rdos: (rdos.data || []).filter(r => r.status === 'finalizado' || !r.status),
+      ncs: ncs.data || [], contratos: contratos.data || [], pgtos: pgtos.data || []
     };
-
-    // Salvar no cache
-    _pcCache[cacheKey] = {dados:_pcDados, ts:Date.now()};
-
+    _pcCache[obraId] = { dados: _pcDados, ts: Date.now() };
     pcRenderTab(_pcTabAtiva);
-  }catch(e){
+  } catch (e) {
     console.error('pcCarregarObra', e.message);
-    document.getElementById('pc-main').innerHTML=`<div class="al e">Erro ao carregar dados: ${e.message}</div>`;
+    _pcVazio('Erro ao carregar a obra.', e.message);
   }
 }
 
-function pcTab(tab){
+function pcTab(tab) {
   _pcTabAtiva = tab;
-  document.querySelectorAll('.pc-tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===tab));
-  if(_pcObraId) pcRenderTab(tab);
+  document.querySelectorAll('.pcx-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
+  document.getElementById('pc-content')?.scrollTo({ top: 0 });
+  if (_pcObraId) pcRenderTab(tab);
 }
 
-function pcFmtR(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});}
-function pcFmtDt(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
-function pcPct(et){return et.length?Math.round(et.reduce((a,e)=>a+Number(e.pct||0),0)/et.length):0;}
+function _pcAvanco(et) { return et.length ? Math.round(et.reduce((a, e) => a + Number(e.pct || 0), 0) / et.length) : 0; }
 
-// ═══════════════════════════════════════════════════════════
-// PORTAL DO CLIENTE — usa as mesmas funções do sistema principal
-// A diferença é apenas: dados injetados no DB + botões removidos após render
-// ═══════════════════════════════════════════════════════════
-
-function pcInjetarDados(d, obraId){
-  // Injeta os dados da obra no DB global temporariamente
-  // para que as funções de render originais funcionem
-  DB.sel = obraId;
-
-  // Mapear dados da API para o formato interno
-  if(d.etapas)   DB.etapas   = d.etapas.map(r=>({id:r.id,obraId:obraId,nome:r.nome,status:r.status,pct:r.pct,resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp||0,wp:r.wp||0,_supa:true}));
-  if(d.lancs)    DB.lancs    = d.lancs.map(r=>({id:r.id,obraId:obraId,tipo:r.tipo,desc:r.descricao||r.desc,cat:r.categoria||r.cat,cc:r.centro_custo||r.cc,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor||r.forn,nf:r.nota_fiscal||r.nf,_supa:true}));
-  if(d.rdos)     DB.rdos     = d.rdos.map(r=>({id:r.id,obraId:obraId,data:r.data,clima:r.clima,prev:r.previsto||r.prev,real:r.realizado||r.real,serv:r.servicos||r.serv,obs:r.obs,mat:r.materiais||r.mat,status:r.status,fotos:r.fotos||[],_supa:true}));
-  if(d.estoque)  DB.estoque  = d.estoque.map(r=>({id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true}));
-  if(d.movs)     DB.movs     = d.movs.map(r=>({id:r.id,estId:r.estoque_id,obraId:obraId,tipo:r.tipo,qtd:Number(r.quantidade||0),data:r.data,_supa:true}));
-  if(d.ncs)      DB.ncs      = d.ncs.map(r=>({id:r.id,numero:r.numero,obraId:obraId,etapa:r.etapa,desc:r.descricao||r.desc,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true}));
-  if(d.contratos)DB.contratos= d.contratos.map(r=>({id:r.id,obraId:obraId,numero:r.numero,descricao:r.descricao,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),assinatura:r.assinatura,prazo:r.prazo,obs:r.obs,_supa:true}));
-  if(d.pgtos)    DB.pgtos    = d.pgtos.map(r=>({id:r.id,contratoId:r.contrato_id,obraId:obraId,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true}));
-  if(d.colabs)   DB.colabs   = d.colabs.map(r=>({id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),_supa:true}));
-
-  // Garantir obras no DB
-  if(d.obra && !DB.obras.find(o=>o.id===d.obra.id)){
-    DB.obras = [d.obra];
-  }
-}
-
-function pcRenderTab(tab){
+function pcRenderTab(tab) {
   const el = document.getElementById('pc-main');
-  const d = _pcDados;
-  const o = d.obra;
-  if(!o){ el.innerHTML=''; return; }
-
-  // Injetar dados no DB global
-  pcInjetarDados(d, o.id);
-
-  // Criar container temporário
-  const tmp = document.createElement('div');
-  tmp.style.cssText='position:absolute;left:-9999px;top:0;width:1200px';
-  document.body.appendChild(tmp);
-
-  // Redirecionar renders para container temporário
-  const origContent = document.getElementById('content');
-  const fakeContent = document.createElement('div');
-  fakeContent.id = 'content';
-  fakeContent.style.cssText='padding:15px';
-
-  // Criar páginas temporárias que as funções de render precisam
-  const pageIds=['p-cronograma','p-rdo','p-financeiro','p-estoque','p-qualidade','p-contratos','p-equipe','p-dashboard'];
-  const origPages={};
-  pageIds.forEach(id=>{
-    const orig=document.getElementById(id);
-    if(orig){
-      origPages[id]=orig;
-      const fake=document.createElement('div');
-      fake.id=id;
-      fake.className='page on';
-      tmp.appendChild(fake);
-    }
-  });
-
-  // Renderizar conforme aba
-  try{
-    if(tab==='resumo'){
-      pcRenderResumo(el, d, o);
-    } else if(tab==='cronograma'){
-      renderCron();
-      const ganttArea=document.getElementById('gantt-area');
-      const kpisArea=document.getElementById('cron-kpis');
-      el.innerHTML=`
-        <div class="kpis" style="margin-bottom:14px">${kpisArea?.innerHTML||''}</div>
-        <div class="card" style="overflow-x:auto">${ganttArea?.innerHTML||''}</div>`;
-    } else if(tab==='rdo'){
-      renderRDO();
-      const rdoForm=document.getElementById('p-rdo');
-      // Mostrar apenas histórico
-      el.innerHTML=`<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div class="ct"><svg class=ot-i><use href=#i-clipboard-list></use></svg> RDOs da Obra</div>
-          <button class="btn sm pri" onclick="pcExportarRDOPdf()"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar PDF</button>
-        </div>
-        <div id="pc-rdo-hist-wrap"></div>
-      </div>`;
-      renderRDOHist();
-      const hist=document.getElementById('rdo-hist');
-      const wrap=document.getElementById('pc-rdo-hist-wrap');
-      if(hist&&wrap) wrap.innerHTML=hist.innerHTML;
-    } else if(tab==='financeiro'){
-      renderFin();
-      const kpis=document.getElementById('fin-kpis');
-      const tbl=document.getElementById('lanc-tbl');
-      const resumo=document.getElementById('fin-resumo');
-      el.innerHTML=`
-        <div class="kpis" style="margin-bottom:14px">${kpis?.innerHTML||''}</div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
-          <div class="card" style="overflow-x:auto">${tbl?.innerHTML||''}</div>
-          <div class="card">${resumo?.innerHTML||''}</div>
-        </div>`;
-    } else if(tab==='estoque'){
-      // Forçar renderização do catálogo
-      renderCatalogo();
-      renderEstoqueSaldo();
-      const kpis=document.getElementById('est-kpis-cat');
-      const tbl=document.getElementById('est-tbl');
-      const saldo=document.getElementById('est-saldo-cards');
-      el.innerHTML=`
-        <div class="kpis" style="margin-bottom:14px">${kpis?.innerHTML||''}</div>
-        <div class="card" style="overflow-x:auto;margin-bottom:12px">
-          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Catálogo de Materiais</div>
-          ${tbl?.innerHTML||'<div class="t-empty">Nenhum material.</div>'}
-        </div>
-        <div class="card" style="overflow-x:auto">
-          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-hard-hat></use></svg> Estoque por Obra</div>
-          ${saldo?.innerHTML||''}
-        </div>`;
-    } else if(tab==='qualidade'){
-      renderQual();
-      const kpis=document.getElementById('qual-kpis');
-      const tbl=document.getElementById('nc-tbl');
-      el.innerHTML=`<div class="kpis" style="margin-bottom:14px">${kpis?.innerHTML||''}</div>
-        <div class="card" style="overflow-x:auto">${tbl?.innerHTML||''}</div>`;
-    } else if(tab==='contratos'){
-      renderContratos();
-      const kpis=document.getElementById('cont-kpis');
-      const tbl=document.getElementById('cont-tbl');
-      const pgtos=document.getElementById('cont-pgtos-tbl');
-      el.innerHTML=`
-        <div class="kpis" style="margin-bottom:14px">${kpis?.innerHTML||''}</div>
-        <div class="card" style="overflow-x:auto;margin-bottom:12px">
-          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-file-pen-line></use></svg> Contratos</div>
-          ${tbl?.innerHTML||'<div class="t-empty">Nenhum contrato.</div>'}
-        </div>
-        <div class="card" style="overflow-x:auto">
-          <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-credit-card></use></svg> Pagamentos</div>
-          ${pgtos?.innerHTML||''}
-        </div>`;
-    } else if(tab==='equipe'){
-      pcRenderEquipe(el, d);
-      return;
-    }
-  }catch(err){
-    console.error('pcRenderTab erro:', err);
-    el.innerHTML=`<div class="al e">Erro ao renderizar: ${err.message}</div>`;
+  const d = _pcDados, o = d.obra;
+  if (!o) { el.innerHTML = ''; return; }
+  try {
+    const fn = { inicio: _pcInicio, etapas: _pcEtapas, diario: _pcDiario, fotos: _pcFotos, financeiro: _pcFinanceiro }[tab] || _pcInicio;
+    el.innerHTML = fn(d, o);
+  } catch (err) {
+    console.error('pcRenderTab', err);
+    el.innerHTML = `<div class="al e">Erro ao exibir: ${pcEsc(err.message)}</div>`;
   }
-
-  // Restaurar páginas originais
-  pageIds.forEach(id=>{
-    if(origPages[id]){
-      const fake=document.getElementById(id);
-      if(fake&&fake!==origPages[id]) fake.remove();
-    }
-  });
-  document.body.removeChild(tmp);
-
-  // Adicionar botão PDF e bloquear edição
-  const btnPdf = PC_PDF_TABS[tab]
-    ? `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-        <button class="btn sm pri" onclick="pcGerarPdf('${tab}')"><svg class=ot-i><use href=#i-file-text></use></svg> Exportar PDF</button>
-       </div>`
-    : '';
-  el.innerHTML = btnPdf + el.innerHTML;
-  pcBloquearEdicao(el);
 }
 
-function pcBloquearEdicao(container){
-  // Remove todos os botões de edição/criação
-  container.querySelectorAll('.btn-new,.btn[onclick*="openModal"],.btn[onclick*="openMocModal"]').forEach(b=>b.remove());
-  // Remover botões com ícones de edição
-  container.querySelectorAll('button').forEach(b=>{
-    const txt=b.textContent.trim();
-    const onclick=b.getAttribute('onclick')||'';
-    if(txt==='✏️'||txt==='🗑️'||txt==='＋ Novo'||txt==='＋'||b.querySelector('use[href="#i-pencil"],use[href="#i-trash-2"]')||
-       onclick.includes('openModal')||onclick.includes('delete')||
-       onclick.includes('del')||onclick.includes('salvar')||
-       onclick.includes('editar')||onclick.includes('supaInsert')||
-       onclick.includes('supaUpdate')||onclick.includes('supaDelete')){
-      b.remove();
-    }
-  });
-  // Desabilitar inputs e selects (exceto filtros do portal)
-  container.querySelectorAll('input:not([type=text][readonly]),select').forEach(el=>{
-    if(!el.closest('#pc-topbar')&&!el.id?.startsWith('pc-')){
-      el.disabled=true;
-      el.style.pointerEvents='none';
-    }
-  });
-}
-
-function pcRenderResumo(el, d, o){
-  const pct=d.etapas.length?Math.round(d.etapas.reduce((a,e)=>a+Number(e.pct||0),0)/d.etapas.length):0;
-  const rec=d.lancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
-  const dep=d.lancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-  const orc=Number(o.orcamento||0);
-  const ncsAb=d.ncs.filter(n=>n.status!=='Fechada').length;
-  const rdoHoje=d.rdos[0];
-  el.innerHTML=`
-  <div class="kpis" style="margin-bottom:16px">
-    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-zap></use></svg> Avanço Físico</div><div class="kv" style="color:var(--primary)">${pct}%</div><div class="kd neu">${d.etapas.length} etapas</div></div>
-    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-wallet></use></svg> Orçamento</div><div class="kv">${fmtR(orc)}</div><div class="kd ${dep>orc?'dn':'neu'}">${orc?Math.round(dep/orc*100):0}% usado</div></div>
-    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-receipt></use></svg> Despesas</div><div class="kv" style="color:var(--red)">${fmtR(dep)}</div><div class="kd dn">${d.lancs.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-scale></use></svg> Saldo do Orçamento</div><div class="kv" style="color:${orc-dep>=0?'var(--green)':'var(--red)'}">${fmtR(orc-dep)}</div><div class="kd ${orc-dep>=0?'up':'dn'}">${orc-dep>=0?'dentro do orçado':'acima do orçado'}</div></div>
-    <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> NCs Abertas</div><div class="kv" style="color:${ncsAb?'var(--red)':'var(--green)'}">${ncsAb}</div><div class="kd ${ncsAb?'dn':'up'}">${d.ncs.length} total</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-    <div class="card">
-      <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-chart-column></use></svg> Informações da Obra</div>
-      ${[['Nome',o.nome],['Tipo',o.tipo||'—'],['Local',o.local||o.local||'—'],['Responsável',o.responsavel||'—'],['Cliente',o.cliente||'—'],['Início',fmtDt(o.data_ini||o.dataIni)],['Prazo',fmtDt(o.data_fim||o.dataFim)]].map(([k,v])=>`
-        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="color:var(--txt3)">${k}</span><span style="font-weight:500">${v||'—'}</span>
-        </div>`).join('')}
-    </div>
-    <div class="card">
-      <div class="ct" style="margin-bottom:10px"><svg class=ot-i><use href=#i-calendar></use></svg> Cronograma Rápido</div>
-      ${d.etapas.slice(0,6).map(e=>{
-        const pct=Number(e.pct||0);
-        const cor=pct>=100?'var(--green)':e.status==='late'?'var(--red)':'var(--primary)';
-        return`<div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-            <span>${e.nome}</span><span style="color:${cor};font-weight:600">${pct}%</span>
-          </div>
-          <div style="background:var(--bg3);border-radius:3px;height:5px">
-            <div style="width:${pct}%;height:100%;background:${cor};border-radius:3px"></div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-  </div>
-  ${rdoHoje?`<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="ct"><svg class=ot-i><use href=#i-clipboard-list></use></svg> Último RDO — ${fmtDt(rdoHoje.data)}</div>
-      <span class="b ${rdoHoje.status==='finalizado'?'bg':'by'}">${rdoHoje.status==='finalizado'?'<svg class=ot-i><use href=#i-check></use></svg> Finalizado':'Rascunho'}</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
-      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-cloud></use></svg> Clima</div><div class="kv" style="font-size:16px">${rdoHoje.clima||'—'}</div></div>
-
-      <div class="kpi"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Realizado</div><div class="kv" style="font-size:16px;color:var(--green)">${rdoHoje.real||rdoHoje.realizado||0}</div></div>
-    </div>
-    ${rdoHoje.serv||rdoHoje.servicos?`<div style="font-size:12px;color:var(--txt2)">${rdoHoje.serv||rdoHoje.servicos}</div>`:''}
-  </div>`:''}`;
-}
-
-function pcRenderEquipe(el, d){
-  el.innerHTML=`<div class="card" style="overflow-x:auto">
-    <div class="ct" style="margin-bottom:12px"><svg class=ot-i><use href=#i-users></use></svg> Equipe da Obra</div>
-    <table class="tbl"><tr><th>Colaborador</th><th>Função</th></tr>
-    ${d.colabs.map(c=>`<tr><td class="n">${c.nome}</td><td>${c.funcao||'—'}</td></tr>`).join('')}
-    </table></div>`;
-}
-
-function pcExportarRDOPdf(){
-  // Usar a função original de PDF do sistema
-  const rdos=DB.rdos.filter(r=>r.obraId===_pcObraId&&r.status==='finalizado');
-  if(!rdos.length){toast('⚠️','Nenhum RDO finalizado.');return;}
-  // Gerar PDF para o primeiro RDO finalizado ou abrir seletor
-  if(rdos.length===1){gerarRDOPDF(rdos[0]);return;}
-  // Múltiplos RDOs: mostrar seletor
-  const root=document.getElementById('modal-root');
-  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()">
-    <div class="mo" style="max-width:420px">
-      <div class="moh"><div class="mot"><svg class=ot-i><use href=#i-file-text></use></svg> Selecionar RDO para PDF</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div>
-      <div class="mob" style="max-height:400px;overflow-y:auto">
-        ${rdos.map((r,i)=>`<div class="card" style="margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="closeModal();gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))">
-          <div>
-            <div style="font-weight:600">${fmtDt(r.data)}</div>
-            <div style="font-size:11px;color:var(--txt3)">${r.clima||'—'}</div>
-          </div>
-          <span class="b bg"><svg class=ot-i><use href=#i-file-text></use></svg> PDF</span>
-        </div>`).join('')}
+// ── Início ───────────────────────────────────────────────────
+function _pcInicio(d, o) {
+  const pct = _pcAvanco(d.etapas);
+  const dias = pcDiasAte(o.data_fim);
+  const orc = Number(o.orcamento || 0);
+  const gasto = d.lancs.reduce((a, l) => a + Number(l.valor || 0), 0);
+  const ult = d.rdos[0];
+  const fotosUlt = ult ? (ult.fotos || []).map(pcFotoSrc).filter(Boolean) : [];
+  const emAnd = d.etapas.filter(e => Number(e.pct || 0) > 0 && Number(e.pct || 0) < 100).slice(0, 3);
+  const ncsAb = d.ncs.filter(n => n.status !== 'Fechada');
+  const prazoTxt = dias == null ? 'Prazo não informado' : dias > 0 ? `${dias} dia${dias !== 1 ? 's' : ''} para a entrega` : dias === 0 ? 'Entrega prevista para hoje' : `${-dias} dia${dias !== -1 ? 's' : ''} após o prazo`;
+  return `
+  <section class="pcx-hero">
+    <div class="pcx-hero-top">
+      <div>
+        <div class="ot-label">Sua obra</div>
+        <h1>${pcEsc(o.nome)}</h1>
+        ${o.local ? `<div class="pcx-muted">${ic('map-pin', 'sm')} ${pcEsc(o.local)}</div>` : ''}
       </div>
-      <div class="mof"><button class="btn" onclick="closeModal()">Fechar</button></div>
-    </div></div>`;
+      <div class="pcx-ring" style="--p:${pct}"><span class="ot-num">${pct}%</span><small>concluída</small></div>
+    </div>
+    <div class="pcx-bar"><span style="width:${pct}%"></span></div>
+    <div class="pcx-hero-meta">
+      <div><span class="ot-label">Início</span><b class="ot-num">${pcDt(o.data_ini)}</b></div>
+      <div><span class="ot-label">Entrega</span><b class="ot-num">${pcDt(o.data_fim)}</b></div>
+      <div class="pcx-prazo ${dias != null && dias < 0 ? 'atr' : ''}">${ic('clock', 'sm')} ${prazoTxt}</div>
+    </div>
+  </section>
+
+  <div class="pcx-grid2">
+    <div class="pcx-mini"><span class="ot-label">Etapas concluídas</span><b class="ot-num">${d.etapas.filter(e => Number(e.pct || 0) >= 100).length}/${d.etapas.length}</b></div>
+    <div class="pcx-mini"><span class="ot-label">Diários publicados</span><b class="ot-num">${d.rdos.length}</b></div>
+    ${orc ? `<div class="pcx-mini"><span class="ot-label">Investido</span><b class="ot-num">${fmtR(gasto)}</b><small>${Math.round(gasto / orc * 100)}% do orçamento</small></div>` : ''}
+    <div class="pcx-mini"><span class="ot-label">Pendências de qualidade</span><b class="ot-num" style="color:${ncsAb.length ? 'var(--ot-err)' : 'var(--ot-ok)'}">${ncsAb.length}</b></div>
+  </div>
+
+  ${ult ? `<section class="pcx-card">
+    <div class="pcx-card-h"><h2>${ic('clipboard-list')} Último diário de obra</h2><button class="pcx-link" onclick="pcTab('diario')">Ver todos</button></div>
+    <div class="pcx-rdo-meta"><b class="ot-num">${pcDt(ult.data)}</b>${ult.clima ? `<span class="pcx-chip">${climaIco(ult.clima)} ${pcEsc(ult.clima)}</span>` : ''}</div>
+    ${ult.servicos ? `<p class="pcx-txt">${pcEsc(ult.servicos)}</p>` : '<p class="pcx-muted">Sem descrição de serviços.</p>'}
+    ${fotosUlt.length ? `<div class="pcx-thumbs">${fotosUlt.slice(0, 4).map((s, i) => `<img src="${pcEsc(s)}" loading="lazy" onclick="pcAbrirFoto('${ult.id}',${i})" alt="">`).join('')}${fotosUlt.length > 4 ? `<button class="pcx-thumb-mais" onclick="pcAbrirFoto('${ult.id}',4)">+${fotosUlt.length - 4}</button>` : ''}</div>` : ''}
+  </section>` : ''}
+
+  ${emAnd.length ? `<section class="pcx-card">
+    <div class="pcx-card-h"><h2>${ic('calendar-range')} Em andamento</h2><button class="pcx-link" onclick="pcTab('etapas')">Todas as etapas</button></div>
+    ${emAnd.map(_pcEtapaLinha).join('')}
+  </section>` : ''}
+
+  ${ncsAb.length ? `<section class="pcx-card">
+    <div class="pcx-card-h"><h2>${ic('triangle-alert')} Pendências de qualidade</h2></div>
+    ${ncsAb.slice(0, 5).map(n => `<div class="pcx-item"><div><b>${pcEsc(n.descricao || '—')}</b><div class="pcx-muted">${pcEsc(n.etapa || '')}${n.prazo ? ' · prazo ' + pcDt(n.prazo) : ''}</div></div><span class="b ${n.grau === 'Alta' ? 'br' : n.grau === 'Média' ? 'by' : 'bn'}">${pcEsc(n.grau || n.status || '')}</span></div>`).join('')}
+  </section>` : ''}
+
+  <div class="pcx-acoes"><button class="btn" onclick="pcGerarPdf('resumo')">${ic('file-text')} Baixar resumo em PDF</button></div>`;
 }
 
-const PC_PDF_TABS={resumo:'Resumo Geral',cronograma:'Cronograma',financeiro:'Financeiro',estoque:'Estoque',qualidade:'Qualidade',equipe:'Equipe',contratos:'Contratos'};
-
-function pcGerarPdf(tab){
-  // Usar funções de PDF originais do sistema quando disponível
-  if(tab==='cronograma'){exportGanttPDF();return;}
-  if(tab==='rdo'){pcExportarRDOPdf();return;}
-
-  // Para outras abas usar jsPDF com dados do portal
-  if(!window.jspdf?.jsPDF){toast('⚠️','PDF não disponível.');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'mm',format:'a4'});
-  const d=_pcDados; const o=d.obra; if(!o) return;
-  const W=doc.internal.pageSize.getWidth();
-  const MAR=14;
-  const PRI=[91,143,249],GRY=[100,110,140],DARK=[30,36,58],LIGHT=[240,243,255];
-  let y=MAR;
-
-  // Cabeçalho padrão
-  doc.setFillColor(...PRI);doc.rect(0,0,W,28,'F');
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(14);
-  doc.text('ObraTech — '+( PC_PDF_TABS[tab]||tab),MAR,11);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.text(o.nome,MAR,18);
-  doc.text('Emitido em: '+new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),W-MAR,24,{align:'right'});
-  y=36;
-
-  function secTitle(txt){
-    doc.setFillColor(...LIGHT);doc.rect(MAR-2,y-4,W-MAR*2+4,8,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PRI);
-    doc.text(txt,MAR,y+1);doc.setTextColor(...DARK);y+=10;
-  }
-  function checkPage(h=10){if(y+h>280){doc.addPage();y=MAR;}}
-  function tRow(cols,widths,isHeader){
-    checkPage(8);
-    if(isHeader){doc.setFillColor(...PRI);doc.rect(MAR,y-5,W-MAR*2,7,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');}
-    else{doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.setDrawColor(220,224,240);doc.line(MAR,y+2,W-MAR,y+2);}
-    doc.setFontSize(8);
-    let x=MAR;cols.forEach((c,i)=>{const w=widths[i]||30;doc.text(String(c||'—').substring(0,Math.floor(w/2)),x+1,y);x+=w;});
-    y+=7;
-  }
-
-  doc.setTextColor(...DARK);
-
-  if(tab==='resumo'){
-    const pct=d.etapas.length?Math.round(d.etapas.reduce((a,e)=>a+Number(e.pct||0),0)/d.etapas.length):0;
-    const rec=d.lancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
-    const dep=d.lancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-    secTitle('Informações da Obra');
-    [['Nome',o.nome],['Local',o.local||'—'],['Responsável',o.responsavel||'—'],['Início',fmtDt(o.data_ini||o.dataIni)],['Prazo',fmtDt(o.data_fim||o.dataFim)],['Avanço',pct+'%'],['Orçamento',fmtR(Number(o.orcamento||0))],['Despesas',fmtR(dep)],['Saldo do Orçamento',fmtR(Number(o.orcamento||0)-dep)]].forEach(([k,v])=>{checkPage(7);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GRY);doc.text(k+':',MAR,y);doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(String(v||'—'),MAR+40,y);y+=7;});
-  }
-  else if(tab==='financeiro'){
-    const rec=d.lancs.filter(l=>l.tipo==='Receita').reduce((a,l)=>a+Number(l.valor),0);
-    const dep=d.lancs.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-    secTitle('Resumo Financeiro');
-    [['Despesas',fmtR(dep)],['Saldo do Orçamento',fmtR(Number(o.orcamento||0)-dep)]].forEach(([k,v])=>{checkPage(7);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GRY);doc.text(k+':',MAR,y);doc.setFont('helvetica','normal');doc.setTextColor(...DARK);doc.text(v,MAR+36,y);y+=7;});
-    y+=4;secTitle('Lançamentos');
-    tRow(['DATA','DESCRIÇÃO','CATEGORIA','TIPO','VALOR'],[22,60,32,20,32],true);
-    d.lancs.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).forEach(l=>tRow([fmtDt(l.data),l.desc||l.descricao||'—',l.cat||l.categoria||'—',l.tipo,(l.tipo==='Despesa'?'-':'+')+fmtR(l.valor)],[22,60,32,20,32],false));
-  }
-  else if(tab==='qualidade'){
-    secTitle('Não Conformidades');
-    tRow(['Nº','DESCRIÇÃO','GRAU','PRAZO','STATUS'],[14,84,18,24,26],true);
-    d.ncs.forEach((n,ni)=>tRow(['#'+(n.numero||String(ni+1).padStart(2,'0')),n.desc||n.descricao||'—',n.grau||'—',fmtDt(n.prazo),n.status],[14,84,18,24,26],false));
-  }
-  else if(tab==='estoque'){
-    secTitle('Estoque');
-    const sal={};d.movs.forEach(m=>{sal[m.estId||m.estoque_id]=(sal[m.estId||m.estoque_id]||0)+(m.tipo==='entrada'?m.qtd||m.quantidade:-m.qtd||m.quantidade);});
-    tRow(['MATERIAL','UN.','SALDO','MÍN.','STATUS'],[80,14,18,18,36],true);
-    d.estoque.forEach(e=>{const q=sal[e.id]||0;tRow([e.material,e.un||e.unidade||'—',String(q),String(e.min||e.estoque_min||0),q>=(e.min||e.estoque_min||0)?'OK':'Baixo'],[80,14,18,18,36],false);});
-  }
-  else if(tab==='equipe'){
-    secTitle('Equipe');
-    tRow(['COLABORADOR','FUNÇÃO'],[100,66],true);
-    d.colabs.forEach(c=>tRow([c.nome,c.funcao||'—'],[100,66],false));
-  }
-  else if(tab==='contratos'){
-    secTitle('Contratos');
-    tRow(['Nº','DESCRIÇÃO','FORNECEDOR','VALOR','PAGO','STATUS'],[14,55,32,24,24,17],true);
-    d.contratos.forEach(c=>{
-      const pago=d.pgtos.filter(p=>(p.contratoId||p.contrato_id)===c.id).reduce((a,p)=>a+Number(p.valor||0),0);
-      tRow([c.numero||'—',c.descricao||'—',c.forn||c.fornecedor||'—',fmtR(c.valor),fmtR(pago),pago>=Number(c.valor||0)&&Number(c.valor)>0?'Quitado':'Aberto'],[14,55,32,24,24,17],false);
-    });
-  }
-
-  // Rodapé
-  const pages=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRY);doc.text('ObraTech — Portal do Cliente | '+o.nome,MAR,290);doc.text('Página '+i+'/'+pages,W-MAR,290,{align:'right'});}
-  doc.save('ObraTech_'+(o.nome||'obra').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(PC_PDF_TABS[tab]||tab).replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
-  toast('📄','PDF gerado!');
+function _pcEtapaLinha(e) {
+  const p = Math.min(100, Number(e.pct || 0));
+  const fim = pcDiasAte(e.fim);
+  const atras = p < 100 && fim != null && fim < 0;
+  const st = p >= 100 ? ['Concluída', 'bg'] : atras ? ['Atrasada', 'br'] : p > 0 ? ['Em andamento', 'bb'] : ['Aguardando', 'bn'];
+  return `<div class="pcx-etapa">
+    <div class="pcx-etapa-h"><b>${pcEsc(e.nome)}</b><span class="b ${st[1]}">${st[0]}</span></div>
+    <div class="pcx-bar sm"><span style="width:${p}%;${p >= 100 ? 'background:var(--ot-ok)' : atras ? 'background:var(--ot-err)' : ''}"></span></div>
+    <div class="pcx-etapa-f"><span class="ot-num">${pcDt(e.inicio)} → ${pcDt(e.fim)}</span><span class="ot-num">${p}%</span></div>
+  </div>`;
 }
 
+// ── Etapas ───────────────────────────────────────────────────
+function _pcEtapas(d, o) {
+  if (!d.etapas.length) return `<div class="pcx-vazio">${ic('calendar-range')}<strong>Cronograma ainda não publicado</strong></div>`;
+  const pct = _pcAvanco(d.etapas);
+  return `<section class="pcx-card">
+    <div class="pcx-card-h"><h2>${ic('calendar-range')} Etapas da obra</h2><span class="ot-num pcx-big">${pct}%</span></div>
+    <div class="pcx-bar"><span style="width:${pct}%"></span></div>
+  </section>
+  <section class="pcx-card">${d.etapas.map(_pcEtapaLinha).join('')}</section>
+  <div class="pcx-acoes"><button class="btn" onclick="pcGerarPdf('etapas')">${ic('file-text')} Baixar cronograma em PDF</button></div>`;
+}
+
+// ── Diário de obra ───────────────────────────────────────────
+function _pcDiario(d, o) {
+  if (!d.rdos.length) return `<div class="pcx-vazio">${ic('clipboard-list')}<strong>Nenhum diário publicado ainda</strong><span>Os registros diários da obra aparecerão aqui.</span></div>`;
+  return d.rdos.map(r => {
+    const fotos = (r.fotos || []).map(pcFotoSrc).filter(Boolean);
+    return `<article class="pcx-card pcx-rdo">
+      <div class="pcx-card-h"><h2 class="ot-num">${pcDt(r.data)}</h2>${r.clima ? `<span class="pcx-chip">${climaIco(r.clima)} ${pcEsc(r.clima)}</span>` : ''}</div>
+      ${r.servicos ? `<div class="pcx-sec"><span class="ot-label">Serviços executados</span><p class="pcx-txt">${pcEsc(r.servicos)}</p></div>` : ''}
+      ${r.materiais ? `<div class="pcx-sec"><span class="ot-label">Materiais recebidos</span><p class="pcx-txt">${pcEsc(r.materiais)}</p></div>` : ''}
+      ${r.obs ? `<div class="pcx-sec"><span class="ot-label">Ocorrências</span><p class="pcx-txt">${pcEsc(r.obs)}</p></div>` : ''}
+      ${fotos.length ? `<div class="pcx-thumbs">${fotos.slice(0, 6).map((s, i) => `<img src="${pcEsc(s)}" loading="lazy" onclick="pcAbrirFoto('${r.id}',${i})" alt="">`).join('')}${fotos.length > 6 ? `<button class="pcx-thumb-mais" onclick="pcAbrirFoto('${r.id}',6)">+${fotos.length - 6}</button>` : ''}</div>` : ''}
+      <div class="pcx-card-f"><button class="pcx-link" onclick="pcRdoPdf('${r.id}')">${ic('download', 'sm')} PDF deste dia</button></div>
+    </article>`;
+  }).join('');
+}
+
+// ── Fotos ────────────────────────────────────────────────────
+function _pcFotos(d, o) {
+  const grupos = d.rdos.map(r => ({ r, fotos: (r.fotos || []).map(pcFotoSrc).filter(Boolean) })).filter(g => g.fotos.length);
+  if (!grupos.length) return `<div class="pcx-vazio">${ic('camera')}<strong>Nenhuma foto publicada ainda</strong><span>As fotos dos diários de obra aparecerão aqui.</span></div>`;
+  return grupos.map(g => `<section class="pcx-fotos-dia">
+    <div class="ot-label">${pcDt(g.r.data)}</div>
+    <div class="pcx-galeria">${g.fotos.map((s, i) => `<img src="${pcEsc(s)}" loading="lazy" onclick="pcAbrirFoto('${g.r.id}',${i})" alt="">`).join('')}</div>
+  </section>`).join('');
+}
+
+function pcAbrirFoto(rdoId, i) {
+  const r = (_pcDados.rdos || []).find(x => String(x.id) === String(rdoId)); if (!r) return;
+  const lista = (r.fotos || []).filter(f => pcFotoSrc(f));
+  if (!lista.length) return;
+  let k = Math.max(0, Math.min(i, lista.length - 1));
+  const root = document.getElementById('modal-root');
+  const draw = () => {
+    const f = lista[k];
+    root.innerHTML = `<div class="pcx-lightbox" onclick="if(event.target===this)closeModal()">
+      <button class="pcx-lb-x" onclick="closeModal()" aria-label="Fechar">${ic('x')}</button>
+      ${lista.length > 1 ? `<button class="pcx-lb-nav esq" onclick="window._pcLb(-1)" aria-label="Anterior">‹</button><button class="pcx-lb-nav dir" onclick="window._pcLb(1)" aria-label="Próxima">›</button>` : ''}
+      <img src="${pcEsc(pcFotoSrc(f))}" alt="">
+      <div class="pcx-lb-cap"><span class="ot-num">${pcDt(r.data)} · ${k + 1}/${lista.length}</span>${f.desc ? ' — ' + pcEsc(f.desc) : ''}</div>
+    </div>`;
+  };
+  window._pcLb = s => { k = (k + s + lista.length) % lista.length; draw(); };
+  draw();
+}
+
+// ── Financeiro ───────────────────────────────────────────────
+function _pcFinanceiro(d, o) {
+  const orc = Number(o.orcamento || 0);
+  const gasto = d.lancs.reduce((a, l) => a + Number(l.valor || 0), 0);
+  const saldo = orc - gasto;
+  const p = orc ? Math.min(100, Math.round(gasto / orc * 100)) : 0;
+  const cats = {};
+  d.lancs.forEach(l => { const k = l.categoria || 'Outros'; cats[k] = (cats[k] || 0) + Number(l.valor || 0); });
+  const catList = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const pagoPor = id => d.pgtos.filter(x => x.contrato_id === id).reduce((a, x) => a + Number(x.valor || 0), 0);
+  return `
+  <section class="pcx-hero">
+    <div class="ot-label">Investimento na obra</div>
+    <div class="pcx-fin-big ot-num">${fmtR(gasto)}</div>
+    ${orc ? `<div class="pcx-muted">de ${fmtR(orc)} orçados · <b>${p}%</b></div>
+    <div class="pcx-bar"><span style="width:${p}%;${gasto > orc ? 'background:var(--ot-err)' : ''}"></span></div>
+    <div class="pcx-muted" style="margin-top:6px">${saldo >= 0 ? 'Saldo do orçamento: <b class="ot-num">' + fmtR(saldo) + '</b>' : '<span style="color:var(--ot-err)">Acima do orçado em <b class="ot-num">' + fmtR(-saldo) + '</b></span>'}</div>` : ''}
+  </section>
+
+  ${catList.length ? `<section class="pcx-card"><div class="pcx-card-h"><h2>${ic('chart-pie')} Por categoria</h2></div>
+    ${catList.map(([c, v]) => `<div class="pcx-cat"><div class="pcx-cat-h"><span>${pcEsc(c)}</span><b class="ot-num">${fmtR(v)}</b></div><div class="pcx-bar sm"><span style="width:${gasto ? Math.round(v / gasto * 100) : 0}%"></span></div></div>`).join('')}
+  </section>` : ''}
+
+  ${d.contratos.length ? `<section class="pcx-card"><div class="pcx-card-h"><h2>${ic('file-pen-line')} Contratos</h2></div>
+    ${d.contratos.map(c => { const pg = pagoPor(c.id), v = Number(c.valor || 0); return `<div class="pcx-item"><div><b>${pcEsc(c.descricao || c.numero || 'Contrato')}</b><div class="pcx-muted">${pcEsc(c.fornecedor || '')}</div><div class="pcx-bar sm" style="margin-top:6px"><span style="width:${v ? Math.min(100, Math.round(pg / v * 100)) : 0}%"></span></div></div><div class="pcx-item-v"><b class="ot-num">${fmtR(v)}</b><small class="ot-num">pago ${fmtR(pg)}</small></div></div>`; }).join('')}
+  </section>` : ''}
+
+  <section class="pcx-card"><div class="pcx-card-h"><h2>${ic('receipt')} Lançamentos</h2><span class="pcx-muted">${d.lancs.length}</span></div>
+    ${d.lancs.length ? d.lancs.slice(0, 60).map(l => `<div class="pcx-item"><div><b>${pcEsc(l.descricao || '—')}</b><div class="pcx-muted">${pcDt(l.data)}${l.categoria ? ' · ' + pcEsc(l.categoria) : ''}</div></div><b class="ot-num pcx-item-v">${fmtR(l.valor)}</b></div>`).join('')
+      + (d.lancs.length > 60 ? `<div class="pcx-muted" style="padding-top:8px">Mostrando os 60 mais recentes. O PDF traz a lista completa.</div>` : '')
+      : '<div class="pcx-muted">Nenhum lançamento.</div>'}
+  </section>
+  <div class="pcx-acoes"><button class="btn" onclick="pcGerarPdf('financeiro')">${ic('file-text')} Baixar financeiro em PDF</button></div>`;
+}
+
+// ── PDFs (mesma identidade dos relatórios do sistema) ───────
+function pcRdoPdf(id) {
+  const r = (_pcDados.rdos || []).find(x => String(x.id) === String(id)); if (!r) return;
+  const o = _pcDados.obra;
+  DB.obras = [{ id: o.id, nome: o.nome, local: o.local, resp: o.responsavel }];
+  gerarRDOPDF({ id: r.id, obraId: o.id, data: r.data, clima: r.clima, serv: r.servicos, obs: r.obs, mat: r.materiais, status: r.status, fotos: r.fotos || [], autor: r.autor || '' });
+}
+
+function pcGerarPdf(tab) {
+  const d = _pcDados, o = d.obra; if (!o) return;
+  const doc = new jsPDF(); const M = 9;
+  const tit = { resumo: 'Resumo da Obra', etapas: 'Cronograma da Obra', financeiro: 'Financeiro da Obra' }[tab] || 'Portal do Cliente';
+  let y = pHdr(doc, tit, o.nome) + 4;
+  const tbl = (head, body, cs) => { doc.autoTable({ startY: y, head: [head], body, theme: 'striped', headStyles: hStyle(), bodyStyles: bStyle(), alternateRowStyles: altRow(), columnStyles: cs || {}, margin: { left: M, right: M } }); y = doc.lastAutoTable.finalY + 8; };
+  const gasto = d.lancs.reduce((a, l) => a + Number(l.valor || 0), 0), orc = Number(o.orcamento || 0);
+  if (tab === 'resumo') {
+    y = pSec(doc, y, 'Dados da obra');
+    tbl(['Campo', 'Informação'], [['Obra', o.nome], ['Local', o.local || '—'], ['Início', pcDt(o.data_ini)], ['Entrega prevista', pcDt(o.data_fim)], ['Avanço físico', _pcAvanco(d.etapas) + '%'], ['Diários publicados', String(d.rdos.length)], ...(orc ? [['Orçamento', fmtR(orc)], ['Investido', fmtR(gasto)]] : [])], { 0: { cellWidth: 60, fontStyle: 'bold' } });
+    if (d.etapas.length) { y = pSec(doc, y, 'Etapas'); tbl(['Etapa', 'Início', 'Fim', 'Avanço'], d.etapas.map(e => [e.nome, pcDt(e.inicio), pcDt(e.fim), (e.pct || 0) + '%']), { 3: { halign: 'center' } }); }
+  } else if (tab === 'etapas') {
+    y = pSec(doc, y, 'Etapas — avanço geral ' + _pcAvanco(d.etapas) + '%');
+    tbl(['Etapa', 'Início', 'Fim', 'Avanço'], d.etapas.map(e => [e.nome, pcDt(e.inicio), pcDt(e.fim), (e.pct || 0) + '%']), { 3: { halign: 'center' } });
+  } else if (tab === 'financeiro') {
+    y = pSec(doc, y, 'Resumo');
+    tbl(['Item', 'Valor'], [['Investido', fmtR(gasto)], ...(orc ? [['Orçamento', fmtR(orc)], ['Saldo do orçamento', fmtR(orc - gasto)]] : [])], { 1: { halign: 'right', fontStyle: 'bold' } });
+    y = pSec(doc, y, 'Lançamentos');
+    tbl(['Data', 'Descrição', 'Categoria', 'Valor'], d.lancs.map(l => [pcDt(l.data), l.descricao || '—', l.categoria || '—', fmtR(l.valor)]), { 0: { cellWidth: 24 }, 3: { halign: 'right', cellWidth: 32 } });
+  }
+  pFtr(doc);
+  doc.save(tit.replace(/\s+/g, '_') + '_' + (o.nome || 'obra').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf');
+  toast('📄', 'PDF gerado!');
+}
