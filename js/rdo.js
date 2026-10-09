@@ -171,7 +171,7 @@ function renderRDO(){
 function renderFotoGrid(){
   document.getElementById('rdo-fotos').innerHTML=rdoFotos.map((f,i)=>{
     const imgSrc=f.url||f.data||'';
-    return`<div class="pc" style="flex-direction:column;height:auto;padding:0;overflow:hidden;border-radius:7px;border:1px solid var(--border)"><div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block"><button class="rm" onclick="rdoFotos.splice(${i},1);renderFotoGrid()" style="top:4px;right:4px">×</button><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);padding:2px 5px"><span style="font-size:9px;color:#fff">#${i+1}</span></div></div><input type="text" value="${(f.desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição da foto..." oninput="rdoFotos[${i}].desc=this.value" style="width:100%;box-sizing:border-box;border:none;border-top:1px solid var(--border);padding:4px 6px;font-size:10px;color:var(--txt);background:var(--bg2);outline:none;border-radius:0 0 6px 6px"></div>`;
+    return`<div class="pc" style="flex-direction:column;height:auto;padding:0;overflow:hidden;border-radius:7px;border:1px solid var(--border)"><div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block"><button class="rm" onclick="rdoFotos.splice(${i},1);renderFotoGrid()" style="top:4px;right:4px">×</button><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);padding:2px 5px"><span style="font-size:9px;color:#fff">#${i+1}</span></div></div><input type="text" value="${(f.desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição da foto..." data-foto-idx="${i}" oninput="rdoFotos[${i}].desc=this.value" onchange="rdoFotos[${i}].desc=this.value" oncompositionend="rdoFotos[${i}].desc=this.value" onblur="rdoFotos[${i}].desc=this.value" style="width:100%;box-sizing:border-box;border:none;border-top:1px solid var(--border);padding:4px 6px;font-size:10px;color:var(--txt);background:var(--bg2);outline:none;border-radius:0 0 6px 6px"></div>`;
   }).join('')+`<div class="pc add" onclick="document.getElementById('rdo-foto-in').click()"><span><svg class=ot-i><use href=#i-camera></use></svg></span><span style="font-size:9px">Foto</span></div>`;
 }
 function addFotos(e){Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{rdoFotos.push({name:f.name,data:ev.target.result});renderFotoGrid();};r.readAsDataURL(f);});e.target.value='';}
@@ -191,6 +191,9 @@ async function rdoSaveClick(status){
   }
 }
 async function saveRDO(status){
+  // Garante que as legendas das fotos sejam exatamente o texto que está nos campos
+  // (teclados de celular com sugestão só confirmam a última palavra ao sair do campo)
+  document.querySelectorAll('#rdo-fotos [data-foto-idx]').forEach(el=>{const k=+el.dataset.fotoIdx;if(rdoFotos[k])rdoFotos[k].desc=el.value;});
   const oId=document.getElementById('rdo-obra').value;if(!oId){toast('⚠️','Selecione uma obra!');return;}
   const data=document.getElementById('rdo-data').value;if(!data){toast('⚠️','Informe a data!');return;}
   const prev=0;
