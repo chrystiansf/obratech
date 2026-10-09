@@ -122,28 +122,8 @@ async function fazerCadastro(){
       return;
     }
 
-    // 3. Com sessão ativa, criar a empresa
-    const {data:empData, error:empErr} = await supa
-      .from('empresas')
-      .insert({nome:empresa})
-      .select('id')
-      .single();
-    if(empErr) throw empErr;
-    const empresaId = empData.id;
-
-    // 4. Criar o perfil do usuário
-    const {error:perfErr} = await supa
-      .from('perfis')
-      .insert({
-        id: loginData.user.id,
-        empresa_id: empresaId,
-        nome: nome,
-        papel: 'admin'
-      });
-    if(perfErr && !perfErr.message.includes('duplicate')) throw perfErr;
-
-    // 5. Categorias padrão
-    await supa.rpc('setup_empresa_padrao', {p_empresa_id: empresaId});
+    // 3-5. Com sessão ativa, criar empresa, perfil de administrador e categorias padrão
+    await _criarEmpresaEPerfil(loginData.user, nome, empresa);
 
     authMsg('Conta criada com sucesso! Carregando...','success');
     // A sessão já está ativa — onAuthStateChange vai cuidar do resto
@@ -152,6 +132,22 @@ async function fazerCadastro(){
     console.error('Cadastro error:', e);
     authMsg(e.message || 'Erro ao criar conta. Tente novamente.','error');
   }
+}
+
+// Cria a empresa e o perfil de administrador de quem se cadastrou (reaproveita a empresa se já tiver sido criada)
+async function _criarEmpresaEPerfil(user, nome, empresa){
+  let empresaId=null;
+  const {data:jaTem}=await supa.from('empresas').select('id').eq('criado_por',user.id).limit(1);
+  if(jaTem&&jaTem.length) empresaId=jaTem[0].id;
+  else{
+    const {data:empData, error:empErr}=await supa.from('empresas').insert({nome:empresa}).select('id').single();
+    if(empErr) throw empErr;
+    empresaId=empData.id;
+  }
+  const {error:perfErr}=await supa.from('perfis').insert({id:user.id,empresa_id:empresaId,nome:nome,papel:'admin'});
+  if(perfErr && !String(perfErr.message).includes('duplicate')) throw perfErr;
+  try{ await supa.rpc('setup_empresa_padrao',{p_empresa_id:empresaId}); }catch(e){ console.warn('setup_empresa_padrao',e.message); }
+  return empresaId;
 }
 
 // ── Auth: reset senha ─────────────────────────────────────────
@@ -461,6 +457,16 @@ async function iniciarSessao(session){
       }
 
     } else {
+      // Cadastro com confirmação de e-mail: a conta foi criada, mas a empresa e o perfil ainda não.
+      // Conclui agora, no primeiro login, com os dados informados no cadastro.
+      const md=session.user.user_metadata||{};
+      if(!perfil && md.papel==='admin' && md.empresa_nome && !window._otConcluindoCadastro){
+        window._otConcluindoCadastro=true;
+        try{
+          await _criarEmpresaEPerfil(session.user, md.nome||session.user.email, md.empresa_nome);
+          return iniciarSessao(session);
+        }catch(e){ console.error('Concluir cadastro:', e.message); }
+      }
       console.warn('Perfil não encontrado:', perfErr?.message);
       mostrarLogin();
       authMsg('Perfil não encontrado. Entre em contato com o suporte.','error');
