@@ -59,16 +59,22 @@ function rdoRenderPresencaTercs(){
   }
 
   el.innerHTML=tercs.map(t=>{
-    const pt=data?DB.pontosTercs?.find(p=>p.tercId===t.id&&p.data===data):null;
-    const presente=!!pt?.presente;
-    const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
+    const presente=!!_rdoPtTerc(t.id,oId,data);
+    // Só "Presente" (liga/desliga). Quem não veio fica sem marcação e não aparece no relatório.
     return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
-      <button onclick="rdoSetPresencaTerc('${t.id}',true)" style="${btnStyle(presente,'#1F7A50')}"><svg class=ot-i><use href=#i-check></use></svg> Presente</button>
-      <button onclick="rdoSetPresencaTerc('${t.id}',false)" style="${btnStyle(!presente,'#B42828')}"><svg class=ot-i><use href=#i-x></use></svg> Falta</button>
-      <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${t.nome}</span>
-      <span style="font-size:10px;color:var(--txt3)">${t.funcao||''}</span>
+      <button onclick="rdoSetPresencaTerc('${t.id}',${!presente})" title="${presente?'Desmarcar':'Marcar presença'}"
+        style="padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${presente?'#1F7A50':'var(--border)'};background:${presente?'#1F7A50':'var(--bg3)'};color:${presente?'#fff':'var(--txt3)'};min-width:86px">
+        <svg class=ot-i><use href=#i-${presente?'check':'square'}></use></svg> ${presente?'Presente':'Marcar'}</button>
+      <span style="flex:1;font-size:12px;font-weight:600;color:${presente?'var(--txt)':'var(--txt3)'}">${escHtml(t.nome||'')}</span>
+      <span style="font-size:10px;color:var(--txt3)">${escHtml([t.funcao,t.empresa].filter(Boolean).join(' · '))}</span>
     </div>`;
   }).join('');
+}
+
+// Registro de presença do terceirizado na obra e data do RDO
+function _rdoPtTerc(tercId,oId,data){
+  if(!data) return null;
+  return (DB.pontosTercs||[]).find(p=>String(p.tercId)===String(tercId)&&p.data===data&&p.presente&&(!oId||!p.obraId||String(p.obraId)===String(oId)))||null;
 }
 
 function rdoSetPresencaTerc(tercId,presente){
@@ -76,12 +82,15 @@ function rdoSetPresencaTerc(tercId,presente){
   const data=document.getElementById('rdo-data')?.value;
   if(!data){toast('⚠️','Informe a data primeiro!');return;}
   if(!DB.pontosTercs)DB.pontosTercs=[];
-  const prev=DB.pontosTercs.findIndex(p=>p.tercId===tercId&&p.data===data&&(!oId||p.obraId===oId));
-  if(prev!==-1)DB.pontosTercs.splice(prev,1);
-  const newId=uuidv4();
-  const newPt={id:newId,tercId,obraId:oId,data,presente,_supa:true};
-  DB.pontosTercs.push(newPt);
-  supaInsert('pontos_terceirizados',{id:newId,empresa_id:_empresaId,terceirizado_id:tercId,obra_id:oId||null,data,presente});
+  // Remove os registros anteriores deste terceirizado nesta obra/data (inclusive antigos de "falta")
+  const antigos=DB.pontosTercs.filter(p=>String(p.tercId)===String(tercId)&&p.data===data&&(!oId||!p.obraId||String(p.obraId)===String(oId)));
+  antigos.forEach(p=>{if(p._supa!==false)supaDelete('pontos_terceirizados',p.id);});
+  DB.pontosTercs=DB.pontosTercs.filter(p=>!antigos.includes(p));
+  if(presente){
+    const newId=uuidv4();
+    DB.pontosTercs.push({id:newId,tercId,obraId:oId,data,presente:true,_supa:true});
+    supaInsert('pontos_terceirizados',{id:newId,empresa_id:_empresaId,terceirizado_id:tercId,obra_id:oId||null,data,presente:true});
+  }
   save();rdoRenderPresencaTercs();
 }
 
@@ -89,7 +98,7 @@ function rdoMarcarTodosTercs(pres){
   const oId=document.getElementById('rdo-obra')?.value;
   const data=document.getElementById('rdo-data')?.value;
   if(!data){toast('⚠️','Informe a data primeiro!');return;}
-  DB.terceirizados.forEach(t=>rdoSetPresencaTerc(t.id,pres));
+  DB.terceirizados.forEach(t=>{if(!!_rdoPtTerc(t.id,oId,data)!==pres)rdoSetPresencaTerc(t.id,pres);});
 }
 
 function rdoRenderPresenca(){

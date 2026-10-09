@@ -447,10 +447,12 @@ async function gerarRDOPDF(rdo, opts) {
   // ═══════════════════════════════════════════════════════════════
   const tercsOrdenados = [...DB.terceirizados].sort((a, b) => (a.empresa || '').localeCompare(b.empresa || '') || (a.nome || '').localeCompare(b.nome || ''));
   const presTercRows = [];
+  // Terceirizado não é funcionário fixo: só entra no relatório quem esteve na obra no dia (sem "FALTA")
   tercsOrdenados.forEach(t => {
-    const pt = (DB.pontosTercs || []).find(p => p.tercId === t.id && p.data === rdo.data);
-    const status = pt && pt.presente ? 'PRESENTE' : 'FALTA';
-    presTercRows.push([(t.nome||'').toUpperCase(), (t.funcao||'-').toUpperCase(), (t.empresa||'-').toUpperCase(), status]);
+    const pt = (DB.pontosTercs || []).find(p => String(p.tercId) === String(t.id) && p.data === rdo.data && p.presente
+      && (!p.obraId || !rdo.obraId || String(p.obraId) === String(rdo.obraId)));
+    if (!pt) return;
+    presTercRows.push([(t.nome||'').toUpperCase(), (t.funcao||'-').toUpperCase(), (t.empresa||'-').toUpperCase(), 'PRESENTE']);
   });
   if (presTercRows.length) {
     checkPage(20 + presTercRows.length * 7);

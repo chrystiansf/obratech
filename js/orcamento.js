@@ -265,8 +265,10 @@ async function renderOrcamento(){
   const sel=document.getElementById('orc-obra-sel');
   if(!sel) return;
   // Fill select
-  const cur=sel.value;
-  sel.innerHTML='<option value="">— Selecione uma obra —</option>'+DB.obras.map(o=>`<option value="${o.id}"${String(o.id)===String(cur)?' selected':''}>${o.nome}</option>`).join('');
+  // Com obra ativa o seletor fica oculto: abre direto nela. Sem obra ativa, abre na obra selecionada por último.
+  const ativa=(typeof _obraAtiva!=='undefined'&&_obraAtiva)?String(_obraAtiva):'';
+  const cur=ativa||sel.value||(DB.obras.some(o=>String(o.id)===String(DB.sel))?String(DB.sel):'');
+  sel.innerHTML='<option value="">— Selecione uma obra —</option>'+DB.obras.map(o=>`<option value="${o.id}"${String(o.id)===String(cur)?' selected':''}>${escHtml(o.nome)}</option>`).join('');
 
   const obraId=_orcKey();
   const kpis=document.getElementById('orc-kpis');

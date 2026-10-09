@@ -153,6 +153,7 @@ async function renderCron(){
   document.getElementById('gantt-empty').style.display=ganttItems.length?'none':'block';
 
   let ganttRows='';
+  let _temAcoes=false;   // etapas com botões ocupam mais espaço à direita: a régua acompanha
   ganttItems.forEach(item=>{
     const pct=item.pct;
     const saude=pct>=100?'done':pct>=50?'ok':pct>0?'late':'future';
@@ -194,6 +195,7 @@ async function renderCron(){
       </div>`;
     } else {
       // Etapa tradicional (sem orçamento)
+      _temAcoes=true;
       const e=item.etapa;
       const saude2=ganttSaude(obra,e);
       const st2=SAUDE_STYLE[saude2];
@@ -208,18 +210,18 @@ async function renderCron(){
           </div>
           ${marca!==null?`<div style="position:absolute;left:${marca}%;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.95);z-index:3;border-radius:1px"></div>`:''}
         </div>
-        <div style="width:130px;flex-shrink:0;display:flex;align-items:center;gap:3px;margin-left:8px">
+        <div class="gantt-acoes">
           <span style="font-size:9px;font-weight:700;color:${st2.on||'#fff'};background:${st2.bg};padding:2px 6px;border-radius:8px;white-space:nowrap;flex:1;text-align:center">${st2.label}</span>
-          <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado" style="padding:2px 5px;font-size:11px"><svg class=ot-i><use href=#i-target></use></svg></button>
-          <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" style="padding:2px 5px"><svg class=ot-i><use href=#i-pencil></use></svg></button>
-          <button class="btn sm ico" onclick="delEtapa('${e.id}')" style="padding:2px 5px"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
+          <button class="btn sm ico" onclick="editarEspEtapa('${e.id}')" title="Definir % esperado"><svg class=ot-i><use href=#i-target></use></svg></button>
+          <button class="btn sm ico" onclick="openModal('etapa','${e.id}')" title="Editar etapa"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delEtapa('${e.id}')" title="Excluir etapa"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>
       </div>`;
     }
   });
 
   document.getElementById('gantt-area').innerHTML=`
-    <div style="display:flex;margin-left:163px;margin-right:80px;margin-bottom:10px;position:relative;height:16px">
+    <div class="gantt-regua${_temAcoes?' com-acoes':''}" style="display:flex;margin-left:163px;margin-bottom:10px;position:relative;height:16px">
       ${[0,25,50,75,100].map(p=>`<div style="position:absolute;left:${p}%;transform:translateX(-50%);font-size:9px;color:var(--txt3);text-align:center"><div style="width:1px;height:4px;background:var(--border2);margin:0 auto 2px"></div>${p}%</div>`).join('')}
     </div>
     ${ganttRows||'<div style="text-align:center;padding:20px;color:var(--txt3);font-size:12px">Preencha o orçamento da obra para ver as etapas aqui.</div>'}

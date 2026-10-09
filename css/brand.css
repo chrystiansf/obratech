@@ -629,3 +629,23 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
   .ot-f-busca { grid-column: 1 / -1; }
   .ot-f .inp, .ot-f .sel, .ot-f-busca .inp, .ot-f .ot-data-wrap { width: 100% !important; height: 44px; min-height: 44px; font-size: 15px; }
 }
+
+/* Cronograma: status + botões da etapa sempre dentro do card */
+.gantt-acoes { width: 206px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+.gantt-acoes > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gantt-acoes .btn.ico { width: 30px; height: 30px; min-height: 30px; padding: 0; flex-shrink: 0; justify-content: center; }
+.gantt-acoes .btn.ico .ot-i { width: 15px; height: 15px; }
+@media (max-width: 768px) {
+  .gantt-acoes { width: auto; }
+  .gantt-acoes > span { display: none; }
+  .gantt-acoes .btn.ico { width: 34px; height: 34px; min-height: 34px; }
+}
+.gantt-regua { margin-right: 88px; }
+.gantt-regua.com-acoes { margin-right: 214px; }
+@media (max-width: 768px) { .gantt-regua.com-acoes { margin-right: 120px; } }
+@media (max-width: 768px) {
+  #gantt-area .gr { flex-wrap: wrap; row-gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--ot-border); }
+  #gantt-area .gr > .gn { width: 100%; white-space: normal; }
+  #gantt-area .gantt-regua { display: none !important; }
+  #gantt-area .gr > div:nth-child(2) { flex: 1 1 50% !important; min-width: 120px; }
+}
