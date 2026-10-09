@@ -75,7 +75,6 @@ function renderSolicitacoes(){
           ${s.status==='aberta'?`<button class="btn sm" onclick="solMudarStatus('${s.id}','cotando');comprasTab('cotacoes')" title="Enviar para cotacao">Cotar</button>`:''}
           ${s.status==='cotando'?`<button class="btn sm" onclick="comprasTab('cotacoes')" title="Ver cotacoes">Ver Cotacoes</button>`:''}
           ${s.status==='cotando'||s.status==='aberta'?`<button class="btn sm" onclick="solMudarStatus('${s.id}','aprovada')" title="Aprovar" style="color:var(--green)">Aprovar</button>`:''}
-          ${s.status==='aprovada'?`<button class="btn sm" onclick="solReceber('${s.id}')" title="Registrar recebimento">Receber</button>`:''}
           <button class="btn sm ico" onclick="openModalSolicitacao('${s.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
           <button class="btn sm ico" onclick="solExcluir('${s.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div></td>
@@ -170,25 +169,6 @@ function pedRecriar(solId){
   renderPedidos();toast('✅','Pedido recriado!');
 }
 
-function solReceber(id){
-  const s=(DB.solicitacoes||[]).find(x=>x.id===id);
-  if(!s||!confirm('Confirmar recebimento? Sera lancado no financeiro.')) return;
-  s.status='recebida';
-  supaUpdate('compras_solicitacoes',id,{status:'recebida'});
-
-  // Buscar pedido vinculado
-  const ped=(DB.pedidosCompra||[]).find(p=>String(p.solicitacaoId)===String(id));
-
-  // Lancar despesa financeira
-  if(ped&&ped.valorTotal>0){
-    const lancId=uuidv4();
-    DB.lancs.push({id:lancId,obraId:s.obraId,tipo:'Despesa',desc:'[COMPRA] '+s.item,cat:'Materiais',cc:'',valor:ped.valorTotal,data:hojeISO(),forn:ped.fornecedor||'',nf:'',_supa:true});
-    supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:'[COMPRA] '+s.item,categoria:'Materiais',centro_custo:'',valor:ped.valorTotal,data:hojeISO(),fornecedor:ped.fornecedor||'',nota_fiscal:'',obra_id:s.obraId||null});
-  }
-
-  save();renderSolicitacoes();renderPedidos();
-  toast('✅','Material recebido! Lançamento financeiro registrado.');
-}
 
 // ═══════════════════════════════════════════
 // COTACOES
@@ -322,7 +302,6 @@ function renderPedidos(){
         <div style="min-width:0"><div class="n">${escHtml(s.item||'—')}</div><div style="font-size:11px;color:var(--txt3)">${escHtml(o?.nome||'—')}${c?' · '+escHtml(c.fornecedor||'')+' · '+fmtR(c.valorTotal||_cotMelhor(c)):''}</div></div>
         <button class="btn sm pri" onclick="pedRecriar('${s.id}')">Recriar pedido</button></div>`;}).join('')}
   </div>`:'';
-  const STATUS_BADGE={pendente:'<span class="b bn">Pendente</span>',enviado:'<span class="b bb">Enviado</span>',recebido:'<span class="b bg">Recebido</span>'};
 
   if(!peds.length){
     el.innerHTML=aviso+'<div class="t-empty">Nenhum pedido de compra. Aprove uma solicitação para gerar um pedido.</div>';
@@ -330,7 +309,7 @@ function renderPedidos(){
   }
 
   el.innerHTML=aviso+`<div style="overflow-x:auto"><table class="tbl">
-    <tr><th>Fornecedor</th><th>Item</th><th>Obra</th><th style="text-align:right">Valor</th><th>Prev. Entrega</th><th>Status</th><th></th></tr>
+    <tr><th>Fornecedor</th><th>Item</th><th>Obra</th><th style="text-align:right">Valor</th><th>Prev. Entrega</th><th>Emitido em</th><th></th></tr>
     ${peds.map(p=>{
       const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(p.solicitacaoId));
       const o=DB.obras.find(x=>String(x.id)===String(p.obraId));
@@ -340,49 +319,17 @@ function renderPedidos(){
         <td style="font-size:11px">${o?.nome||'—'}</td>
         <td style="text-align:right;font-weight:600">${fmtR(p.valorTotal||0)}</td>
         <td style="font-size:11px">${p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):escHtml(p.previsaoEntrega)):'—'}</td>
-        <td>${STATUS_BADGE[p.status]||STATUS_BADGE.pendente}</td>
+        <td style="font-size:11px">${p.criadoEm?fmtDt(String(p.criadoEm).slice(0,10)):'—'}</td>
         <td><div class="ta-actions">
-          ${p.status==='pendente'?`<button class="btn sm" onclick="pedMudarStatus('${p.id}','enviado')">Enviar</button>`:''}
-          ${p.status==='enviado'?`<button class="btn sm" onclick="pedReceber('${p.id}')" style="color:var(--green)">Receber</button>`:''}
           <button class="btn sm" onclick="gerarOrdemCompraPDF('${p.id}')">PDF</button>
-          ${p.status!=='recebido'?`<button class="btn sm ico" onclick="pedDel('${p.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>`:''}
+          <button class="btn sm ico" onclick="pedDel('${p.id}')" title="Excluir pedido"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div></td>
       </tr>`;
     }).join('')}
   </table></div>`;
 }
 
-function pedMudarStatus(id,status){
-  const p=(DB.pedidosCompra||[]).find(x=>x.id===id);
-  if(!p) return;
-  p.status=status;
-  supaUpdate('compras_pedidos',id,{status});
-  save();renderPedidos();toast('✅','Status atualizado!');
-}
 
-function pedReceber(id){
-  const p=(DB.pedidosCompra||[]).find(x=>x.id===id);
-  if(!p||!confirm('Confirmar recebimento?')) return;
-  p.status='recebido';
-  supaUpdate('compras_pedidos',id,{status:'recebido'});
-
-  // Buscar solicitacao vinculada
-  const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(p.solicitacaoId));
-  if(sol){
-    sol.status='recebida';
-    supaUpdate('compras_solicitacoes',sol.id,{status:'recebida'});
-
-    // Lancar despesa financeira
-    if(p.valorTotal>0){
-      const lancId=uuidv4();
-      DB.lancs.push({id:lancId,obraId:p.obraId,tipo:'Despesa',desc:'[COMPRA] '+sol.item,cat:'Materiais',cc:'',valor:p.valorTotal,data:hojeISO(),forn:p.fornecedor||'',nf:'',_supa:true});
-      supaInsert('lancamentos',{id:lancId,tipo:'Despesa',descricao:'[COMPRA] '+sol.item,categoria:'Materiais',centro_custo:'',valor:p.valorTotal,data:hojeISO(),fornecedor:p.fornecedor||'',nota_fiscal:'',obra_id:p.obraId||null});
-    }
-  }
-
-  save();renderPedidos();renderSolicitacoes();
-  toast('✅','Pedido recebido! Lançamento financeiro registrado.');
-}
 
 function pedDel(id){
   if(!confirm('Excluir pedido?')) return;
