@@ -474,3 +474,13 @@ nav.pcx-bottom, nav.pcx-tabs { flex-direction: row; flex: none; }
   #toast { left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); display: none; }
   #toast .ti { max-width: none; }
 }
+
+/* Campos de data em dd/mm/aaaa (ver js/datas-br.js) */
+.ot-data-wrap { position: relative; vertical-align: middle; }
+.ot-data { color: transparent !important; -webkit-text-fill-color: transparent; cursor: pointer; }
+.ot-data::-webkit-datetime-edit { opacity: 0; }
+.ot-data::-webkit-date-and-time-value { opacity: 0; }
+.ot-data::-webkit-calendar-picker-indicator { opacity: .6; cursor: pointer; }
+[data-theme="dark"] .ot-data::-webkit-calendar-picker-indicator { filter: invert(1); }
+.ot-data-txt { position: absolute; left: 1px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--ot-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ot-data-txt.vazio { color: var(--ot-text-muted); }
