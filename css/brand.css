@@ -484,3 +484,57 @@ nav.pcx-bottom, nav.pcx-tabs { flex-direction: row; flex: none; }
 [data-theme="dark"] .ot-data::-webkit-calendar-picker-indicator { filter: invert(1); }
 .ot-data-txt { position: absolute; left: 1px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--ot-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ot-data-txt.vazio { color: var(--ot-text-muted); }
+
+/* ── Custo por categoria (Relatórios → Custo por m²) ───────── */
+.ocat { background: var(--ot-surface); border: 1px solid var(--ot-border); border-radius: 16px; padding: 24px; margin-bottom: 14px; box-shadow: none; color: var(--ot-text); font-family: var(--ot-font-sans); }
+.ocat-num { font-family: var(--ot-font-mono); font-variant-numeric: tabular-nums; }
+.ocat-sec { color: var(--ot-text-muted); }
+.ocat-dir { text-align: right; }
+.ocat-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.ocat-eyebrow { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--ot-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ot-text-muted); }
+.ocat-eyebrow i { width: 6px; height: 6px; background: var(--ot-brand); display: inline-block; }
+.ocat-titulo { font: 600 18px/26px var(--ot-font-sans); margin: 4px 0 0; color: var(--ot-text); }
+.ocat-resumo { display: flex; border: 1px solid var(--ot-border); border-radius: 10px; background: var(--ot-surface-sunken); overflow: hidden; }
+.ocat-resumo > div { padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 110px; }
+.ocat-resumo > div + div { border-left: 1px solid var(--ot-border); }
+.ocat-resumo span { font: 500 11px/14px var(--ot-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ot-text-muted); }
+.ocat-resumo b { font: 500 17px/24px var(--ot-font-mono); font-variant-numeric: tabular-nums; color: var(--ot-text); white-space: nowrap; }
+.ocat-cols, .ocat-row { display: grid; grid-template-columns: 240px minmax(0, 1fr) 160px 130px; gap: 20px; align-items: center; }
+.ocat-cols { padding: 0 8px 8px; font: 500 11px/14px var(--ot-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ot-text-muted); }
+.ocat-row { position: relative; padding: 12px 8px; border-top: 1px solid var(--ot-border); border-radius: 0; transition: background var(--ot-duration) var(--ot-ease); outline: none; }
+.ocat-row:hover, .ocat-row:focus-visible { background: var(--ot-surface-sunken); }
+.ocat-nome { display: flex; flex-direction: column; min-width: 0; }
+.ocat-nome span { font: 500 14px/20px var(--ot-font-sans); color: var(--ot-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ocat-nome small { font-size: 12px; line-height: 16px; color: var(--ot-text-muted); }
+.ocat-part { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ocat-trilha { flex: 1; height: 8px; border-radius: 999px; background: var(--ot-border); overflow: hidden; }
+.ocat-barra { height: 100%; border-radius: 999px; background: #EE5A24; }
+.ocat-pct { font-size: 13px; width: 44px; text-align: right; flex-shrink: 0; }
+.ocat-row > .ocat-num { font-size: 14px; white-space: nowrap; }
+.ocat-row > .ocat-num:not(.ocat-sec) { color: var(--ot-text); }
+/* tooltip */
+.ocat-tip { position: absolute; z-index: 5; left: 260px; bottom: calc(100% - 6px); min-width: 220px; padding: 10px 12px; border-radius: 10px; background: var(--ot-surface-inverse); color: var(--ot-text-inverse); box-shadow: var(--ot-shadow-lg); display: flex; flex-direction: column; gap: 4px; font-size: 12px; opacity: 0; transform: translateY(4px); pointer-events: none; transition: opacity var(--ot-duration) var(--ot-ease), transform var(--ot-duration) var(--ot-ease); }
+.ocat-tip strong { font: 600 13px/18px var(--ot-font-sans); margin-bottom: 2px; }
+.ocat-tip span { display: flex; justify-content: space-between; gap: 16px; }
+.ocat-tip em { font-style: normal; opacity: .7; }
+.ocat-tip b { font-weight: 500; }
+.ocat-row:hover .ocat-tip, .ocat-row:focus-visible .ocat-tip { opacity: 1; transform: none; }
+/* celular / tela estreita */
+@media (max-width: 760px) {
+  .ocat { padding: 16px; }
+  .ocat-resumo { width: 100%; }
+  .ocat-resumo > div { flex: 1; min-width: 0; padding: 8px 10px; }
+  .ocat-resumo b { font-size: 14px; }
+  .ocat-cols { display: none; }
+  .ocat-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 12px 4px; }
+  .ocat-part { grid-column: 1 / -1; grid-row: 2; }
+  .ocat-row > .ocat-num.ocat-sec { grid-column: 1 / -1; grid-row: 3; text-align: left; font-size: 12px; }
+  .ocat-tip { display: none; }
+}
+/* Relatórios no celular: cartão "span 3" não pode criar colunas extras; barra quebra linha */
+@media (max-width: 768px) {
+  #rel-cards-grid > [style*="grid-column"] { grid-column: auto !important; }
+  .rel-export-bar { flex-wrap: wrap; }
+  .rel-export-bar .sel { width: 100% !important; }
+  .rel-export-bar .btn { flex: 1; justify-content: center; }
+}

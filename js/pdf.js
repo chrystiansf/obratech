@@ -1092,6 +1092,46 @@ function calcCustoM2Data(obraId){
   return{obra,m2,totalGeral,porCat,porEtapa,custoM2Geral:m2?totalGeral/m2:0};
 }
 
+// Bloco "Custo por categoria" — identidade OBRATECH (mesmos dados, cálculos, ordem e arredondamento)
+function _m2BlocoCategorias(d) {
+  const temM2 = !!d.m2;
+  const nLanc = d.porCat.reduce((a, r) => a + r.qtd, 0);
+  const linhas = d.porCat.map(r => {
+    const m2 = temM2 ? fmtR(r.m2val) + '/m²' : '—';
+    const lanc = r.qtd + ' lanç.';
+    return `<div class="ocat-row" tabindex="0">
+      <div class="ocat-nome"><span>${escHtml(r.cat)}</span><small class="ocat-num">${lanc}</small></div>
+      <div class="ocat-part"><div class="ocat-trilha"><div class="ocat-barra" style="width:max(4px, ${r.pct}%)"></div></div><span class="ocat-num ocat-sec ocat-pct">${r.pct}%</span></div>
+      <div class="ocat-num ocat-dir">${fmtR(r.total)}</div>
+      <div class="ocat-num ocat-dir ocat-sec">${m2}</div>
+      <div class="ocat-tip" role="tooltip">
+        <strong>${escHtml(r.cat)}</strong>
+        <span><em>Total</em><b class="ocat-num">${fmtR(r.total)}</b></span>
+        <span><em>Participação</em><b class="ocat-num">${r.pct}%</b></span>
+        <span><em>Lançamentos</em><b class="ocat-num">${r.qtd}</b></span>
+        <span><em>R$/m²</em><b class="ocat-num">${m2}</b></span>
+      </div>
+    </div>`;
+  }).join('');
+  return `<section class="ocat">
+    <div class="ocat-head">
+      <div>
+        <div class="ocat-eyebrow"><i></i>Custo por categoria</div>
+        <h3 class="ocat-titulo">Por categoria</h3>
+      </div>
+      <div class="ocat-resumo">
+        <div><span>Total</span><b class="ocat-num">${fmtR(d.totalGeral)}</b></div>
+        <div><span>Por m²</span><b class="ocat-num">${temM2 ? fmtR(d.custoM2Geral) : '—'}</b></div>
+        <div><span>Lançamentos</span><b class="ocat-num">${nLanc}</b></div>
+      </div>
+    </div>
+    ${d.porCat.length ? `<div class="ocat-tabela">
+      <div class="ocat-cols"><span>Categoria</span><span>Participação</span><span class="ocat-dir">Total</span><span class="ocat-dir">R$/m²</span></div>
+      ${linhas}
+    </div>` : '<div class="t-empty">Nenhuma despesa lançada nesta obra.</div>'}
+  </section>`;
+}
+
 function renderCustoM2(){
   const obraId=document.getElementById('m2-obra-sel')?.value;
   const el=document.getElementById('m2-content');
@@ -1129,24 +1169,9 @@ function renderCustoM2(){
     </div>
   </div>
 
-  <div class="g g2" style="margin-bottom:14px">
-    <div>
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--txt)"><svg class=ot-i><use href=#i-folder-open></use></svg> Por Categoria</div>
-      ${d.porCat.map((r,i)=>`
-        <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-size:11px;font-weight:600">${r.cat}</span>
-            <span style="font-size:10px;color:var(--txt3)">${r.qtd} lanç. · ${r.pct}%</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:7px">
-            ${barHtml(r.pct,CORES[i%CORES.length])}
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:2px">
-            <span style="font-size:10px;color:var(--txt3)">${fmtR(r.total)}</span>
-            <span style="font-size:11px;font-weight:700;color:var(--accent)">${d.m2?fmtR(r.m2val)+'/m²':'—'}</span>
-          </div>
-        </div>`).join('')}
-    </div>
+  ${_m2BlocoCategorias(d)}
+
+  <div class="card" style="margin-bottom:14px">
     <div>
       <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--txt)"><svg class=ot-i><use href=#i-hard-hat></use></svg> Por Etapa Construtiva</div>
       ${d.porEtapa.length?d.porEtapa.map((r,i)=>`
@@ -1164,7 +1189,6 @@ function renderCustoM2(){
           </div>
         </div>`).join('')
       :'<div class="t-empty" style="padding:10px 0;font-size:11px">Nenhum lançamento vinculado a etapas.<br>Use o campo <strong>Etapa</strong> ao registrar despesas.</div>'}
-    </div>
   </div>
 
 `;
