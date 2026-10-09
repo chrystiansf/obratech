@@ -29,7 +29,7 @@ function renderContratos(){
     <div class="kpi" onclick="contFiltroKpi('')" style="cursor:pointer;${_ckAct('')}"><div class="kl"><svg class=ot-i><use href=#i-file-pen-line></use></svg> Contratos</div><div class="kv">${cts.length}</div><div class="kd neu">cadastrados</div></div>
     <div class="kpi" onclick="contFiltroKpi('quitado')" style="cursor:pointer;${_ckAct('quitado')}"><div class="kl"><svg class=ot-i><use href=#i-circle-check></use></svg> Total Pago</div><div class="kv" style="color:var(--green);font-size:15px">${fmtR(totalPago)}</div><div class="kd up">${totalValor?Math.round(totalPago/totalValor*100):0}% quitado</div></div>
     <div class="kpi" onclick="contFiltroKpi('atrasado')" style="cursor:pointer;${_ckAct('atrasado')}"><div class="kl"><svg class=ot-i><use href=#i-triangle-alert></use></svg> Atrasados</div><div class="kv" style="color:${atrasados?'var(--red)':'var(--green)'};font-size:15px">${atrasados}</div><div class="kd ${atrasados?'dn':'neu'}">${atrasados?'com atraso':'Tudo OK'}</div></div>
-    <div class="kpi" onclick="contFiltroKpi('andamento')" style="cursor:pointer;${_ckAct('andamento')}"><div class="kl"><svg class=ot-i><use href=#i-hourglass></use></svg> Em andamento</div><div class="kv" style="color:var(--primary);font-size:15px">${cts.filter(c=>contStatus(c)==='andamento').length}</div><div class="kd neu">contratos</div></div>`;
+    <div class="kpi" onclick="contFiltroKpi('ativo')" style="cursor:pointer;${_ckAct('ativo')}"><div class="kl"><svg class=ot-i><use href=#i-hourglass></use></svg> Em andamento</div><div class="kv" style="color:var(--primary);font-size:15px">${cts.filter(c=>contStatus(c)==='ativo').length}</div><div class="kd neu">contratos</div></div>`;
 
   // Filtros
   const q=(document.getElementById('cont-search')?.value||'').toLowerCase();
@@ -51,7 +51,7 @@ function renderContratos(){
   if(!filtrados.length){
     el.innerHTML='<div class="t-empty">Nenhum contrato'+( cts.length?' com esses filtros.':'. <button class="btn pri sm" onclick="openModal(&apos;contrato&apos;)" style="margin-left:8px">＋ Cadastrar</button>')+'</div>';
   } else {
-    el.innerHTML=`<table class="tbl">
+    el.innerHTML=`<div style="overflow-x:auto"><table class="tbl">
       <tr><th>Nº</th><th>Descrição</th><th>Fornecedor</th><th>Obra</th><th>Assinatura</th><th>Prazo</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo Dev.</th><th style="text-align:center">Status</th><th></th></tr>`
       +filtrados.map(ct=>{
         const pago=_contPago(ct.id);
@@ -79,14 +79,15 @@ function renderContratos(){
           <div class="pw" style="margin-top:2px"><div class="pb" style="width:${Math.min(pct,100)}%;background:${pct>=100?'var(--green)':pct>=50?'var(--primary)':'var(--yellow)'}"></div></div>
           <span style="font-size:10px;color:var(--txt3)">${pct}% pago</span>
         </td></tr>`;
-      }).join('')+'</table>';
+      }).join('')+'</table></div>';
   }
 
   // Tabela de pagamentos
-  const pgtos=DB.pgtos.sort((a,b)=>b.data.localeCompare(a.data));
+  // Medições sempre atualizadas (antes não renderizava quando ainda não havia pagamentos)
+  renderMedicoes();
+  const pgtos=[...DB.pgtos].sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
   const el2=document.getElementById('cont-pgtos-tbl');
   if(!pgtos.length){el2.innerHTML='<div class="t-empty">Nenhum pagamento registrado.</div>';return;}
-  renderMedicoes();
   el2.innerHTML=`<table class="tbl">
     <tr><th>Data</th><th>Contrato</th><th>Fornecedor</th><th>Descrição</th><th>Obra</th><th>Categoria</th><th>C. Custo</th><th style="text-align:right">Valor</th><th></th></tr>`
     +pgtos.map(p=>{
@@ -263,20 +264,44 @@ function medPctToValor(){
   medCalcAcum();
 }
 
+// Ao trocar o contrato na medição: obra do contrato e próximo número daquele contrato
+function medContratoChange(){
+  const ctId=document.getElementById('med-ct')?.value;
+  const ct=DB.contratos.find(c=>c.id===ctId);
+  const ob=document.getElementById('med-obra');
+  if(ct&&ob&&ct.obraId) ob.value=ct.obraId;
+  if(!window._medEditId){
+    const n=document.getElementById('med-num');
+    if(n) n.value=Math.max(0,...DB.medicoes.filter(m=>m.contratoId===ctId).map(m=>Number(m.numero||0)))+1;
+  }
+  if(document.getElementById('med-modo-p')?.checked) medPctToValor(); else medCalcAcum();
+}
+
 function medCalcAcum(){
   const ctId=document.getElementById('med-ct')?.value;
   const valor=parseFloat(document.getElementById('med-valor')?.value)||0;
   if(!ctId||!valor) return;
   // Somar medições aprovadas anteriores deste contrato
   const pago=DB.medicoes
-    .filter(m=>m.contratoId===ctId&&m.status!=='reprovado')
+    .filter(m=>m.contratoId===ctId&&m.status!=='reprovado'&&m.id!==window._medEditId)
     .reduce((a,m)=>a+Number(m.valorMedido||0),0);
   const acumEl=document.getElementById('med-acum');
   if(acumEl) acumEl.value=(pago+valor).toFixed(2);
 }
 
 function delMedicao(id){
-  if(!confirm('Excluir medição?'))return;
+  const m=DB.medicoes.find(x=>x.id===id); if(!m) return;
+  // Pagamento/lançamento gerados na aprovação têm a descrição "[BM-001] ..." e o mesmo valor
+  const pref='[BM-'+String(m.numero||'1').padStart(3,'0')+']';
+  const pgs=m.status==='aprovado'?DB.pgtos.filter(p=>String(p.contratoId)===String(m.contratoId)&&String(p.desc||'').startsWith(pref)&&Math.abs(Number(p.valor)-Number(m.valorMedido))<0.01):[];
+  const lcs=m.status==='aprovado'?DB.lancs.filter(l=>String(l.desc||'').startsWith(pref)&&String(l.obraId)===String(m.obraId)&&Math.abs(Number(l.valor)-Number(m.valorMedido))<0.01):[];
+  const msg=m.status==='aprovado'
+    ?'Esta medição já foi aprovada. Excluir também '+(pgs.length?'o pagamento ':'')+(pgs.length&&lcs.length?'e ':'')+(lcs.length?'o lançamento financeiro ':'')+'gerados na aprovação?'
+    :'Excluir medição?';
+  if(!confirm(msg))return;
+  pgs.forEach(p=>{if(typeof p.id==='string'&&p.id.includes('-'))supaDelete('pagamentos',p.id);});
+  lcs.forEach(l=>{if(typeof l.id==='string'&&l.id.includes('-'))supaDelete('lancamentos',l.id);});
+  DB.pgtos=DB.pgtos.filter(p=>!pgs.includes(p)); DB.lancs=DB.lancs.filter(l=>!lcs.includes(l));
   supaDelete('medicoes',id);
   DB.medicoes=DB.medicoes.filter(m=>m.id!==id);
   save();renderContratos();renderMedicoes();toast('🗑️','Medição excluída.');
@@ -513,11 +538,13 @@ function contFiltroKpi(status){
   renderContratos();
 }
 function delContrato(id){
-  if(!confirm('Excluir contrato? Os pagamentos associados também serão removidos.'))return;
+  if(!confirm('Excluir contrato? Os pagamentos e as medições deste contrato também serão removidos.'))return;
   if(typeof id==='string'&&id.includes('-')) supaDelete('contratos',id);
   DB.pgtos.filter(p=>String(p.contratoId)===String(id)).forEach(p=>{if(typeof p.id==='string'&&p.id.includes('-'))supaDelete('pagamentos',p.id);});
   DB.pgtos=DB.pgtos.filter(p=>String(p.contratoId)!==String(id));
   DB.lancs=DB.lancs.filter(l=>!l._pgtoId||String(l._pgtoId)!==String(id));
+  (DB.medicoes||[]).filter(m=>String(m.contratoId)===String(id)).forEach(m=>{if(typeof m.id==='string'&&m.id.includes('-'))supaDelete('medicoes',m.id);});
+  DB.medicoes=(DB.medicoes||[]).filter(m=>String(m.contratoId)!==String(id));
   DB.contratos=DB.contratos.filter(c=>String(c.id)!==String(id));
   save();renderContratos();toast('🗑️','Contrato excluído.');
 }

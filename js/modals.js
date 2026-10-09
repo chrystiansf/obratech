@@ -648,7 +648,9 @@ function openModal(type,editId=null,editId2=null){
     title=med?'Editar Medição':'<svg class=ot-i><use href=#i-ruler></use></svg> Nova Medição';
     const ctOpts=DB.contratos.map(c=>`<option value="${c.id}" ${(med?.contratoId||contratoIdPre)===c.id?'selected':''}>${c.numero||c.descricao?.substring(0,30)} — ${c.forn||'—'}</option>`).join('');
     // Calcular próximo número de medição
-    const proxNum=med?.numero||((DB.medicoes||[]).length+1);
+    window._medEditId=med?.id||null;
+    const ctIni=med?.contratoId||contratoIdPre||DB.contratos[0]?.id;
+    const proxNum=med?.numero||(Math.max(0,...(DB.medicoes||[]).filter(m=>m.contratoId===ctIni).map(m=>Number(m.numero||0)))+1);
     window._medFotos=med?.fotos?[...med.fotos]:[];
     const renderMedFotos=()=>{
       const g=document.getElementById('med-foto-grid');if(!g)return;
@@ -668,14 +670,14 @@ function openModal(type,editId=null,editId2=null){
       <div class="g g2">
         <!-- Linha 1: Contrato + Nº -->
         <div class="fg"><label class="lbl">Contrato *</label>
-          <select class="sel" id="med-ct" onchange="medCalcAcum()">${ctOpts}</select></div>
+          <select class="sel" id="med-ct" onchange="medContratoChange()">${ctOpts}</select></div>
         <div class="fg"><label class="lbl">Nº da Medição</label>
           <input type="number" class="inp" id="med-num" value="${proxNum}" min="1"></div>
         <!-- Linha 2: Período + Obra -->
         <div class="fg"><label class="lbl">Período de Referência *</label>
           <input type="month" class="inp" id="med-periodo" value="${med?.periodo?.substring(0,7)||new Date().toISOString().substring(0,7)}"></div>
         <div class="fg"><label class="lbl">Obra</label>
-          <select class="sel" id="med-obra">${DB.obras.map(o=>'<option value="'+o.id+'"'+(String(med?.obraId||DB.contratos.find(c=>c.id===(med?.contratoId||contratoIdPre))?.obraId)===String(o.id)?' selected':'')+'>'+o.nome+'</option>').join('')}</select></div>
+          <select class="sel" id="med-obra">${DB.obras.map(o=>'<option value="'+o.id+'"'+(String(med?.obraId||DB.contratos.find(c=>c.id===ctIni)?.obraId)===String(o.id)?' selected':'')+'>'+o.nome+'</option>').join('')}</select></div>
         <!-- Linha 3: Modo de medição -->
         <div class="fg" style="grid-column:span 2">
           <label class="lbl">Forma de Medição</label>
@@ -741,8 +743,10 @@ function openModal(type,editId=null,editId2=null){
       const exec=document.getElementById('med-exec')?.value.trim()||'';
       const fotos=window._medFotos||[];
       const fotosJson=JSON.stringify(fotos);
+      if(!DB.contratos.length){toast('⚠️','Cadastre um contrato antes de lançar medições.');return false;}
       if(!ctId){toast('⚠️','Selecione um contrato!');return false;}
       if(!valor){toast('⚠️','Informe o valor da medição!');return false;}
+      window._medEditId=null;
       const dados={contratoId:ctId,obraId,numero:num,periodo,valorMedido:valor,valorAcumulado:acum,pctMedido,status:med?.status||'pendente',exec,obs,fotos};
       if(med){
         Object.assign(med,dados);
@@ -931,8 +935,9 @@ function openModal(type,editId=null,editId2=null){
   }
 
   if(!title)return;
-  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="closeModal()"><svg class=ot-i><use href=#i-x></use></svg></div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar</button></div></div></div>`;
+  root.innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)fecharModalSeguro()"><div class="mo"><div class="moh"><div class="mot">${title}</div><div class="mox" onclick="fecharModalSeguro()"><svg class=ot-i><use href=#i-x></use></svg></div></div><div class="mob">${body}</div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="if(window._mSave&&window._mSave())closeModal()"><svg class=ot-i><use href=#i-circle-check></use></svg> Salvar</button></div></div></div>`;
   window._mSave=onSave;
+  window._modalSujo=false;
   // Executar callback pós-render (ex: grids de fotos)
   if(window._postModalRender){
     const cb=window._postModalRender;
@@ -960,15 +965,16 @@ async function _refreshLancEtapas(obraVal){
   }
   sel.innerHTML=opts;
 }
-function _refreshCtEtapas(obraVal){
+async function _refreshCtEtapas(obraVal){
   const sel=document.getElementById('ct-etapa');if(!sel)return;
   let opts='<option value="">— Selecionar —</option>';
   DB.etapas.filter(e=>!obraVal||String(e.obraId)==String(obraVal)).forEach(e=>{
     opts+=`<option value="${e.nome}">${e.nome}</option>`;
   });
   if(obraVal){
-    const orcGrupos=typeof _orcGet==='function'?_orcGet(obraVal):[];
-    const gruposComValor=orcGrupos.filter(g=>g.subs.some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
+    let orcGrupos=[];
+    try{ orcGrupos=typeof _orcGet==='function'?((await _orcGet(obraVal))||[]):[]; }catch(e){ orcGrupos=[]; }
+    const gruposComValor=(Array.isArray(orcGrupos)?orcGrupos:[]).filter(g=>(g.subs||[]).some(s=>(Number(s.qtd)||0)>0&&(Number(s.unit)||0)>0));
     if(gruposComValor.length){
       gruposComValor.forEach(g=>{
         opts+=`<option value="${g.cod} - ${g.nome}">${g.cod} - ${g.nome}</option>`;
@@ -977,7 +983,13 @@ function _refreshCtEtapas(obraVal){
   }
   sel.innerHTML=opts;
 }
-function closeModal(){document.getElementById('modal-root').innerHTML='';window._mSave=null;}
+function closeModal(){document.getElementById('modal-root').innerHTML='';window._mSave=null;window._modalSujo=false;}
+// Fecha pelo X ou clicando fora: se algo foi digitado, pergunta antes de descartar
+function fecharModalSeguro(){
+  if(window._modalSujo&&!confirm('Descartar o que foi digitado?')) return;
+  closeModal();
+}
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#modal-root .mo'))window._modalSujo=true;},true);
 
 // Previne fechamento do modal ao arrastar texto para fora
 document.addEventListener('mousedown',e=>{

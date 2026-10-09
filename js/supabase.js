@@ -729,7 +729,7 @@ function mapContrato(r){return{id:r.id,obraId:r.obra_id,numero:r.numero,descrica
 function mapChecklist(r){return{id:r.id,obraId:r.obra_id,etapaNome:r.etapa_nome,item:r.item,status:r.status||'pendente',obs:r.obs,resp:r.responsavel,data:r.data,fotos:r.fotos?JSON.parse(r.fotos):([]),_supa:true};}
 function mapTerceirizado(r){return{id:r.id,nome:r.nome,empresa:r.empresa,funcao:r.funcao||'',cpf:r.cpf||'',celular:r.celular||'',obraId:r.obra_id,_supa:true};}
 function mapPontoTerc(r){return{id:r.id,tercId:r.terceirizado_id,obraId:r.obra_id,data:r.data,presente:r.presente,_supa:true};}
-function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',exec:r.exec||'',obs:r.obs,fotos:r.fotos?JSON.parse(r.fotos):[],aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
+function mapMedicao(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,numero:r.numero,periodo:r.periodo,valorMedido:Number(r.valor_medido||0),valorAcumulado:Number(r.valor_acumulado||0),status:r.status||'pendente',exec:r.exec||'',obs:r.obs,fotos:(()=>{try{const f=typeof r.fotos==='string'?JSON.parse(r.fotos):r.fotos;return Array.isArray(f)?f:[];}catch(e){return[];}})(),aprovadoPor:r.aprovado_por,aprovadoEm:r.aprovado_em,_supa:true};}
 function mapPgto(r){return{id:r.id,contratoId:r.contrato_id,obraId:r.obra_id,data:r.data,valor:Number(r.valor||0),desc:r.descricao,nf:r.nota_fiscal,forn:r.fornecedor,tipo:r.tipo,cat:r.categoria,cc:r.centro_custo,_supa:true};}
 function mapNc(r){return{id:r.id,numero:r.numero,obraId:r.obra_id,etapa:r.etapa,desc:r.descricao,grau:r.grau,prazo:r.prazo,resp:r.responsavel,status:r.status,acao:r.acao,_supa:true};}
 function mapSolicitacao(r){return{id:r.id,obraId:r.obra_id,etapaId:r.etapa_id,item:r.item,unidade:r.unidade,quantidade:Number(r.quantidade||0),urgencia:r.urgencia||'normal',status:r.status||'aberta',solicitante:r.solicitante,obs:r.obs,criadoEm:r.criado_em,_supa:true};}
@@ -885,7 +885,7 @@ function iniciarRealtime(){
         lancamentos:'data',rdos:'data',estoque:'material',movimentacoes:'data',
         contratos:'criado_em',pagamentos:'data',nao_conformidades:'criado_em',pontos:'data',
         demandas:'criado_em',fornecedores_cadastro:'nome',categorias:'nome',centros_custo:'nome',
-        terceirizados:'nome',pontos_terceirizados:'data',investidores:'nome',aportes:'data'};
+        terceirizados:'nome',pontos_terceirizados:'data',investidores:'nome',aportes:'data',medicoes:'numero'};
       const asc={aportes:false,lancamentos:false,rdos:false,movimentacoes:false,pagamentos:false};
       const {data,error}=await supa.from(tabela).select('*').eq('empresa_id',eid)
         .order(orders[tabela]||'criado_em',{ascending:asc[tabela]!==false?true:false});
@@ -924,7 +924,7 @@ function iniciarRealtime(){
 
   const tabelas=['obras','etapas','colaboradores','lancamentos','rdos','estoque',
     'movimentacoes','contratos','pagamentos','nao_conformidades','pontos','demandas','fornecedores_cadastro','categorias','centros_custo','terceirizados','pontos_terceirizados',
-    'compras_solicitacoes','compras_cotacoes','compras_pedidos','compras_orcamentos','investidores','aportes'];
+    'compras_solicitacoes','compras_cotacoes','compras_pedidos','compras_orcamentos','investidores','aportes','medicoes'];
 
   const ch=supa.channel('obratech-realtime-'+eid);
   tabelas.forEach(t=>{
