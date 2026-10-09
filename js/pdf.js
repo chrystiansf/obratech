@@ -579,7 +579,10 @@ async function gerarRDOPDF(rdo, opts) {
     // Retornar o doc para preview inline
     return doc;
   }
-  doc.save('RDO_' + (obra?.nome || 'obra').replace(/\s/g, '_') + '_' + rdo.data + '.pdf');
+  // Nome do arquivo: "RDO NOME DA OBRA DD-MM-AAAA.pdf" (ex.: RDO ALPHA H05 10-08-2026.pdf)
+  const nomeObraArq = (obra?.nome || 'OBRA').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+  const dataArq = rdo.data ? String(rdo.data).slice(0, 10).split('-').reverse().join('-') : '';
+  doc.save(('RDO ' + nomeObraArq + ' ' + dataArq).trim() + '.pdf');
   toast('📄', 'RDO exportado (' + (rdo.fotos?.length || 0) + ' foto(s))!');
 }
 // ─────────────────────────────────────────────────────────────────
