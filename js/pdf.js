@@ -70,23 +70,30 @@ function _pdfCarregarImg(src, maxPx, fmt, q) {
 
 // Recorta a imagem para a proporção pedida, centralizando (equivalente a object-fit: cover)
 function _pdfRecorteCover(src, prop, largPx, q) {
-  return new Promise((ok, err) => {
-    const img = new Image();
-    img.onload = () => {
-      const W = largPx, H = Math.round(largPx / prop);
-      const iw = img.naturalWidth, ih = img.naturalHeight;
-      let sw, sh, sx, sy;
-      if (iw / ih > prop) { sh = ih; sw = ih * prop; sx = (iw - sw) / 2; sy = 0; }
-      else { sw = iw; sh = iw / prop; sx = 0; sy = (ih - sh) / 2; }
-      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-      const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-      g.imageSmoothingQuality = 'high';
-      g.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-      ok(cv.toDataURL('image/jpeg', q || 0.85));
-    };
-    img.onerror = () => err(new Error('Imagem inválida'));
-    img.src = src;
+  // Uma única decodificação: recorta no centro (object-fit: cover) e já reduz ao tamanho final
+  const desenhar = (fonte, iw, ih) => {
+    const W = largPx, H = Math.round(largPx / prop);
+    let sw, sh, sx, sy;
+    if (iw / ih > prop) { sh = ih; sw = ih * prop; sx = (iw - sw) / 2; sy = 0; }
+    else { sw = iw; sh = iw / prop; sx = 0; sy = (ih - sh) / 2; }
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(fonte, sx, sy, sw, sh, 0, 0, W, H);
+    return cv.toDataURL('image/jpeg', q || 0.85);
+  };
+  const viaImg = url => new Promise((ok, err) => {
+    const img = new Image(); if (!/^(data|blob):/.test(url)) img.crossOrigin = 'anonymous';
+    img.onload = () => { try { ok(desenhar(img, img.naturalWidth, img.naturalHeight)); } catch (e) { err(e); } };
+    img.onerror = () => err(new Error('Imagem inválida')); img.src = url;
   });
+  // Endereço da internet: baixa como blob (evita bloqueio de CORS no canvas); dataURL/blob: direto
+  if (/^https?:/.test(src)) {
+    return fetch(src).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+      .then(blob => { const u = URL.createObjectURL(blob); return viaImg(u).finally(() => URL.revokeObjectURL(u)); })
+      .catch(() => viaImg(src));
+  }
+  return viaImg(src);
 }
 
 // Prepara a logo da empresa uma única vez (reduzida) para uso rápido nos PDFs
@@ -105,16 +112,16 @@ function prepararLogoPDF() {
   return p;
 }
 setTimeout(prepararLogoPDF, 2500);
+setTimeout(() => _pdfCarregarFontes(), 4000);   // fontes prontas antes do 1º PDF
 setTimeout(prepararLogoPDF, 8000);
 
 // ── Fontes da marca nos PDFs (Manrope + Tenor Sans) — embutidas no arquivo
 // Em teste: por enquanto só o RDO chama _pdfUsarFontesMarca(doc). Os demais relatórios seguem em Helvetica.
 const _PDF_FONTES = {
   'Manrope-Regular': 'brand/fonts/Manrope-Regular.ttf',
-  'Manrope-Medium': 'brand/fonts/Manrope-Medium.ttf',
   'Manrope-SemiBold': 'brand/fonts/Manrope-SemiBold.ttf',
-  'Manrope-Bold': 'brand/fonts/Manrope-Bold.ttf',
   'TenorSans-Regular': 'brand/fonts/TenorSans-Regular.ttf',
+  // Manrope Medium e Bold estão em brand/fonts, mas não são usados (não baixamos à toa)
 };
 let _pdfFontesB64 = null, _pdfFontesProm = null;
 function _pdfCarregarFontes() {
@@ -129,14 +136,13 @@ function _pdfCarregarFontes() {
     .catch(e => { console.warn('Fontes do PDF indisponíveis, usando Helvetica:', e.message); _pdfFontesProm = null; return null; });
   return _pdfFontesProm;
 }
-// Registra as fontes no documento. Estilos: normal=Regular, medium=Medium, bold=SemiBold,
-// extrabold=Bold (Manrope não tem itálico: 'italic' usa o Regular). Tenor Sans tem um único peso.
+// Registra as fontes no documento. Estilos: normal=Regular, bold=SemiBold
+// (Manrope não tem itálico: 'italic' usa o Regular). Tenor Sans tem um único peso.
 async function _pdfUsarFontesMarca(doc) {
   const f = await _pdfCarregarFontes(); if (!f) return false;
   const reg = (arq, familia, estilo) => { doc.addFileToVFS(arq + '.ttf', f[arq]); doc.addFont(arq + '.ttf', familia, estilo); };
   reg('Manrope-Regular', 'Manrope', 'normal'); reg('Manrope-Regular', 'Manrope', 'italic');
-  reg('Manrope-Medium', 'Manrope', 'medium'); reg('Manrope-SemiBold', 'Manrope', 'bold');
-  reg('Manrope-Bold', 'Manrope', 'extrabold');
+  reg('Manrope-SemiBold', 'Manrope', 'bold');
   reg('TenorSans-Regular', 'TenorSans', 'normal'); reg('TenorSans-Regular', 'TenorSans', 'bold');
   doc.__fonte = true; doc.setFont('Manrope', 'normal');
   return true;
@@ -483,8 +489,7 @@ async function gerarRDOPDF(rdo, opts) {
       if (!imgSrc) return null;
       const chave = 'cover43|' + imgSrc;
       if (_pdfFotoCache.has(chave)) return _pdfFotoCache.get(chave);
-      return _pdfCarregarImg(imgSrc, 1600, 'jpeg', 0.92)
-        .then(r => _pdfRecorteCover(r.data, 4 / 3, 1050, 0.85))
+      return _pdfRecorteCover(imgSrc, 4 / 3, 1050, 0.85)
         .then(d => { if (_pdfFotoCache.size > 80) _pdfFotoCache.clear(); _pdfFotoCache.set(chave, d); return d; })
         .catch(() => null);
     }));
