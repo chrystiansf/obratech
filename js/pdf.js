@@ -72,10 +72,10 @@ function _pdfCarregarImg(src, maxPx, fmt, q) {
 function prepararLogoPDF() {
   const src = (typeof _empresaLogo !== 'undefined') ? _empresaLogo : null;
   if (!src) { _logoPdf = null; return Promise.resolve(null); }
-  if (_logoPdf && _logoPdf.src === src) return Promise.resolve(_logoPdf);
+  if (_logoPdf && _logoPdf.src === src && _logoPdf.v === 2) return Promise.resolve(_logoPdf);
   if (_logoPdfLoading && _logoPdfLoading.src === src) return _logoPdfLoading.p;
-  const p = _pdfCarregarImg(src, 400, 'png').then(r => {
-    _logoPdf = { src, data: r.data, w: r.w, h: r.h };
+  const p = _pdfCarregarImg(src, 1000, 'png').then(r => {
+    _logoPdf = { src, data: r.data, w: r.w, h: r.h, v: 2 };
     try { localStorage.setItem('_ot_logo_pdf', JSON.stringify(_logoPdf)); } catch (e) {}
     return _logoPdf;
   }).catch(e => { console.warn('Logo PDF:', e); return null; })
@@ -92,69 +92,57 @@ function pHdr(doc, title, sub, _accent) {
   const W = doc.internal.pageSize.getWidth();
   const hdrH = 30;
   const ce = corEmpresa();
+  // Tons claros derivados da cor da empresa (RGB — 4 números seria CMYK e sairia preto)
+  const claro = f => ce.map(c => Math.round(255 - (255 - c) * f));
   // Fundo com cor da empresa
   doc.setFillColor(...ce); doc.rect(0, 0, W, hdrH, 'F');
   // Linha accent inferior
-  const accentRgb = [Math.min(ce[0]+30,255), Math.min(ce[1]+50,255), Math.min(ce[2]+100,255)];
-  doc.setFillColor(...accentRgb); doc.rect(0, hdrH, W, 1.2, 'F');
+  doc.setFillColor(...claro(0.55)); doc.rect(0, hdrH, W, 1.2, 'F');
 
-  // Logo — manter proporção original
-  const logoMaxH = 18, logoMaxW = 40;
-  const logoY = (hdrH - logoMaxH) / 2 + 1;
-  let textStartX = 10;
+  const sepX = W * 0.45;
+  const emitido = 'Emitido em ' + new Date().toLocaleDateString('pt-BR');
+  let temLogo = false;
+
+  // Logo — ocupa toda a área à esquerda do separador, mantendo a proporção
   if (_empresaLogo) {
     try {
-      // Usar logo pré-processada (rápido). Se ainda não estiver pronta, prepara para a próxima vez
-      const lp = (_logoPdf && _logoPdf.src === _empresaLogo) ? _logoPdf : null;
+      const lp = (_logoPdf && _logoPdf.src === _empresaLogo && _logoPdf.v === 2) ? _logoPdf : null;
       if (!lp) prepararLogoPDF();
       const props = lp ? { width: lp.w, height: lp.h } : doc.getImageProperties(_empresaLogo);
       const ratio = props.width / props.height;
-      let drawW, drawH;
-      if (ratio >= 1) {
-        // Imagem horizontal — limitar pela largura
-        drawW = Math.min(logoMaxW, logoMaxH * ratio);
-        drawH = drawW / ratio;
-      } else {
-        // Imagem vertical — limitar pela altura
-        drawH = logoMaxH;
-        drawW = drawH * ratio;
-      }
-      const drawY = (hdrH - drawH) / 2 + 0.5;
-      doc.addImage(lp ? lp.data : _empresaLogo, 'PNG', 10, drawY, drawW, drawH, 'emp_logo', 'FAST');
-      textStartX = 10 + drawW + 5;
-    } catch(e) { textStartX = 10; }
+      const boxX = 10, boxY = 4, boxW = sepX - boxX - 6, boxH = hdrH - 8;
+      let drawW = boxW, drawH = boxW / ratio;
+      if (drawH > boxH) { drawH = boxH; drawW = boxH * ratio; }
+      const drawY = boxY + (boxH - drawH) / 2;
+      doc.addImage(lp ? lp.data : _empresaLogo, 'PNG', boxX, drawY, drawW, drawH, 'emp_logo', 'FAST');
+      temLogo = true;
+    } catch(e) { temLogo = false; }
   }
 
-  // Texto ao lado da logo (nome da empresa ou fallback)
-  if (textStartX === 10) {
+  // Sem logo: nome da empresa à esquerda
+  if (!temLogo) {
     const nomeEmp = localStorage.getItem('_ot_empresa_nome') || 'OBRATECH';
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
-    doc.text(nomeEmp.toUpperCase(), 10, hdrH / 2 - 1);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.setTextColor(255, 255, 255, 180);
-    doc.text('Emitido em ' + new Date().toLocaleDateString('pt-BR'), 10, hdrH / 2 + 5);
-  } else {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.setTextColor(255, 255, 255, 180);
-    doc.text('Emitido em ' + new Date().toLocaleDateString('pt-BR'), textStartX, hdrH / 2 + 2);
+    doc.text(nomeEmp.toUpperCase(), 10, hdrH / 2 + 1.5);
   }
 
   // Separador vertical
-  const sepX = W * 0.45;
-  doc.setDrawColor(255, 255, 255, 60); doc.setLineWidth(0.3);
+  doc.setDrawColor(...claro(0.45)); doc.setLineWidth(0.3);
   doc.line(sepX, 6, sepX, hdrH - 6);
 
-  // Título do relatório (direita)
+  // Direita: título, subtítulo e data de emissão
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
   doc.setTextColor(255, 255, 255);
-  doc.text(title.toUpperCase(), W - 10, hdrH / 2 - 2, { align: 'right' });
-  // Subtítulo
+  doc.text(title.toUpperCase(), W - 10, sub ? hdrH / 2 - 3.5 : hdrH / 2 - 1, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
   if (sub) {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.setTextColor(255, 255, 255, 180);
-    doc.text(String(sub).substring(0, 70), W - 10, hdrH / 2 + 5, { align: 'right' });
+    doc.setFontSize(8); doc.setTextColor(...claro(0.18));
+    doc.text(String(sub).substring(0, 70), W - 10, hdrH / 2 + 2.5, { align: 'right' });
   }
+  doc.setFontSize(6.5); doc.setTextColor(...claro(0.3));
+  doc.text(emitido, W - 10, sub ? hdrH / 2 + 8 : hdrH / 2 + 4.5, { align: 'right' });
+
   doc.setTextColor(...PX.ink); doc.setLineWidth(0.2);
   return hdrH + 6;
 }
