@@ -616,3 +616,16 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
   .oto-lista { grid-template-columns: 1fr; }
   .oto-card { min-height: 0; padding: 12px 14px; }
 }
+
+/* Barra de filtros fixa acima das tabelas (não é redesenhada junto com a lista) */
+.ot-filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 0 0 12px; }
+.ot-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ot-f > span { font: 500 11px/14px var(--ot-font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ot-text-muted); }
+.ot-f .inp, .ot-f .sel { height: 36px; min-height: 36px; width: 150px; font-size: 13px; }
+.ot-f-busca .inp { width: 220px; }
+.ot-f .ot-data-wrap { width: 150px; }
+@media (max-width: 768px) {
+  .ot-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ot-f-busca { grid-column: 1 / -1; }
+  .ot-f .inp, .ot-f .sel, .ot-f-busca .inp, .ot-f .ot-data-wrap { width: 100% !important; height: 44px; min-height: 44px; font-size: 15px; }
+}

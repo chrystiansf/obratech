@@ -753,16 +753,7 @@ function exportFolhaPDF() {
 // 4. DRE — DEMONSTRATIVO FINANCEIRO
 // ─────────────────────────────────────────────────────────────────
 function _finLancsFiltrados() {
-  return DB.lancs.filter(l => {
-    if (_finFiltros.obra !== null && !_finFiltros.obra.has(String(l.obraId))) return false;
-    if (_finFiltros.tipo !== null && !_finFiltros.tipo.has(l.tipo||'—'))       return false;
-    if (_finFiltros.cat  !== null && !_finFiltros.cat.has(l.cat||'—'))         return false;
-    if (_finFiltros.cc   !== null && !_finFiltros.cc.has(l.cc||'—'))           return false;
-    if (_finFiltros.forn !== null && !_finFiltros.forn.has(l.forn||'—'))       return false;
-    if (_finFiltros.dataIni && l.data < _finFiltros.dataIni) return false;
-    if (_finFiltros.dataFim && l.data > _finFiltros.dataFim) return false;
-    return true;
-  });
+  return DB.lancs.filter(_finPassa);   // mesma regra da tela (js/financeiro.js)
 }
 
 // ── Exportar lançamentos financeiros (filtros atuais) para Excel

@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="css/style.css?v=20261006b">
-<link rel="stylesheet" href="css/brand.css?v=20261011c">
+<link rel="stylesheet" href="css/brand.css?v=20261011d">
 <script>/* tema antes de pintar a tela: claro é o padrão */try{if(localStorage.getItem('og_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -534,7 +534,6 @@ Areia média — 8 m³"></textarea></div>
       <div class="card">
         <div class="ch"><div class="ct"><svg class=ot-i><use href=#i-credit-card></use></svg> Lançamentos</div>
           <div class="ca">
-            <input type="hidden" id="fin-busca-desc" value="">
             <select class="sel" id="fin-obra-rapido" style="height:34px;font-size:12px;width:170px" onchange="finFiltrarObra(this.value)">
               <option value="">Todas as obras</option>
             </select>
@@ -544,6 +543,15 @@ Areia média — 8 m³"></textarea></div>
             <button class="btn sm" onclick="abrirImportFinanceiro()"><svg class=ot-i><use href=#i-download></use></svg> Importar</button>
             <button class="btn sm pri" onclick="openModal('lanc')">＋ Lançamento</button>
           </div>
+        </div>
+        <div class="ot-filtros" id="fin-filtros">
+          <label class="ot-f ot-f-busca"><span>Descrição</span><input class="inp" id="fin-busca-desc" type="search" placeholder="Buscar..." oninput="clearTimeout(window._finDescTm);window._finDescTm=setTimeout(renderFin,250)"></label>
+          <label class="ot-f"><span>Valor</span><input class="inp" id="fin-busca-valor" type="search" inputmode="decimal" placeholder="Ex.: 1.500" oninput="window._finBuscaValorInput=this.value;clearTimeout(window._finValorTm);window._finValorTm=setTimeout(renderFin,250)"></label>
+          <label class="ot-f"><span>Período</span><select class="sel" id="fin-periodo" onchange="finPeriodo(this.value)">
+            <option value="">Todo o período</option><option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option>
+            <option value="mes">Este mês</option><option value="mesant">Mês passado</option><option value="ano">Este ano</option><option value="custom">Personalizado</option></select></label>
+          <label class="ot-f"><span>De</span><input class="inp" type="date" id="fin-data-ini" onchange="_finFiltros.dataIni=this.value;document.getElementById('fin-periodo').value=this.value||document.getElementById('fin-data-fim').value?'custom':'';renderFin()"></label>
+          <label class="ot-f"><span>Até</span><input class="inp" type="date" id="fin-data-fim" onchange="_finFiltros.dataFim=this.value;document.getElementById('fin-periodo').value=this.value||document.getElementById('fin-data-ini').value?'custom':'';renderFin()"></label>
         </div>
         <div id="fin-chips" class="fin-active-filters"></div>
         <div id="fin-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="lanc-tbl"></div></div>
@@ -1147,7 +1155,7 @@ Areia média — 8 m³"></textarea></div>
 <script src="js/rdo.js?v=20261009v"></script>
 <script src="js/equipe.js?v=20261006b"></script>
 <script src="js/estoque.js?v=20261006b"></script>
-<script src="js/financeiro.js?v=20261006b"></script>
+<script src="js/financeiro.js?v=20261011d"></script>
 <script src="js/contratos.js?v=20261010b"></script>
 <script src="js/orcamento.js?v=20261006b"></script>
 <script src="js/demandas.js?v=20261006b"></script>
@@ -1157,7 +1165,7 @@ Areia média — 8 m³"></textarea></div>
 <script src="js/fornecedores.js?v=20261009x"></script>
 <script src="js/qualidade.js?v=20261006b"></script>
 <script src="js/modals.js?v=20261011c"></script>
-<script src="js/pdf.js?v=20261011a"></script>
+<script src="js/pdf.js?v=20261011d"></script>
 <script src="js/relatorios.js?v=20261006b"></script>
 <script src="js/init.js?v=20261011c"></script>
 <script src="js/portal.js?v=20261009b"></script>

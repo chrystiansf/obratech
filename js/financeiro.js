@@ -325,12 +325,51 @@ function _finThBtn(campo,label){
 
 function finLimparFiltros(){
   Object.keys(_finFiltros).forEach(k=>_finFiltros[k]=k==='dataIni'||k==='dataFim'?'':null);
-  const sel=document.getElementById('fin-obra-rapido');
-  if(sel) sel.value='';
-  const busca=document.getElementById('fin-busca-desc');
-  if(busca) busca.value='';
+  ['fin-obra-rapido','fin-busca-desc','fin-busca-valor','fin-periodo','fin-data-ini','fin-data-fim'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   window._finBuscaValorInput='';
   renderFin();
+}
+
+// Período rápido (Hoje, 7/30 dias, este mês, mês passado, este ano)
+function finPeriodo(v){
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const h=new Date();let ini='',fim='';
+  if(v==='hoje'){ini=fim=iso(h);}
+  else if(v==='7'||v==='30'){const d=new Date(h);d.setDate(d.getDate()-(Number(v)-1));ini=iso(d);fim=iso(h);}
+  else if(v==='mes'){ini=iso(new Date(h.getFullYear(),h.getMonth(),1));fim=iso(new Date(h.getFullYear(),h.getMonth()+1,0));}
+  else if(v==='mesant'){ini=iso(new Date(h.getFullYear(),h.getMonth()-1,1));fim=iso(new Date(h.getFullYear(),h.getMonth(),0));}
+  else if(v==='ano'){ini=h.getFullYear()+'-01-01';fim=h.getFullYear()+'-12-31';}
+  else if(v==='custom'){document.getElementById('fin-data-ini')?.focus();return;}
+  _finFiltros.dataIni=ini;_finFiltros.dataFim=fim;
+  const a=document.getElementById('fin-data-ini'),b=document.getElementById('fin-data-fim');
+  if(a)a.value=ini;if(b)b.value=fim;
+  renderFin();
+}
+
+// Data em aaaa-mm-dd (aceita dd/mm/aaaa e data com hora) para comparar períodos
+function _dataISO(v){
+  if(!v) return '';
+  const s=String(v).trim();
+  const br=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if(br) return br[3]+'-'+br[2]+'-'+br[1];
+  return s.slice(0,10);
+}
+
+// Regra única de filtro do financeiro (tela, PDF e Excel usam a mesma)
+function _finPassa(l){
+  const desc=(document.getElementById('fin-busca-desc')?.value||'').toLowerCase().trim();
+  const val=(window._finBuscaValorInput||'').replace(/[^\d.,]/g,'').trim();
+  if(desc&&!((l.desc||'')+' '+(l.forn||'')+' '+(l.nf||'')).toLowerCase().includes(desc)) return false;
+  if(val){const vs=String(l.valor||0);const vf=fmtR(l.valor||0);if(!vs.includes(val)&&!vf.includes(val)&&!String(Number(l.valor).toFixed(2)).includes(val)) return false;}
+  if(_finFiltros.obra!==null&&!_finFiltros.obra.has(String(l.obraId))) return false;
+  if(_finFiltros.tipo!==null&&!_finFiltros.tipo.has(l.tipo||'—')) return false;
+  if(_finFiltros.cat!==null&&!_finFiltros.cat.has(l.cat||'—')) return false;
+  if(_finFiltros.cc!==null&&!_finFiltros.cc.has(l.cc||'—')) return false;
+  if(_finFiltros.forn!==null&&!_finFiltros.forn.has(l.forn||'—')) return false;
+  const d=_dataISO(l.data);
+  if(_finFiltros.dataIni&&(!d||d<_finFiltros.dataIni)) return false;
+  if(_finFiltros.dataFim&&(!d||d>_finFiltros.dataFim)) return false;
+  return true;
 }
 
 // Filtro rápido de obra no financeiro
@@ -355,18 +394,7 @@ function renderFin(){
   const isObra=true;
   const _finBuscaDesc=(document.getElementById('fin-busca-desc')?.value||'').toLowerCase().trim();
   const _finBuscaValor=(window._finBuscaValorInput||'').replace(/[^\d.,]/g,'').trim();
-  const lans=DB.lancs.filter(l=>{
-    if(_finBuscaDesc&&!(l.desc||'').toLowerCase().includes(_finBuscaDesc)) return false;
-    if(_finBuscaValor){const vs=String(l.valor||0);const vf=fmtR(l.valor||0);if(!vs.includes(_finBuscaValor)&&!vf.includes(_finBuscaValor)&&!String(Number(l.valor).toFixed(2)).includes(_finBuscaValor)) return false;}
-    if(_finFiltros.obra!==null&&!_finFiltros.obra.has(String(l.obraId))) return false;
-    if(_finFiltros.tipo!==null&&!_finFiltros.tipo.has(l.tipo||'—')) return false;
-    if(_finFiltros.cat!==null&&!_finFiltros.cat.has(l.cat||'—')) return false;
-    if(_finFiltros.cc!==null&&!_finFiltros.cc.has(l.cc||'—')) return false;
-    if(_finFiltros.forn!==null&&!_finFiltros.forn.has(l.forn||'—')) return false;
-    if(_finFiltros.dataIni&&l.data<_finFiltros.dataIni) return false;
-    if(_finFiltros.dataFim&&l.data>_finFiltros.dataFim) return false;
-    return true;
-  });
+  const lans=DB.lancs.filter(_finPassa);
   const dep=lans.filter(l=>l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
   // Orçamento das obras no filtro (ou todas)
   const _obrasOrc=_finFiltros.obra!==null?DB.obras.filter(o=>_finFiltros.obra.has(String(o.id))):DB.obras;
@@ -386,7 +414,7 @@ function renderFin(){
   const chipsEl=document.getElementById('fin-chips');
   if(chipsEl){
     const chips=[];
-    if(_finFiltros.dataIni||_finFiltros.dataFim)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-calendar></use></svg> ${_finFiltros.dataIni?fmtDt(_finFiltros.dataIni):'início'} → ${_finFiltros.dataFim?fmtDt(_finFiltros.dataFim):'fim'}<button onclick="_finFiltros.dataIni='';_finFiltros.dataFim='';renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.dataIni||_finFiltros.dataFim)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-calendar></use></svg> ${_finFiltros.dataIni?fmtDt(_finFiltros.dataIni):'início'} → ${_finFiltros.dataFim?fmtDt(_finFiltros.dataFim):'fim'}<button onclick="_finFiltros.dataIni='';_finFiltros.dataFim='';['fin-periodo','fin-data-ini','fin-data-fim'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     if(_finFiltros.obra!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-hard-hat></use></svg> ${_finFiltros.obra.size} obra(s)<button onclick="_finFiltros.obra=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     if(_finFiltros.tipo!==null)chips.push(`<span class="fin-fchip">${[..._finFiltros.tipo].join(' + ')}<button onclick="_finFiltros.tipo=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     if(_finFiltros.cat!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-folder-open></use></svg> ${_finFiltros.cat.size} categ.<button onclick="_finFiltros.cat=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
@@ -396,23 +424,21 @@ function renderFin(){
   }
 
   const el=document.getElementById('lanc-tbl');
-  if(!lans.length){
-    el.innerHTML='<div class="t-empty">Nenhum lançamento com os filtros atuais. <button class="btn sm" onclick="finLimparFiltros()" style="margin-left:8px"><svg class=ot-i><use href=#i-x></use></svg> Limpar filtros</button></div>';
-  } else {
-    const thData=`<th><div class="th-inner">DATA <div style="display:flex;gap:3px"><input type="date" title="De" style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 4px" value="${_finFiltros.dataIni}" onchange="_finFiltros.dataIni=this.value;renderFin()" onclick="event.stopPropagation()"><input type="date" title="Até" style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 4px" value="${_finFiltros.dataFim}" onchange="_finFiltros.dataFim=this.value;renderFin()" onclick="event.stopPropagation()"></div></div></th>`;
+  {
     el.innerHTML=`<table class="tbl tbl-filter-hdr">
       <tr>
-        ${thData}
-        <th><div class="th-inner">DESCRIÇÃO<input type="text" placeholder="Buscar..." style="height:22px;font-size:9px;width:120px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-desc" value="${_finBuscaDesc}" oninput="window._finDescVal=this.value;document.getElementById('fin-busca-desc').value=this.value;clearTimeout(window._finDescTm);window._finDescTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-desc');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
+        <th>DATA</th>
+        <th>DESCRIÇÃO</th>
         <th>${_finThBtn('obra','OBRA')}</th>
         <th>${_finThBtn('tipo','TIPO')}</th>
         <th>${_finThBtn('cat','CATEGORIA')}</th>
         <th>${_finThBtn('cc','C. CUSTO')}</th>
         <th>${_finThBtn('forn','FORNECEDOR')}</th>
-        <th style="text-align:right"><div class="th-inner">VALOR<input type="text" placeholder="Buscar..." style="height:22px;font-size:9px;width:100px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);padding:0 6px;margin-top:2px;display:block" id="fin-col-valor" value="${_finBuscaValor||''}" oninput="window._finBuscaValorInput=this.value;clearTimeout(window._finValorTm);window._finValorTm=setTimeout(()=>{renderFin();setTimeout(()=>{const el=document.getElementById('fin-col-valor');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},10)},300)" onclick="event.stopPropagation()"></div></th>
+        <th style="text-align:right">VALOR</th>
         <th></th>
       </tr>`
-      +lans.sort((a,b)=>b.data.localeCompare(a.data)).map(l=>{
+      +(lans.length?'':'<tr><td colspan="9" class="t-empty">Nenhum lançamento com os filtros atuais. <button class="btn sm" onclick="finLimparFiltros()" style="margin-left:8px"><svg class=ot-i><use href=#i-x></use></svg> Limpar filtros</button></td></tr>')
+      +lans.sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))).map(l=>{
         const o=DB.obras.find(x=>x.id==l.obraId);
         const neg=l.tipo==='Despesa';
         return`<tr>
