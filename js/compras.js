@@ -344,6 +344,7 @@ function renderPedidos(){
         <td style="font-size:11px">${p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):escHtml(p.previsaoEntrega)):'—'}</td>
         <td style="font-size:11px">${p.criadoEm?fmtDt(String(p.criadoEm).slice(0,10)):'—'}</td>
         <td><div class="ta-actions">
+          <button class="btn sm ico" onclick="pedEditar('${p.id}')" title="Editar itens e valores">${ic('pencil')}</button>
           <button class="btn sm" onclick="gerarOrdemCompraPDF('${p.id}')">PDF</button>
           <button class="btn sm ico" onclick="pedDel('${p.id}')" title="Excluir pedido"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div></td>
@@ -415,7 +416,7 @@ function openModalCotacao(editId, solId, modo){
   const c=editId?(DB.cotacoes||[]).find(x=>x.id===editId):null;
   const sId=solId||c?.solicitacaoId||'';
   const sol=(DB.solicitacoes||[]).find(s=>s.id===sId);
-  _orc={editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])).map(_orcMarcaTotal),texto:'',direta};
+  _orc={pedId:modo&&modo.pedId||'',editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])).map(_orcMarcaTotal),texto:'',direta};
   const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(f=>{const nome=typeof f==='object'?f.nome:f;return`<option${c?.fornecedor===nome?' selected':''}>${escHtml(nome)}</option>`;}).join('');
   const val=x=>Number(x)>0?x:'';
   document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:820px;max-width:97vw"><div class="moh"><div class="mot">${direta?ic('file-text')+' Ordem de compra direta':c?'Editar orcamento':'Novo orcamento'}${!direta&&sol?' — '+escHtml(sol.item):''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
@@ -557,6 +558,15 @@ function salvarCotacao(){
     const s=(DB.solicitacoes||[]).find(x=>x.id===solId);
     if(s&&s.status==='aberta'){s.status='cotando';supaUpdate('compras_solicitacoes',s.id,{status:'cotando'});}
   }
+  // Editando pelo pedido: o orçamento vira o vencedor e o pedido acompanha fornecedor, valor e prazo
+  if(_orc.pedId){
+    const ped=(DB.pedidosCompra||[]).find(x=>x.id===_orc.pedId);
+    const cot=(DB.cotacoes||[]).find(x=>x.id===(editId||(DB.cotacoes||[]).slice(-1)[0]?.id));
+    if(cot&&!cot.vencedor){cot.vencedor=true;supaUpdate('compras_cotacoes',cot.id,{vencedor:true});}
+    if(ped&&cot){ped.fornecedor=cot.fornecedor;ped.valorTotal=_cotLiquido(cot)||_cotMelhor(cot);ped.previsaoEntrega=cot.prazoEntrega||ped.previsaoEntrega;
+      supaUpdate('compras_pedidos',ped.id,{fornecedor:ped.fornecedor,valor_total:ped.valorTotal});}
+    save();closeModal();renderPedidos();toast('✅','Pedido atualizado! Gere o PDF de novo.');return;
+  }
   save();closeModal();renderCotacoes();toast('✅',editId?'Orcamento atualizado!':'Orcamento de '+forn+' adicionado!');
 }
 
@@ -570,6 +580,15 @@ function _pedValor(p){
     save();
   }
   return Number(p.valorTotal)||0;
+}
+
+// Editar itens/valores de um pedido já emitido (abre o orçamento vencedor dele)
+function pedEditar(pedId){
+  const p=(DB.pedidosCompra||[]).find(x=>x.id===pedId);if(!p)return;
+  const cot=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(p.solicitacaoId)&&c.vencedor);
+  openModalCotacao(cot?cot.id:null,p.solicitacaoId,{pedId});
+  if(!cot){setTimeout(()=>{const f=document.getElementById('cot-forn');if(f&&p.fornecedor){if(![...f.options].some(o=>o.value===p.fornecedor))f.insertAdjacentHTML('beforeend',`<option>${escHtml(p.fornecedor)}</option>`);f.value=p.fornecedor;}
+    const v=document.getElementById('cot-vtotal');if(v&&!v.value)v.value=p.valorTotal||'';},30);}
 }
 
 // ── Ordem de compra direta (sem solicitação/cotação) ─────────────────────
