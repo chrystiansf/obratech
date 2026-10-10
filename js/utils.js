@@ -87,3 +87,10 @@ function _dataISO(v){
   if(br) return br[3]+'-'+br[2]+'-'+br[1];
   return s.slice(0,10);
 }
+
+// Campo numérico selecionado + roda do mouse/touchpad: o navegador somava/subtraía 0,01 a cada giro
+// (ex.: R$ 60,00 virava 59,97 ao rolar a tela). Ao rolar sobre o campo, ele perde o foco e a página rola normalmente.
+document.addEventListener('wheel',e=>{
+  const el=document.activeElement;
+  if(el&&el.tagName==='INPUT'&&el.type==='number'&&(e.target===el||el.contains(e.target))) el.blur();
+},{passive:true,capture:true});

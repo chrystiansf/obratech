@@ -405,7 +405,7 @@ function openModalCotacao(editId, solId, modo){
   const c=editId?(DB.cotacoes||[]).find(x=>x.id===editId):null;
   const sId=solId||c?.solicitacaoId||'';
   const sol=(DB.solicitacoes||[]).find(s=>s.id===sId);
-  _orc={editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])),texto:'',direta};
+  _orc={editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])).map(_orcMarcaTotal),texto:'',direta};
   const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(f=>{const nome=typeof f==='object'?f.nome:f;return`<option${c?.fornecedor===nome?' selected':''}>${escHtml(nome)}</option>`;}).join('');
   const val=x=>Number(x)>0?x:'';
   document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:820px;max-width:97vw"><div class="moh"><div class="mot">${direta?ic('file-text')+' Ordem de compra direta':c?'Editar orcamento':'Novo orcamento'}${!direta&&sol?' — '+escHtml(sol.item):''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
@@ -457,9 +457,14 @@ function _orcRenderItens(){
       <td><button type="button" class="btn sm ico" onclick="_orc.itens.splice(${k},1);_orcRenderItens()" title="Remover">${ic('x')}</button></td></tr>`).join('')}
     <tr><td colspan="3" style="text-align:right;font-weight:600;color:var(--txt)">Soma dos itens</td><td style="text-align:right;font-weight:600" class="ot-num" id="orc-soma">${fmtR(soma)}</td><td></td></tr></table></div>`;
 }
+// Total que não bate com qtd × unitário veio da loja (arredondado): não é recalculado
+function _orcMarcaTotal(i){if(Number(i.total)&&Number(i.qtd)&&Number(i.unit)&&Math.abs(i.qtd*i.unit-i.total)>0.005)i._totalManual=true;return i;}
 function _orcItem(k,campo,v){
   const i=_orc.itens[k];i[campo]=v===''?'':Number(v);
-  if((campo==='qtd'||campo==='unit')&&Number(i.qtd)&&Number(i.unit)){i.total=+(i.qtd*i.unit).toFixed(2);const t=document.getElementById('orc-it-t-'+k);if(t)t.value=i.total;}
+  // Total digitado à mão é respeitado (a loja pode arredondar: 3 × 19,99 = R$ 60,00 no orçamento).
+  // Só calcula qtd × unitário enquanto o total estiver vazio ou tiver sido calculado pelo sistema.
+  if(campo==='total') i._totalManual=v!=='';
+  if((campo==='qtd'||campo==='unit')&&Number(i.qtd)&&Number(i.unit)&&!i._totalManual){i.total=+(i.qtd*i.unit).toFixed(2);const t=document.getElementById('orc-it-t-'+k);if(t)t.value=i.total;}
   const s=document.getElementById('orc-soma');if(s)s.textContent=fmtR(_orc.itens.reduce((a,x)=>a+(Number(x.total)||0),0));
 }
 function orcNovoFornecedor(){
@@ -486,7 +491,7 @@ async function orcImportar(file){
     set('cot-vtotal',r.total);set('cot-vpix',r.pix);set('cot-vcartao',r.cartao);set('cot-parcelas',r.parcelas);set('cot-desc',r.desconto);
     if(r.prazo){const e=document.getElementById('cot-prazo');e.value=r.prazo;e.style.background='var(--ot-brand-soft)';}
     if(r.frete){const e=document.getElementById('cot-obs');if(!/frete/i.test(e.value)){e.value=(e.value?e.value+' · ':'')+'Frete '+fmtR(r.frete);e.style.background='var(--ot-brand-soft)';}}
-    if(r.itens.length){_orc.itens=r.itens.map(i=>({desc:i.desc,qtd:i.qtd||'',unit:i.unit?+i.unit.toFixed(4):'',total:i.total||''}));_orcRenderItens();}
+    if(r.itens.length){_orc.itens=r.itens.map(i=>_orcMarcaTotal({desc:i.desc,qtd:i.qtd||'',unit:i.unit?+i.unit.toFixed(4):'',total:i.total||''}));_orcRenderItens();}
     _cotCalcParcela();
     // Tenta reconhecer o fornecedor pelo nome no texto
     const sel=document.getElementById('cot-forn');
