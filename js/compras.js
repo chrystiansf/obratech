@@ -737,9 +737,9 @@ async function gerarOrdemCompraPDF(pedId){
     startY:y,
     styles:{font:FS},
     head:[['Item','Unidade','Quantidade','Valor Unit.','Valor Total']],
-    body:(cot?.detalhe?.itens?.length?cot.detalhe.itens.map(i=>[i.desc,'',i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]):[[sol?.item||'—',sol?.unidade||'un',sol?.quantidade||'—',fmtR(cot?.valorUnit||0),fmtR(p.valorTotal||0)]])
+    body:(cot?.detalhe?.itens?.length?cot.detalhe.itens.map(i=>[i.desc,'',i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]):[[sol?.item||'—',sol?.unidade||'',sol?.quantidade||'—',cot?.valorUnit?fmtR(cot.valorUnit):'—',fmtR(p.valorTotal||0)]])
       .concat(cot?.detalhe?.desconto?[['Desconto','','','','- '+fmtR(cot.detalhe.desconto)]]:[]),
-    foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(p.valorTotal||0)}]],
+    foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(p.valorTotal||0),styles:{halign:'center'}}]],   // total centralizado com a coluna Valor Total
     headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     footStyles:totRow(),

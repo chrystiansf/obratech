@@ -751,9 +751,17 @@ function _cotMesclar(rows){
   const semColuna=rows.length>0&&!rows.some(r=>Object.prototype.hasOwnProperty.call(r,'detalhe'));
   window._cotSemDetalhe=semColuna;
   const loc=new Map((DB.cotacoes||[]).map(c=>[String(c.id),c]));
-  return rows.map(r=>{const c=mapCotacao(r);const l=loc.get(String(r.id));
-    if(!c.detalhe&&l&&l.detalhe&&(semColuna||r.detalhe===undefined)) c.detalhe=l.detalhe;
+  const subir=[];
+  const out=rows.map(r=>{const c=mapCotacao(r);const l=loc.get(String(r.id));
+    // Banco sem itens e este aparelho ainda com eles (orçamentos feitos antes de existir a coluna 'detalhe'):
+    // mantém os itens e, se a coluna já existe, envia para o banco
+    if(!c.detalhe&&l&&l.detalhe&&l.detalhe.itens&&l.detalhe.itens.length){c.detalhe=l.detalhe;if(!semColuna)subir.push(c);}
     return c;});
+  if(subir.length&&typeof supa!=='undefined'&&supa&&_empresaId){
+    setTimeout(()=>subir.forEach(c=>supa.from('compras_cotacoes').update({detalhe:c.detalhe}).eq('id',c.id).eq('empresa_id',_empresaId)
+      .then(({error})=>{if(error)console.warn('Reenvio dos itens do orçamento',error.message);else console.log('Itens do orçamento recuperados no banco',c.id);})),500);
+  }
+  return out;
 }
 function mapCotacao(r){return{id:r.id,solicitacaoId:r.solicitacao_id,fornecedor:r.fornecedor,valorUnit:Number(r.valor_unit||0),valorTotal:Number(r.valor_total||0),valorPix:Number(r.valor_pix||0),valorCartao:Number(r.valor_cartao||0),parcelas:Number(r.parcelas||0),orcamentoId:r.orcamento_id||null,detalhe:(typeof r.detalhe==='string'?(()=>{try{return JSON.parse(r.detalhe)}catch(e){return null}})():r.detalhe)||null,prazoEntrega:r.prazo_entrega,obs:r.obs,vencedor:r.vencedor||false,_supa:true};}
 function mapInvestidor(r){return{id:r.id,nome:r.nome,documento:r.documento||'',telefone:r.telefone||'',email:r.email||'',obs:r.obs||'',_supa:true};}
