@@ -64,7 +64,7 @@ function renderSolicitacoes(){
     ${sols.map(s=>{
       const o=DB.obras.find(x=>String(x.id)===String(s.obraId));
       return`<tr>
-        <td class="n">${s.item}</td>
+        <td class="n">${escHtml(s.item||'')}${_solDireta(s)?` <span class="b bn" title="${escHtml(s.obs)}" style="margin-left:4px">Direta</span>`:''}</td>
         <td>${s.unidade||'—'}</td>
         <td style="text-align:right;font-weight:600">${s.quantidade||'—'}</td>
         <td style="font-size:11px">${o?.nome||'—'}</td>
@@ -116,7 +116,7 @@ function solMudarStatus(id,status){
   toast('✅','Status atualizado!');
 }
 
-function _criarPedidoFromSolicitacao(sol){
+function _criarPedidoFromSolicitacao(sol,extra){
   // Buscar cotacao vencedora
   const cotVenc=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(sol.id)&&c.vencedor);
   const novoId=uuidv4();
@@ -130,12 +130,14 @@ function _criarPedidoFromSolicitacao(sol){
     status:'pendente',
     obs:'',
     criadoEm:new Date().toISOString(),
-    _naoSalvo:true
+    _naoSalvo:true,
+    ...(extra||{})
   };
+  const adiar=pedido._adiar;delete pedido._adiar;
   if(!DB.pedidosCompra) DB.pedidosCompra=[];
   DB.pedidosCompra.push(pedido);
   save();
-  _pedSupaSalvar(pedido);
+  if(!adiar) _pedSupaSalvar(pedido);
   return pedido;
 }
 
@@ -325,8 +327,8 @@ function renderPedidos(){
       const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(p.solicitacaoId));
       const o=DB.obras.find(x=>String(x.id)===String(p.obraId));
       return`<tr>
-        <td class="n">${p.fornecedor||'—'}</td>
-        <td style="font-size:11px">${sol?.item||'—'}</td>
+        <td class="n">${escHtml(p.fornecedor||'—')}${p.status==='direta'||_solDireta(sol)?` <span class="b bn" title="${escHtml(sol?.obs||'Compra direta')}" style="margin-left:4px">Direta</span>`:''}</td>
+        <td style="font-size:11px">${escHtml(sol?.item||'—')}</td>
         <td style="font-size:11px">${o?.nome||'—'}</td>
         <td style="text-align:right;font-weight:600">${fmtR(p.valorTotal||0)}</td>
         <td style="font-size:11px">${p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):escHtml(p.previsaoEntrega)):'—'}</td>
@@ -398,14 +400,15 @@ function salvarSolicitacao(editId){
 
 // ── Orçamento de um fornecedor (valor global + itens como detalhe) ──
 let _orc=null;
-function openModalCotacao(editId, solId){
+function openModalCotacao(editId, solId, modo){
+  const direta=modo==='direta';
   const c=editId?(DB.cotacoes||[]).find(x=>x.id===editId):null;
   const sId=solId||c?.solicitacaoId||'';
   const sol=(DB.solicitacoes||[]).find(s=>s.id===sId);
-  _orc={editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])),texto:''};
+  _orc={editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])),texto:'',direta};
   const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(f=>{const nome=typeof f==='object'?f.nome:f;return`<option${c?.fornecedor===nome?' selected':''}>${escHtml(nome)}</option>`;}).join('');
   const val=x=>Number(x)>0?x:'';
-  document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:820px;max-width:97vw"><div class="moh"><div class="mot">${c?'Editar orcamento':'Novo orcamento'}${sol?' — '+escHtml(sol.item):''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
+  document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:820px;max-width:97vw"><div class="moh"><div class="mot">${direta?ic('file-text')+' Ordem de compra direta':c?'Editar orcamento':'Novo orcamento'}${!direta&&sol?' — '+escHtml(sol.item):''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
     <div style="border:1px dashed var(--ot-border-strong);border-radius:var(--ot-radius-md);padding:12px 14px;margin-bottom:14px;background:var(--ot-surface-sunken)">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         <strong style="font-size:13px;margin-right:4px">Importar orcamento da loja:</strong>
@@ -417,6 +420,12 @@ function openModalCotacao(editId, solId){
       <div style="font-size:12px;color:var(--txt3);margin-top:6px">Os campos preenchidos pela leitura ficam em <span style="background:var(--ot-brand-soft);padding:0 4px;border-radius:4px">laranja</span>: confira antes de salvar.</div>
       <div id="cl-prog" style="display:none;margin-top:10px"></div>
     </div>
+    ${direta?`<div class="al i" style="margin-bottom:12px"><span>Compra sem cotação: gera o pedido e a Ordem de Compra na hora. Fica marcada como <b>Direta</b> na lista de pedidos.</span></div>
+    <div class="g g2" style="margin-bottom:12px">
+      <div class="fg" style="grid-column:span 2"><label class="lbl">O que está sendo comprado? *</label><input class="inp" id="ocd-item" placeholder="Ex.: Tapume, Areia média, Material elétrico do 2º pavimento"></div>
+      <div class="fg"><label class="lbl">Obra *</label><select class="sel" id="ocd-obra"><option value="">— Selecionar —</option>${DB.obras.map(o=>`<option value="${o.id}"${String(o.id)===String((typeof _obraAtiva!=='undefined'&&_obraAtiva)||DB.sel)?' selected':''}>${escHtml(o.nome)}</option>`).join('')}</select></div>
+      <div class="fg"><label class="lbl">Motivo da compra direta</label><input class="inp" id="ocd-motivo" list="ocd-motivos" placeholder="Opcional"><datalist id="ocd-motivos"><option value="Fornecedor fixo"><option value="Preço combinado"><option value="Urgente"><option value="Valor pequeno"><option value="Único fornecedor"></datalist></div>
+    </div>`:''}
     <div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Fornecedor *</label><div style="display:flex;gap:6px"><select class="sel" id="cot-forn">${fornOpts}</select><button type="button" class="btn sm" onclick="orcNovoFornecedor()" title="Cadastrar fornecedor">${ic('plus')}</button></div></div>
       <div class="fg"><label class="lbl">Valor total do orcamento (R$) *</label><input type="number" class="inp ot-num" id="cot-vtotal" value="${val(c?.valorTotal)}" min="0" step="0.01" placeholder="0,00"></div>
@@ -432,7 +441,7 @@ function openModalCotacao(editId, solId){
       <div id="orc-itens"></div>
     </div>
     <details id="cl-texto-box" style="margin-top:10px;display:none"><summary style="cursor:pointer;font-size:12px;color:var(--txt3)">Ver texto lido do orcamento</summary><pre id="cl-texto" style="white-space:pre-wrap;font-family:var(--ot-font-mono);font-size:11px;background:var(--ot-surface-sunken);padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:6px"></pre></details>
-  </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn pri" onclick="salvarCotacao()">${ic('save')} Salvar orcamento</button></div></div></div>`;
+  </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button>${direta?`<button class="btn pri" onclick="salvarCompraDireta()">${ic('file-text')} Gerar ordem de compra</button>`:`<button class="btn pri" onclick="salvarCotacao()">${ic('save')} Salvar orcamento</button>`}</div></div></div>`;
   _orcRenderItens();_cotCalcParcela();
 }
 function _orcRenderItens(){
@@ -492,10 +501,10 @@ function _cotCalcParcela(){
   const el=document.getElementById('cot-parcela-info');
   if(el) el.textContent=v>0&&n>1?n+'x de '+fmtR(v/n):'';
 }
-function salvarCotacao(){
-  const editId=_orc.editId, solId=_orc.solId;
+// Lê o formulário de orçamento (fornecedor, valores, itens). Devolve null se faltar algo obrigatório.
+function _cotColetar(){
   const forn=document.getElementById('cot-forn').value;
-  if(!forn){toast('⚠️','Selecione o fornecedor!');return;}
+  if(!forn){toast('⚠️','Selecione o fornecedor!');return null;}
   const itens=_orc.itens.filter(i=>(i.desc||'').trim()||Number(i.total)).map(i=>({desc:(i.desc||'').trim(),qtd:Number(i.qtd)||0,unit:Number(i.unit)||0,total:Number(i.total)||0}));
   const somaItens=+itens.reduce((a,i)=>a+i.total,0).toFixed(2);
   let total=parseFloat(document.getElementById('cot-vtotal').value)||0;
@@ -512,9 +521,16 @@ function salvarCotacao(){
     obs:document.getElementById('cot-obs').value.trim(),
     detalhe:(itens.length||desconto)?{itens,produtos:somaItens,desconto}:null,
   };
-  if(!dados.valorTotal&&!dados.valorPix&&!dados.valorCartao){toast('⚠️','Informe o valor do orcamento (total, PIX ou cartao)!');return;}
-  if(dados.parcelas>1&&!dados.valorCartao){toast('⚠️','Informe o total no cartao para usar parcelas.');return;}
+  if(!dados.valorTotal&&!dados.valorPix&&!dados.valorCartao){toast('⚠️','Informe o valor (total, PIX ou cartão)!');return null;}
+  if(dados.parcelas>1&&!dados.valorCartao){toast('⚠️','Informe o total no cartão para usar parcelas.');return null;}
   const row={fornecedor:dados.fornecedor,valor_unit:dados.valorUnit,valor_total:dados.valorTotal,valor_pix:dados.valorPix,valor_cartao:dados.valorCartao,parcelas:dados.parcelas||null,prazo_entrega:dados.prazoEntrega,obs:dados.obs,detalhe:dados.detalhe};
+  return {dados,row};
+}
+
+function salvarCotacao(){
+  const editId=_orc.editId, solId=_orc.solId;
+  const col=_cotColetar();if(!col)return;
+  const {dados,row}=col, forn=dados.fornecedor;
   if(editId){
     const c=(DB.cotacoes||[]).find(x=>x.id===editId);
     if(c){Object.assign(c,dados);_cotSupaSalvar(editId,row,false);}
@@ -526,6 +542,41 @@ function salvarCotacao(){
     if(s&&s.status==='aberta'){s.status='cotando';supaUpdate('compras_solicitacoes',s.id,{status:'cotando'});}
   }
   save();closeModal();renderCotacoes();toast('✅',editId?'Orcamento atualizado!':'Orcamento de '+forn+' adicionado!');
+}
+
+// ── Ordem de compra direta (sem solicitação/cotação) ─────────────────────
+// Cria por baixo: solicitação já aprovada + orçamento vencedor + pedido (marcado como 'direta').
+function abrirCompraDireta(){openModalCotacao(null,null,'direta');setTimeout(()=>document.getElementById('ocd-item')?.focus(),60);}
+function _solDireta(s){return /^Compra direta/.test(s?.obs||'');}
+async function salvarCompraDireta(){
+  const item=document.getElementById('ocd-item').value.trim();
+  const obraId=document.getElementById('ocd-obra').value;
+  const motivo=document.getElementById('ocd-motivo').value.trim();
+  if(!item){toast('⚠️','Informe o que está sendo comprado.');document.getElementById('ocd-item').focus();return;}
+  if(!obraId){toast('⚠️','Selecione a obra.');return;}
+  const col=_cotColetar();if(!col)return;
+  const {dados,row}=col;
+  const btn=document.querySelector('.mof .btn.pri');if(btn){btn.disabled=true;btn.textContent='Gerando...';}
+  // 1. solicitação já aprovada
+  const solId=uuidv4();
+  const obs='Compra direta'+(motivo?': '+motivo:'');
+  const sol={id:solId,obraId,item,unidade:'',quantidade:0,urgencia:'normal',status:'aprovada',solicitante:DB.user.nome||'',obs,criadoEm:new Date().toISOString(),_supa:true};
+  (DB.solicitacoes=DB.solicitacoes||[]).unshift(sol);
+  // 2. orçamento vencedor
+  const cotId=uuidv4();
+  (DB.cotacoes=DB.cotacoes||[]).push({id:cotId,solicitacaoId:solId,...dados,vencedor:true,_supa:true});
+  // 3. pedido (marcado como direta)
+  const ped=_criarPedidoFromSolicitacao(sol,{status:'direta',_adiar:true});
+  save();closeModal();comprasTab('pedidos');
+  // Banco: em sequência, porque o orçamento e o pedido apontam para a solicitação
+  try{
+    await supaInsert('compras_solicitacoes',{id:solId,obra_id:obraId,item,unidade:'',quantidade:0,urgencia:'normal',status:'aprovada',solicitante:sol.solicitante,obs});
+    await _cotSupaSalvar(cotId,{...row,solicitacao_id:solId,vencedor:true},true);
+    await _pedSupaSalvar(ped);
+  }catch(e){console.error('compra direta',e);}
+  renderPedidos();
+  toast('✅','Ordem de compra gerada!');
+  gerarOrdemCompraPDF(ped.id);
 }
 
 // Salva no Supabase; se as colunas novas (PIX/cartao/parcelas) ainda nao existirem,
