@@ -125,7 +125,7 @@ function _criarPedidoFromSolicitacao(sol,extra){
     solicitacaoId:sol.id,
     obraId:sol.obraId,
     fornecedor:cotVenc?.fornecedor||'',
-    valorTotal:cotVenc?(cotVenc.valorTotal||_cotMelhor(cotVenc)):0,
+    valorTotal:cotVenc?(_cotLiquido(cotVenc)||_cotMelhor(cotVenc)):0,
     previsaoEntrega:cotVenc?.prazoEntrega||'',
     status:'pendente',
     obs:'',
@@ -177,6 +177,16 @@ function pedRecriar(solId){
 // ═══════════════════════════════════════════
 
 // Melhor preço de uma cotação = menor valor informado entre total, PIX e cartão
+// Desconto: quando o total informado é a soma bruta dos itens, o total do orçamento é soma − desconto
+function _cotLiquido(c){
+  if(!c) return 0;
+  const d=Number(c.detalhe?.desconto)||0, it=c.detalhe?.itens||[];
+  const soma=+it.reduce((a,i)=>a+(Number(i.total)||0),0).toFixed(2);
+  const tot=Number(c.valorTotal)||0;
+  if(d>0&&soma>0&&(!tot||Math.abs(tot-soma)<0.01)) return +(soma-d).toFixed(2);
+  if(d>0&&!soma&&!tot) return 0;
+  return tot;
+}
 function _cotMelhor(c){const v=[c.valorTotal,c.valorPix,c.valorCartao].map(Number).filter(x=>x>0);return v.length?Math.min(...v):0;}
 function _cotParcela(c){return c.valorCartao>0&&c.parcelas>1?c.valorCartao/c.parcelas:0;}
 
@@ -330,7 +340,7 @@ function renderPedidos(){
         <td class="n">${escHtml(p.fornecedor||'—')}${p.status==='direta'||_solDireta(sol)?` <span class="b bn" title="${escHtml(sol?.obs||'Compra direta')}" style="margin-left:4px">Direta</span>`:''}</td>
         <td style="font-size:11px">${escHtml(sol?.item||'—')}</td>
         <td style="font-size:11px">${o?.nome||'—'}</td>
-        <td style="text-align:right;font-weight:600">${fmtR(p.valorTotal||0)}</td>
+        <td style="text-align:right;font-weight:600">${fmtR(_pedValor(p))}</td>
         <td style="font-size:11px">${p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):escHtml(p.previsaoEntrega)):'—'}</td>
         <td style="font-size:11px">${p.criadoEm?fmtDt(String(p.criadoEm).slice(0,10)):'—'}</td>
         <td><div class="ta-actions">
@@ -514,7 +524,8 @@ function _cotColetar(){
   const somaItens=+itens.reduce((a,i)=>a+i.total,0).toFixed(2);
   let total=parseFloat(document.getElementById('cot-vtotal').value)||0;
   const desconto=parseFloat(document.getElementById('cot-desc').value)||0;
-  if(!total&&somaItens) total=+(somaItens-desconto).toFixed(2);
+  // Total vazio, ou igual à soma bruta dos itens: aplica o desconto
+  if(somaItens&&(!total||Math.abs(total-somaItens)<0.01)) total=+(somaItens-desconto).toFixed(2);
   const dados={
     fornecedor:forn,
     valorUnit:itens.length===1?itens[0].unit:0,
@@ -547,6 +558,18 @@ function salvarCotacao(){
     if(s&&s.status==='aberta'){s.status='cotando';supaUpdate('compras_solicitacoes',s.id,{status:'cotando'});}
   }
   save();closeModal();renderCotacoes();toast('✅',editId?'Orcamento atualizado!':'Orcamento de '+forn+' adicionado!');
+}
+
+// Valor do pedido com o desconto do orçamento vencedor (corrige pedidos gravados com a soma bruta)
+function _pedValor(p){
+  const cot=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(p.solicitacaoId)&&c.vencedor);
+  const liq=cot?_cotLiquido(cot):0;
+  if(cot&&liq&&Number(cot.detalhe?.desconto)>0&&Math.abs((Number(p.valorTotal)||0)-liq)>=0.01&&Math.abs((Number(p.valorTotal)||0)-liq-Number(cot.detalhe.desconto))<0.01){
+    p.valorTotal=liq;supaUpdate('compras_pedidos',p.id,{valor_total:liq});
+    if(Math.abs((Number(cot.valorTotal)||0)-liq)>=0.01){cot.valorTotal=liq;supaUpdate('compras_cotacoes',cot.id,{valor_total:liq});}
+    save();
+  }
+  return Number(p.valorTotal)||0;
 }
 
 // ── Ordem de compra direta (sem solicitação/cotação) ─────────────────────
@@ -739,7 +762,7 @@ async function gerarOrdemCompraPDF(pedId){
     head:[['Item','Unidade','Quantidade','Valor Unit.','Valor Total']],
     body:(cot?.detalhe?.itens?.length?cot.detalhe.itens.map(i=>[i.desc,'',i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]):[[sol?.item||'—',sol?.unidade||'',sol?.quantidade||'—',cot?.valorUnit?fmtR(cot.valorUnit):'—',fmtR(p.valorTotal||0)]])
       .concat(cot?.detalhe?.desconto?[['Desconto','','','','- '+fmtR(cot.detalhe.desconto)]]:[]),
-    foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(p.valorTotal||0),styles:{halign:'center'}}]],   // total centralizado com a coluna Valor Total
+    foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(_pedValor(p)),styles:{halign:'center'}}]],   // total centralizado com a coluna Valor Total
     headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     bodyStyles:{...bStyle(),halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     footStyles:totRow(),
@@ -751,7 +774,7 @@ async function gerarOrdemCompraPDF(pedId){
   // Condicoes de pagamento cotadas pelo fornecedor vencedor
   if(cot&&(cot.valorPix||cot.valorCartao)){
     const linhas=[];
-    if(cot.valorTotal) linhas.push(['Valor total cotado',fmtR(cot.valorTotal)]);
+    if(cot.valorTotal) linhas.push(['Valor total cotado',fmtR(_cotLiquido(cot))]);
     if(cot.valorPix) linhas.push(['No PIX',fmtR(cot.valorPix)]);
     if(cot.valorCartao) linhas.push(['No cartão de crédito',fmtR(cot.valorCartao)+(cot.parcelas>1?'  ('+cot.parcelas+'x de '+fmtR(cot.valorCartao/cot.parcelas)+')':'')]);
     y=pSec(doc,y,'Condições de Pagamento');
