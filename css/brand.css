@@ -649,3 +649,28 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
   #gantt-area .gantt-regua { display: none !important; }
   #gantt-area .gr > div:nth-child(2) { flex: 1 1 50% !important; min-width: 120px; }
 }
+
+/* Equipe → Terceirizados: lista por empresa (cabe no celular, botões sempre visíveis) */
+.terc-emp { border: 1px solid var(--ot-border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; background: var(--ot-surface); }
+.terc-emp-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; background: var(--ot-surface-sunken); border-bottom: 1px solid var(--ot-border); }
+.terc-emp-h span:first-child { font-weight: 600; font-size: 14px; color: var(--ot-text); }
+.terc-emp-h span:last-child { font: 500 11px/14px var(--ot-font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ot-text-muted); white-space: nowrap; }
+.terc-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--ot-border); }
+.terc-emp-h + .terc-row { border-top: 0; }
+.terc-info { flex: 1; min-width: 0; }
+.terc-nome { font-weight: 600; font-size: 14px; color: var(--ot-text); overflow-wrap: anywhere; }
+.terc-nome span { font-weight: 400; color: var(--ot-text-muted); margin-left: 8px; font-size: 13px; }
+.terc-dados { font-size: 12px; color: var(--ot-text-muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.terc-acoes { display: flex; gap: 6px; flex-shrink: 0; }
+@media (max-width: 768px) {
+  .terc-row { padding: 12px; }
+  .terc-nome span { display: block; margin-left: 0; }
+  .terc-acoes .btn.ico { width: 40px; height: 40px; min-height: 40px; }
+}
+
+/* Abas (Equipe e outras): no celular rolam para o lado em vez de cortar a última */
+@media (max-width: 768px) {
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs .tab { flex-shrink: 0; white-space: nowrap; }
+}

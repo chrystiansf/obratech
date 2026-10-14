@@ -13,26 +13,21 @@ function renderTerceirizados(){
   }
   const empresas={};
   DB.terceirizados.forEach(t=>{const emp=t.empresa||'Sem empresa';if(!empresas[emp])empresas[emp]=[];empresas[emp].push(t);});
-  el.innerHTML=Object.keys(empresas).sort().map(emp=>{
-    const tercs=empresas[emp];
-    return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:0;margin-bottom:14px;overflow:hidden">
-      <div style="background:var(--primary);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
-        <span style="font-weight:700;font-size:14px">${emp}</span>
-        <span style="font-size:11px;opacity:.85">${tercs.length} profissiona${tercs.length>1?'is':'l'}</span>
-      </div>
-      <table class="tbl" style="margin:0">
-        <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Telefone</th><th></th></tr>
-        ${tercs.map(t=>`<tr>
-          <td style="font-weight:600">${t.nome}</td>
-          <td style="color:var(--txt3)">${t.funcao||'—'}</td>
-          <td style="font-size:11px">${t.cpf||'—'}</td>
-          <td style="font-size:11px">${t.celular||'—'}</td>
-          <td><div class="ta-actions">
-            <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
-            <button class="btn sm ico" onclick="delTerceirizado('${t.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
-          </div></td>
-        </tr>`).join('')}
-      </table>
+  // Lista em vez de tabela: cabe em qualquer largura e os botões ficam sempre visíveis (celular incluído)
+  el.innerHTML=Object.keys(empresas).sort(ordAlfa).map(emp=>{
+    const tercs=empresas[emp].slice().sort((a,b)=>ordAlfa(a.nome,b.nome));
+    return`<div class="terc-emp">
+      <div class="terc-emp-h"><span>${escHtml(emp)}</span><span>${tercs.length} profissiona${tercs.length>1?'is':'l'}</span></div>
+      ${tercs.map(t=>`<div class="terc-row">
+        <div class="terc-info">
+          <div class="terc-nome">${escHtml(t.nome||'')}<span>${escHtml(t.funcao||'')}</span></div>
+          <div class="terc-dados">${[t.cpf?'CPF '+escHtml(t.cpf):'',t.celular?escHtml(t.celular):''].filter(Boolean).join(' · ')||'—'}</div>
+        </div>
+        <div class="terc-acoes">
+          <button class="btn sm ico" onclick="openModal('terceirizado','${t.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
+          <button class="btn sm ico" onclick="delTerceirizado('${t.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
+        </div>
+      </div>`).join('')}
     </div>`;
   }).join('');
 }

@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════
 function swTab(btn,id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
+  try{btn.scrollIntoView({block:'nearest',inline:'nearest'});}catch(e){}
   ['t-colab','t-ponto','t-folha','t-tercs'].forEach(t=>{const el=document.getElementById(t);if(el)el.style.display=t===id?'block':'none';});
   if(id==='t-ponto'){
     // Inicializa semana atual
