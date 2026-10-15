@@ -884,8 +884,20 @@ async function supaUpdate(tabela, id, dados){
   }
   try{
     const semAtualizado=['pontos','rdo_fotos','checklists','medicoes','cliente_obras','estoque'];
-    const payload=semAtualizado.includes(tabela)?{..._semTags(dados)}:{..._semTags(dados),atualizado_em:new Date().toISOString()};
-    const {error}=await supa.from(tabela).update(payload).eq('id',id).eq('empresa_id',_empresaId);
+    window._otSemAtualizadoEm=window._otSemAtualizadoEm||new Set();
+    const comData=!semAtualizado.includes(tabela)&&!window._otSemAtualizadoEm.has(tabela);
+    const payload=comData?{..._semTags(dados),atualizado_em:new Date().toISOString()}:{..._semTags(dados)};
+    let {data,error}=await supa.from(tabela).update(payload).eq('id',id).eq('empresa_id',_empresaId).select('id');
+    // Tabela sem a coluna atualizado_em (ex.: terceirizados): antes a alteração inteira era recusada. Reenvia sem ela.
+    if(error&&comData&&/atualizado_em/.test(error.message||'')){
+      window._otSemAtualizadoEm.add(tabela);
+      ({data,error}=await supa.from(tabela).update({..._semTags(dados)}).eq('id',id).eq('empresa_id',_empresaId).select('id'));
+    }
+    if(!error&&Array.isArray(data)&&data.length===0){
+      console.warn('supaUpdate: nenhuma linha alterada',tabela,id);
+      toast('⚠️','A alteração não foi gravada no banco (registro não encontrado ou sem permissão).');
+      return;
+    }
     if(error){
       console.error('supaUpdate ERRO',tabela,id,error.message,error.code);
       toast('❌','Erro ao atualizar ('+tabela+'): '+error.message.substring(0,60));
