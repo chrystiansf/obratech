@@ -173,13 +173,45 @@ function renderRDO(){
   const ro=document.getElementById('rdo-obra');if(ro&&!ro._otOuvinte){ro._otOuvinte=1;ro.addEventListener('change',()=>{rdoRenderPresenca();rdoRenderPresencaTercs();renderRDOHist();});}
   const rd=document.getElementById('rdo-data');if(rd&&!rd._otOuvinte){rd._otOuvinte=1;rd.addEventListener('change',()=>{rdoRenderPresenca();rdoRenderPresencaTercs();});}
 }
+// Fotos do RDO: cada foto tem tipo 'servico' (padrão, inclui as antigas) ou 'material'.
+// A ordem da lista é a ordem do relatório; ◀ ▶ trocam a foto de posição dentro do mesmo quadro.
+const _rdoTipo=f=>f&&f.tipo==='material'?'material':'servico';
 function renderFotoGrid(){
-  document.getElementById('rdo-fotos').innerHTML=rdoFotos.map((f,i)=>{
-    const imgSrc=f.url||f.data||'';
-    return`<div class="pc" style="flex-direction:column;height:auto;padding:0;overflow:hidden;border-radius:7px;border:1px solid var(--border)"><div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block"><button class="rm" onclick="rdoFotos.splice(${i},1);renderFotoGrid()" style="top:4px;right:4px">×</button><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);padding:2px 5px"><span style="font-size:9px;color:#fff">#${i+1}</span></div></div><input type="text" value="${(f.desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição da foto..." data-foto-idx="${i}" oninput="rdoFotos[${i}].desc=this.value" onchange="rdoFotos[${i}].desc=this.value" oncompositionend="rdoFotos[${i}].desc=this.value" onblur="rdoFotos[${i}].desc=this.value" style="width:100%;box-sizing:border-box;border:none;border-top:1px solid var(--border);padding:4px 6px;font-size:10px;color:var(--txt);background:var(--bg2);outline:none;border-radius:0 0 6px 6px"></div>`;
-  }).join('')+`<div class="pc add" onclick="document.getElementById('rdo-foto-in').click()"><span><svg class=ot-i><use href=#i-camera></use></svg></span><span style="font-size:9px">Foto</span></div>`;
+  const quadro=(tipo,elId)=>{
+    const el=document.getElementById(elId);if(!el)return;
+    const idx=rdoFotos.map((f,i)=>i).filter(i=>_rdoTipo(rdoFotos[i])===tipo);
+    el.innerHTML=idx.map((i,pos)=>{
+      const f=rdoFotos[i];const imgSrc=f.url||f.data||'';
+      const outro=tipo==='material'?'Serviços':'Materiais';
+      return`<div class="pc rdo-foto" style="flex-direction:column;height:auto;padding:0;overflow:hidden;border-radius:7px;border:1px solid var(--border)">
+        <div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block">
+          <button class="rm" onclick="rdoFotos.splice(${i},1);renderFotoGrid()" style="top:4px;right:4px" title="Remover foto">×</button>
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);padding:2px 5px"><span style="font-size:9px;color:#fff">#${pos+1}</span></div></div>
+        <div class="rdo-foto-ord">
+          <button type="button" onclick="rdoMoverFoto(${i},-1)" ${pos===0?'disabled':''} title="Mover para antes">◀</button>
+          <button type="button" onclick="rdoTrocarTipoFoto(${i})" title="Passar para ${outro}">→ ${outro}</button>
+          <button type="button" onclick="rdoMoverFoto(${i},1)" ${pos===idx.length-1?'disabled':''} title="Mover para depois">▶</button>
+        </div>
+        <input type="text" value="${(f.desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição da foto..." data-foto-idx="${i}" oninput="rdoFotos[${i}].desc=this.value" onchange="rdoFotos[${i}].desc=this.value" oncompositionend="rdoFotos[${i}].desc=this.value" onblur="rdoFotos[${i}].desc=this.value" style="width:100%;box-sizing:border-box;border:none;border-top:1px solid var(--border);padding:4px 6px;font-size:10px;color:var(--txt);background:var(--bg2);outline:none;border-radius:0 0 6px 6px"></div>`;
+    }).join('')+`<div class="pc add" onclick="document.getElementById('${tipo==='material'?'rdo-foto-mat-in':'rdo-foto-in'}').click()"><span><svg class=ot-i><use href=#i-camera></use></svg></span><span style="font-size:9px">Foto</span></div>`;
+  };
+  quadro('servico','rdo-fotos');quadro('material','rdo-fotos-mat');
 }
-function addFotos(e){Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{rdoFotos.push({name:f.name,data:ev.target.result});renderFotoGrid();};r.readAsDataURL(f);});e.target.value='';}
+// Guarda as legendas digitadas antes de redesenhar (celular só confirma a última palavra ao sair do campo)
+function _rdoSyncLegendas(){document.querySelectorAll('#rdo-fotos [data-foto-idx], #rdo-fotos-mat [data-foto-idx]').forEach(el=>{const k=+el.dataset.fotoIdx;if(rdoFotos[k])rdoFotos[k].desc=el.value;});}
+function rdoMoverFoto(i,dir){
+  _rdoSyncLegendas();
+  const tipo=_rdoTipo(rdoFotos[i]);
+  let j=i+dir;while(j>=0&&j<rdoFotos.length&&_rdoTipo(rdoFotos[j])!==tipo)j+=dir;
+  if(j<0||j>=rdoFotos.length)return;
+  [rdoFotos[i],rdoFotos[j]]=[rdoFotos[j],rdoFotos[i]];renderFotoGrid();
+}
+function rdoTrocarTipoFoto(i){
+  _rdoSyncLegendas();
+  const f=rdoFotos.splice(i,1)[0];f.tipo=_rdoTipo(f)==='material'?'servico':'material';
+  rdoFotos.push(f);renderFotoGrid();   // entra no fim do outro quadro
+}
+function addFotos(e,tipo){_rdoSyncLegendas();Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{rdoFotos.push({name:f.name,data:ev.target.result,tipo:tipo==='material'?'material':'servico'});renderFotoGrid();};r.readAsDataURL(f);});e.target.value='';}
 async function rdoSaveClick(status){
   const btns=document.getElementById('rdo-save-btns');
   const st=document.getElementById('rdo-save-status');
@@ -198,7 +230,7 @@ async function rdoSaveClick(status){
 async function saveRDO(status){
   // Garante que as legendas das fotos sejam exatamente o texto que está nos campos
   // (teclados de celular com sugestão só confirmam a última palavra ao sair do campo)
-  document.querySelectorAll('#rdo-fotos [data-foto-idx]').forEach(el=>{const k=+el.dataset.fotoIdx;if(rdoFotos[k])rdoFotos[k].desc=el.value;});
+  _rdoSyncLegendas();
   const oId=document.getElementById('rdo-obra').value;if(!oId){toast('⚠️','Selecione uma obra!');return;}
   const data=document.getElementById('rdo-data').value;if(!data){toast('⚠️','Informe a data!');return;}
   const prev=0;
@@ -229,21 +261,21 @@ async function saveRDO(status){
           const {error:upErr}=await supa.storage.from('drive-obras').upload(path,blob,{upsert:true});
           if(!upErr){
             const {data:urlData}=supa.storage.from('drive-obras').getPublicUrl(path);
-            fotosFinais.push({name:f.name,url:urlData.publicUrl,desc:f.desc||''});
+            fotosFinais.push({name:f.name,url:urlData.publicUrl,desc:f.desc||'',tipo:_rdoTipo(f)});
           } else {
             console.error('Upload foto RDO erro:',upErr.message);
-            fotosFinais.push({name:f.name,data:f.data,desc:f.desc||''});
+            fotosFinais.push({name:f.name,data:f.data,desc:f.desc||'',tipo:_rdoTipo(f)});
           }
         }catch(e){
           console.error('Upload foto RDO exception:',e);
-          fotosFinais.push({name:f.name,data:f.data,desc:f.desc||''});
+          fotosFinais.push({name:f.name,data:f.data,desc:f.desc||'',tipo:_rdoTipo(f)});
         }
       } else {
-        fotosFinais.push({name:f.name,data:f.data,desc:f.desc||''});
+        fotosFinais.push({name:f.name,data:f.data,desc:f.desc||'',tipo:_rdoTipo(f)});
       }
     } else if(f.url){
       // Já é URL do Storage
-      fotosFinais.push({name:f.name,url:f.url,desc:f.desc||''});
+      fotosFinais.push({name:f.name,url:f.url,desc:f.desc||'',tipo:_rdoTipo(f)});
     } else {
       fotosFinais.push(f);
     }
@@ -251,7 +283,7 @@ async function saveRDO(status){
 
   const rdo={id:rdoId,obraId:oId,data,clima:rdoClima,prev,real,serv,obs,mat,status,fotos:fotosFinais,_supa:true};
   // Fotos para salvar no Supabase (sem base64, só URLs)
-  const fotosParaSupa=fotosFinais.map(f=>({name:f.name,url:f.url||'',desc:f.desc||''}));
+  const fotosParaSupa=fotosFinais.map(f=>({name:f.name,url:f.url||'',desc:f.desc||'',tipo:_rdoTipo(f)}));
   const dadosSupa={obra_id:rdo.obraId,data:rdo.data,clima:rdo.clima,previsto:rdo.prev,realizado:rdo.real,servicos:rdo.serv,obs:rdo.obs,materiais:rdo.mat,status:rdo.status};
 
   // Salvar local primeiro (garante dados mesmo offline)

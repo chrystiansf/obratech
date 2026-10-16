@@ -674,3 +674,20 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
   .tabs::-webkit-scrollbar { display: none; }
   .tabs .tab { flex-shrink: 0; white-space: nowrap; }
 }
+
+/* RDO: ordem das fotos (◀ ▶) e troca de quadro */
+.rdo-foto-ord { display: flex; border-top: 1px solid var(--ot-border); }
+.rdo-foto-ord button { flex: 1; min-height: 30px; border: 0; background: var(--ot-surface-sunken); color: var(--ot-text-secondary); font: 500 10px/1 var(--ot-font-sans); cursor: pointer; padding: 0 4px; }
+.rdo-foto-ord button + button { border-left: 1px solid var(--ot-border); }
+.rdo-foto-ord button:first-child, .rdo-foto-ord button:last-child { flex: 0 0 32px; font-size: 12px; }
+.rdo-foto-ord button:hover:not(:disabled) { color: var(--ot-text); background: var(--ot-surface); }
+.rdo-foto-ord button:disabled { opacity: .35; cursor: default; }
+@media (max-width: 768px) { .rdo-foto-ord button { min-height: 38px; } .rdo-foto-ord button:first-child, .rdo-foto-ord button:last-child { flex-basis: 40px; } }
+.pc.rdo-foto { aspect-ratio: auto; justify-content: flex-start; }
+#rdo-fotos, #rdo-fotos-mat { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+@media (max-width: 768px) {
+  #rdo-fotos, #rdo-fotos-mat { grid-template-columns: 1fr 1fr; }
+  .pc.rdo-foto img, .pc.rdo-foto > div:first-child { height: 120px !important; }
+  .pc.rdo-foto input[data-foto-idx] { font-size: 14px !important; padding: 8px !important; }
+  #rdo-fotos .pc.add, #rdo-fotos-mat .pc.add { aspect-ratio: auto; min-height: 120px; }
+}

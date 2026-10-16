@@ -493,7 +493,12 @@ async function gerarRDOPDF(rdo, opts) {
         .then(d => { if (_pdfFotoCache.size > 80) _pdfFotoCache.clear(); _pdfFotoCache.set(chave, d); return d; })
         .catch(() => null);
     }));
-    const itens = rdo.fotos.map((foto, i) => ({ foto, i, img: fotosCarregadas[i] })).filter(x => x.img);
+    const todas = rdo.fotos.map((foto, i) => ({ foto, img: fotosCarregadas[i] })).filter(x => x.img);
+    // Serviços executados e materiais recebidos em seções separadas, cada uma com a própria numeração
+    const grupos = [
+      ['Registro Fotográfico — Serviços Executados', todas.filter(x => x.foto.tipo !== 'material')],
+      ['Registro Fotográfico — Materiais Recebidos', todas.filter(x => x.foto.tipo === 'material')],
+    ].map(([t, l]) => [t, l.map((x, k) => ({ ...x, i: k }))]).filter(([, l]) => l.length);
 
     // Medidas (mm): 2 por linha com 3,7 de espaço; quadro 4:3 (~89 x 67); legenda 1,6 abaixo
     const GAP = 3.7, fw = (CW - GAP) / 2, fh = fw * 3 / 4;
@@ -504,10 +509,10 @@ async function gerarRDOPDF(rdo, opts) {
     const topoCont = () => pHdr(doc, TIT, (obra?.nome || '-') + '  -  ' + fmtDt(rdo.data)) + 8;
     const linhasQueCabem = y0 => Math.max(0, Math.floor((LIMITE - y0 - linhaH) / passo) + 1);
 
-    if (itens.length) {
+    for (const [tituloSec, itens] of grupos) {
       // Título da seção só se couber pelo menos uma linha de fotos abaixo dele
       checkPage(14 + linhaH);
-      y = pSec(doc, y, 'Registro Fotográfico (' + itens.length + ' foto' + (itens.length > 1 ? 's' : '') + ')');
+      y = pSec(doc, y, tituloSec + ' (' + itens.length + ' foto' + (itens.length > 1 ? 's' : '') + ')');
 
       // Distribui em páginas por linhas inteiras (nenhuma foto é cortada entre páginas)
       const capCont = linhasQueCabem(44) * 2;           // capacidade de uma página de continuação
