@@ -178,14 +178,24 @@ function pedRecriar(solId){
 
 // Melhor preço de uma cotação = menor valor informado entre total, PIX e cartão
 // Desconto: quando o total informado é a soma bruta dos itens, o total do orçamento é soma − desconto
+// Regra do desconto: o valor total informado é o valor ANTES do desconto; total final = bruto − desconto.
+// Orçamentos salvos a partir de agora guardam detalhe.liquido=true (valorTotal já com desconto) e detalhe.bruto.
 function _cotLiquido(c){
   if(!c) return 0;
   const d=Number(c.detalhe?.desconto)||0, it=c.detalhe?.itens||[];
-  const soma=+it.reduce((a,i)=>a+(Number(i.total)||0),0).toFixed(2);
   const tot=Number(c.valorTotal)||0;
-  if(d>0&&soma>0&&(!tot||Math.abs(tot-soma)<0.01)) return +(soma-d).toFixed(2);
-  if(d>0&&!soma&&!tot) return 0;
-  return tot;
+  if(c.detalhe?.liquido||d<=0) return tot;
+  // Salvos antes da regra: com itens, só desconta se o total era a soma bruta; sem itens, desconta do total
+  const soma=+it.reduce((a,i)=>a+(Number(i.total)||0),0).toFixed(2);
+  if(soma>0) return (!tot||Math.abs(tot-soma)<0.01)?+(soma-d).toFixed(2):tot;
+  return tot?Math.max(0,+(tot-d).toFixed(2)):0;
+}
+// Valor antes do desconto (para mostrar no formulário)
+function _cotBruto(c){
+  if(!c) return 0;
+  if(c.detalhe?.bruto) return Number(c.detalhe.bruto);
+  const d=Number(c.detalhe?.desconto)||0;
+  return c.detalhe?.liquido?+((Number(c.valorTotal)||0)+d).toFixed(2):(Number(c.valorTotal)||0);
 }
 function _cotMelhor(c){const v=[c.valorTotal,c.valorPix,c.valorCartao].map(Number).filter(x=>x>0);return v.length?Math.min(...v):0;}
 function _cotParcela(c){return c.valorCartao>0&&c.parcelas>1?c.valorCartao/c.parcelas:0;}
@@ -439,11 +449,11 @@ function openModalCotacao(editId, solId, modo){
     </div>`:''}
     <div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Fornecedor *</label><div style="display:flex;gap:6px"><select class="sel" id="cot-forn">${fornOpts}</select><button type="button" class="btn sm" onclick="orcNovoFornecedor()" title="Cadastrar fornecedor">${ic('plus')}</button></div></div>
-      <div class="fg"><label class="lbl">Valor total do orcamento (R$) *</label><input type="number" class="inp ot-num" id="cot-vtotal" value="${val(c?.valorTotal)}" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fg"><label class="lbl">Valor total, antes do desconto (R$) *</label><input type="number" class="inp ot-num" id="cot-vtotal" value="${val(c&&(c.detalhe?.desconto>0?_cotBruto(c):c.valorTotal))}" oninput="_cotCalcLiquido()" min="0" step="0.01" placeholder="0,00"></div>
       <div class="fg"><label class="lbl">Total a vista / PIX (R$)</label><input type="number" class="inp ot-num" id="cot-vpix" value="${val(c?.valorPix)}" min="0" step="0.01" placeholder="0,00"></div>
       <div class="fg"><label class="lbl">Total no cartao de credito (R$)</label><input type="number" class="inp ot-num" id="cot-vcartao" value="${val(c?.valorCartao)}" min="0" step="0.01" placeholder="0,00" oninput="_cotCalcParcela()"></div>
       <div class="fg"><label class="lbl">Parcelas sem juros</label><input type="number" class="inp ot-num" id="cot-parcelas" value="${val(c?.parcelas)}" min="1" max="48" step="1" placeholder="Ex: 10" oninput="_cotCalcParcela()"><div id="cot-parcela-info" style="font-size:12px;color:var(--txt3);min-height:16px"></div></div>
-      <div class="fg"><label class="lbl">Desconto concedido (R$)</label><input type="number" class="inp ot-num" id="cot-desc" value="${val(c?.detalhe?.desconto)}" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fg"><label class="lbl">Desconto concedido (R$)</label><input type="number" class="inp ot-num" id="cot-desc" value="${val(c?.detalhe?.desconto)}" min="0" step="0.01" placeholder="0,00" oninput="_cotCalcLiquido()"><div id="cot-liquido-info" style="font-size:12px;color:var(--txt3);min-height:16px;margin-top:3px"></div></div>
       <div class="fg"><label class="lbl">Prazo de entrega</label><input class="inp" id="cot-prazo" value="${escHtml(c?.prazoEntrega||'')}" placeholder="Ex: 2 dias uteis"></div>
       <div class="fg" style="grid-column:span 2"><label class="lbl">Observacoes</label><input class="inp" id="cot-obs" value="${escHtml(c?.obs||'')}" placeholder="Validade, frete, condicoes..."></div>
     </div>
@@ -453,7 +463,7 @@ function openModalCotacao(editId, solId, modo){
     </div>
     <details id="cl-texto-box" style="margin-top:10px;display:none"><summary style="cursor:pointer;font-size:12px;color:var(--txt3)">Ver texto lido do orcamento</summary><pre id="cl-texto" style="white-space:pre-wrap;font-family:var(--ot-font-mono);font-size:11px;background:var(--ot-surface-sunken);padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:6px"></pre></details>
   </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button>${direta?`<button class="btn pri" onclick="salvarCompraDireta()">${ic('file-text')} Gerar ordem de compra</button>`:`<button class="btn pri" onclick="salvarCotacao()">${ic('save')} Salvar orcamento</button>`}</div></div></div>`;
-  _orcRenderItens();_cotCalcParcela();
+  _orcRenderItens();_cotCalcParcela();_cotCalcLiquido();
 }
 function _orcRenderItens(){
   const el=document.getElementById('orc-itens');if(!el)return;
@@ -511,6 +521,14 @@ async function orcImportar(file){
     else toast('✅','Orcamento lido'+(r.total?': total '+fmtR(r.total):'')+(r.itens.length?' · '+r.itens.length+' itens':'')+'. Confira os campos em laranja.');
   }catch(e){console.error('Importar orcamento',e);_clProgresso('');toast('❌','Nao foi possivel ler o arquivo: '+(e.message||e));}
 }
+// Mostra o total final (antes do desconto − desconto) enquanto o usuário digita
+function _cotCalcLiquido(){
+  const el=document.getElementById('cot-liquido-info');if(!el)return;
+  const soma=(_orc?.itens||[]).reduce((a,i)=>a+(Number(i.total)||0),0);
+  const bruto=(parseFloat(document.getElementById('cot-vtotal')?.value)||0)||soma;
+  const d=parseFloat(document.getElementById('cot-desc')?.value)||0;
+  el.innerHTML=d>0&&bruto>0?`Total com desconto: <b style="color:var(--txt)">${fmtR(Math.max(0,bruto-d))}</b>`:'';
+}
 function _cotCalcParcela(){
   const v=parseFloat(document.getElementById('cot-vcartao')?.value)||0;
   const n=parseInt(document.getElementById('cot-parcelas')?.value)||0;
@@ -525,8 +543,10 @@ function _cotColetar(){
   const somaItens=+itens.reduce((a,i)=>a+i.total,0).toFixed(2);
   let total=parseFloat(document.getElementById('cot-vtotal').value)||0;
   const desconto=parseFloat(document.getElementById('cot-desc').value)||0;
-  // Total vazio, ou igual à soma bruta dos itens: aplica o desconto
-  if(somaItens&&(!total||Math.abs(total-somaItens)<0.01)) total=+(somaItens-desconto).toFixed(2);
+  // Total informado (ou a soma dos itens, se vazio) é o valor antes do desconto
+  const bruto=total||somaItens;
+  if(desconto>bruto&&bruto>0){toast('⚠️','O desconto é maior que o valor total.');return null;}
+  total=bruto?+(bruto-desconto).toFixed(2):0;
   const dados={
     fornecedor:forn,
     valorUnit:itens.length===1?itens[0].unit:0,
@@ -536,7 +556,7 @@ function _cotColetar(){
     parcelas:parseInt(document.getElementById('cot-parcelas').value)||0,
     prazoEntrega:document.getElementById('cot-prazo').value.trim(),
     obs:document.getElementById('cot-obs').value.trim(),
-    detalhe:(itens.length||desconto)?{itens,produtos:somaItens,desconto}:null,
+    detalhe:(itens.length||desconto)?{itens,produtos:somaItens,desconto,bruto,liquido:true}:null,
   };
   if(!dados.valorTotal&&!dados.valorPix&&!dados.valorCartao){toast('⚠️','Informe o valor (total, PIX ou cartão)!');return null;}
   if(dados.parcelas>1&&!dados.valorCartao){toast('⚠️','Informe o total no cartão para usar parcelas.');return null;}
@@ -779,7 +799,7 @@ async function gerarOrdemCompraPDF(pedId){
     startY:y,
     styles:{font:FS},
     head:[['Item','Unidade','Quantidade','Valor Unit.','Valor Total']],
-    body:(cot?.detalhe?.itens?.length?cot.detalhe.itens.map(i=>[i.desc,'',i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]):[[sol?.item||'—',sol?.unidade||'',sol?.quantidade||'—',cot?.valorUnit?fmtR(cot.valorUnit):'—',fmtR(p.valorTotal||0)]])
+    body:(cot?.detalhe?.itens?.length?cot.detalhe.itens.map(i=>[i.desc,'',i.qtd||'—',i.unit?fmtR(i.unit):'—',fmtR(i.total||0)]):[[sol?.item||'—',sol?.unidade||'',sol?.quantidade||'—',cot?.valorUnit?fmtR(cot.valorUnit):'—',fmtR(cot&&Number(cot.detalhe?.desconto)>0?_cotBruto(cot):_pedValor(p))]])
       .concat(cot?.detalhe?.desconto?[['Desconto','','','','- '+fmtR(cot.detalhe.desconto)]]:[]),
     foot:[[{colSpan:4,content:'TOTAL',styles:{halign:'right'}},{content:fmtR(_pedValor(p)),styles:{halign:'center'}}]],   // total centralizado com a coluna Valor Total
     headStyles:{fillColor:corEmpresa(),textColor:[255,255,255],fontStyle:'bold',fontSize:8,halign:'center',cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},

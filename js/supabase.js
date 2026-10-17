@@ -784,7 +784,13 @@ function _cotMesclar(rows){
     // mantém os itens e, se a coluna já existe, envia para o banco
     if(!c.detalhe&&l&&l.detalhe&&l.detalhe.itens&&l.detalhe.itens.length){c.detalhe=l.detalhe;if(!semColuna)subir.push(c);}
     // Total gravado sem o desconto (soma bruta dos itens): corrige para soma − desconto
-    if(typeof _cotLiquido==='function'){const liq=_cotLiquido(c);if(liq&&Math.abs(liq-(Number(c.valorTotal)||0))>=0.01){c.valorTotal=liq;if(typeof supaUpdate==='function')supaUpdate('compras_cotacoes',c.id,{valor_total:liq});}}
+    // Total gravado antes da regra do desconto: corrige e marca como já descontado (evita descontar duas vezes)
+    if(typeof _cotLiquido==='function'&&c.detalhe&&!c.detalhe.liquido&&Number(c.detalhe.desconto)>0){
+      const bruto=Number(c.valorTotal)||0, liq=_cotLiquido(c);
+      c.detalhe={...c.detalhe,liquido:true,bruto:Math.abs(liq-bruto)>=0.01?bruto:+(liq+Number(c.detalhe.desconto)).toFixed(2)};
+      c.valorTotal=liq;
+      if(!semColuna&&typeof supaUpdate==='function') supaUpdate('compras_cotacoes',c.id,{valor_total:liq,detalhe:c.detalhe});
+    }
     return c;});
   if(subir.length&&typeof supa!=='undefined'&&supa&&_empresaId){
     setTimeout(()=>subir.forEach(c=>supa.from('compras_cotacoes').update({detalhe:c.detalhe}).eq('id',c.id).eq('empresa_id',_empresaId)
