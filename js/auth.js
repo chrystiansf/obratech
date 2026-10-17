@@ -56,7 +56,8 @@ function usrTab(tab){
 async function _carregarBrandingEmpresa(){
   if(!supa||!_empresaId) return;
   try{
-    const {data}=await supa.from('empresas').select('nome,logo_url,cor_primaria').eq('id',_empresaId).maybeSingle();
+    const {data,error}=await supa.from('empresas').select('nome,logo_url,cor_primaria').eq('id',_empresaId).maybeSingle();
+    if(error) throw error;   // usa a logomarca/cor guardadas no aparelho
     if(data){
       if(data.logo_url) _empresaLogo=data.logo_url;
       if(data.cor_primaria) _empresaCor=data.cor_primaria;

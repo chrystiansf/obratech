@@ -634,11 +634,23 @@ async function diagnosticarSupabase(){
     }catch(e){console.error('Teste escrita exception:',e.message);}
   }
 }
+// Faixa fixa no topo: os dados na tela podem estar desatualizados (não vieram do banco)
+function _otAvisoDesatualizado(motivo,sessao){
+  document.getElementById('ot-aviso-desatualizado')?.remove();
+  const d=document.createElement('div');d.id='ot-aviso-desatualizado';
+  let ult='';try{const u=localStorage.getItem('_ot_ultima_carga');if(u)ult=' Última atualização: '+new Date(u).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'.';}catch(e){}
+  d.innerHTML=`<span>${ic('triangle-alert')} <b>Dados possivelmente desatualizados.</b> ${motivo}${ult}</span>
+    ${sessao?`<button class="btn sm pri" onclick="logout()">Entrar de novo</button>`:`<button class="btn sm" onclick="this.disabled=true;carregarDadosSupabase().then(()=>{renderDash();renderObras();renderPaginaAtual();})">Tentar de novo</button>`}`;
+  const c=document.getElementById('content');if(c)c.prepend(d);else document.body.prepend(d);
+}
+
 async function carregarDadosSupabase(){
   if(!supa||!_empresaId) return;
   try{
     // Carregar cada tabela individualmente para não falhar tudo se uma der erro
-    const safe = async (query) => { try { const r = await query; return r; } catch(e) { return {data:null}; }};
+    // Erros de cada tabela ficam registrados: antes eram ignorados e a tela seguia com dados antigos sem avisar
+    const _errosCarga=[];
+    const safe = async (query) => { try { const r = await query; if(r&&r.error) _errosCarga.push(r.error); return r; } catch(e) { _errosCarga.push({message:e.message}); return {data:null}; }};
     // Filtrar EXPLICITAMENTE por empresa_id — não depender só do RLS
     const eid = _empresaId;
     const [obras, etapas, colaboradores, lancamentos, rdos, estoque, movs, contratos, pgtos, ncs, cats, ccs, forns, dems, medicoes, checklists, terceirizados, pontosTercs, pontos, compraSols, compraCots, compraPeds, invs, aps, compraOrcs] = await Promise.all([
@@ -668,6 +680,21 @@ async function carregarDadosSupabase(){
       safe(supa.from('aportes').select('*').eq('empresa_id',eid).order('data',{ascending:false})),
       safe(supa.from('compras_orcamentos').select('*').eq('empresa_id',eid).order('criado_em',{ascending:false})),
     ]);
+
+    // Falhou buscar no banco: tenta renovar a sessão uma vez; se não der, avisa que os dados podem estar desatualizados
+    if(_errosCarga.length){
+      const msg=String(_errosCarga[0].message||_errosCarga[0].code||'erro');
+      console.warn('Carga do banco com erros:',_errosCarga.length,msg);
+      const sessao=/jwt|token|expired|401|permission denied|not authorized|unauthorized/i.test(msg);
+      if(sessao&&!window._otRenovouSessao){
+        window._otRenovouSessao=true;
+        try{const {data:rs,error:re}=await supa.auth.refreshSession();if(!re&&rs?.session){console.log('Sessão renovada, recarregando dados');return carregarDadosSupabase();}}catch(e){}
+      }
+      _otAvisoDesatualizado(sessao?'Sua sessão neste aparelho expirou.':'Não foi possível buscar os dados no banco ('+msg.substring(0,80)+').',sessao);
+    } else {
+      document.getElementById('ot-aviso-desatualizado')?.remove();
+      try{localStorage.setItem('_ot_ultima_carga',new Date().toISOString());}catch(e){}
+    }
 
     // Mapear para o formato interno do ObraTech
     if(obras.data){

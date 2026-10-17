@@ -691,3 +691,8 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
   .pc.rdo-foto input[data-foto-idx] { font-size: 14px !important; padding: 8px !important; }
   #rdo-fotos .pc.add, #rdo-fotos-mat .pc.add { aspect-ratio: auto; min-height: 120px; }
 }
+
+/* Aviso: dados na tela não vieram do banco agora */
+#ot-aviso-desatualizado { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--ot-warning, #d97706); background: color-mix(in srgb, var(--ot-warning, #d97706) 10%, var(--ot-surface)); color: var(--ot-text); font-size: 13px; }
+#ot-aviso-desatualizado .ot-i { width: 16px; height: 16px; vertical-align: -3px; color: var(--ot-warning, #d97706); }
