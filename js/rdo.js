@@ -113,12 +113,12 @@ function rdoRenderPresenca(){
     const valorHoje=presente?(meia?diaria/2:diaria):0;
     const btnStyle=(ativo,cor)=>`padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1px solid ${ativo?cor:'var(--border)'};background:${ativo?cor:'var(--bg3)'};color:${ativo?'#fff':'var(--txt3)'}`;
     return`<div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--border)">
-      <button onclick="rdoSetPresenca('${col.id}','P')" title="Dia inteiro" style="${btnStyle(!meia&&presente,'#1F7A50')}">Dia</button>
-      <button onclick="rdoSetPresenca('${col.id}','M')" title="Meia diaria" style="${btnStyle(meia,'#8A5A00')}">1/2</button>
+      <button onclick="rdoSetPresenca('${col.id}','P')" title="${ehFixo(col)?'Presente':'Dia inteiro'}" style="${btnStyle(!meia&&presente,'#1F7A50')}">${ehFixo(col)?'Presente':'Dia'}</button>
+      ${ehFixo(col)&&!meia?'':`<button onclick="rdoSetPresenca('${col.id}','M')" title="Meia diaria" style="${btnStyle(meia,'#8A5A00')}">1/2</button>`}
       <button onclick="rdoSetPresenca('${col.id}','')" title="Marcar falta" style="${btnStyle(!presente,'#B42828')}">X</button>
       <span style="flex:1;font-size:12px;font-weight:600;color:var(--txt)">${col.nome}</span>
-      <span style="font-size:10px;color:var(--txt3)">${col.funcao||''}</span>
-      ${diaria?`<span style="font-size:11px;font-weight:600;color:${valorHoje?'var(--green)':'var(--txt3)'}">${valorHoje?fmtR(valorHoje)+'/dia':'--'}</span>`:''}
+      <span style="font-size:10px;color:var(--txt3)">${escHtml(col.funcao||'')}${ehFixo(col)?' · Fixo':''}</span>
+      ${diaria&&!ehFixo(col)?`<span style="font-size:11px;font-weight:600;color:${valorHoje?'var(--green)':'var(--txt3)'}">${valorHoje?fmtR(valorHoje)+'/dia':'--'}</span>`:''}
     </div>`;
   }).join('');
 }

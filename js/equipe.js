@@ -25,8 +25,8 @@ function renderColabs(){
       <td>${c.funcao||'—'}</td>
       <td>${c.cpf||'—'}</td>
       <td>${c.admissao?fmtDt(c.admissao):'—'}</td>
-      <td style="font-weight:700;color:var(--green)">${fmtR(c.diaria||c.salario||0)}</td>
-      <td style="font-size:11px;color:var(--txt3)">${c.obs||'—'}</td>
+      <td style="font-weight:700;color:var(--green)">${ehFixo(c)?'<span class="b bn" style="font-size:10px">Fixo</span>':fmtR(c.diaria||c.salario||0)}</td>
+      <td style="font-size:11px;color:var(--txt3)">${escHtml(obsSemFixo(c.obs))||'—'}</td>
       <td><div class="ta-actions">
         <button class="btn sm ico" onclick="openModal('colab','${c.id}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>
         <button class="btn sm ico" onclick="delColab('${c.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
@@ -85,7 +85,7 @@ function renderGradePresenca(){
     });
     html+=`<tr>
       <td class="n" style="font-size:12px">${col.nome}<div style="font-size:10px;color:var(--txt3)">${col.funcao||''}</div></td>
-      <td style="text-align:center;font-size:11px;color:var(--green);font-weight:600">${fmtR(diaria)}</td>
+      <td style="text-align:center;font-size:11px;color:var(--green);font-weight:600">${ehFixo(col)?'<span class="b bn" style="font-size:10px">Fixo</span>':fmtR(diaria)}</td>
       ${diasISO.map((d,i)=>{
         const fds=i>=5;
         const pt=DB.pontos.find(p=>String(p.colabId)===String(col.id)&&p.data===d&&(!obraId||String(p.obraId)===String(obraId))&&p.presente);
@@ -98,7 +98,7 @@ function renderGradePresenca(){
             style="width:52px;height:24px;font-size:10px;font-weight:700;border-radius:5px;border:1px solid var(--border);background:${bg};color:${clr};cursor:pointer;text-align:center">
             <option value="" ${!val?'selected':''}>--</option>
             <option value="P" ${val==='P'?'selected':''}>Dia</option>
-            <option value="M" ${val==='M'?'selected':''}>Meio</option>
+            ${ehFixo(col)&&val!=='M'?'':`<option value="M" ${val==='M'?'selected':''}>Meio</option>`}
           </select>
         </td>`;
       }).join('')}
@@ -106,7 +106,7 @@ function renderGradePresenca(){
         ${presentes.filter(Boolean).length}
       </td>
       <td style="text-align:right;font-weight:700;color:var(--green)" id="sub-${col.id}">
-        ${fmtR(presentes.filter(Boolean).length*diaria)}
+        ${ehFixo(col)?'—':fmtR(presentes.filter(Boolean).length*diaria)}
       </td>
     </tr>`;
   });
@@ -129,7 +129,7 @@ function atualizarSubtotal(colabId, diasStr){
   const dEl=document.getElementById(`dias-${colabId}`);
   const sEl=document.getElementById(`sub-${colabId}`);
   if(dEl)dEl.textContent=tot%1===0?String(tot):tot.toFixed(1);
-  if(sEl){sEl.textContent=fmtR(totalVal);sEl.style.color=totalVal>0?'var(--green)':'var(--txt3)';}
+  if(sEl){sEl.textContent=ehFixo(col)?'—':fmtR(totalVal);sEl.style.color=totalVal>0?'var(--green)':'var(--txt3)';}
 }
 
 function marcarTodos(val){
@@ -199,7 +199,7 @@ function renderPontos(){
         <td><span class="b bn" style="font-size:10px">${diaSem}</span></td>
         <td class="n">${col?.nome||'—'}</td>
         <td>${o?.nome||'—'}</td>
-        <td style="color:${p.tipo==='meia_diaria'?'#8A5A00':'var(--green)'};font-weight:600">${p.tipo==='meia_diaria'?'½ '+fmtR(diaria/2):fmtR(diaria)}</td>
+        <td style="color:${p.tipo==='meia_diaria'?'#8A5A00':'var(--green)'};font-weight:600">${ehFixo(col)?'<span class="b bn" style="font-size:10px">Fixo</span>':p.tipo==='meia_diaria'?'½ '+fmtR(diaria/2):fmtR(diaria)}</td>
         <td><span class="b ${p.tipo==='meia_diaria'?'by':'bg'}" style="font-size:9px">${p.tipo==='meia_diaria'?'½ Diária':'Dia'}</span></td>
         <td><button class="btn sm ico" onclick="delPonto('${p.id}')"><svg class=ot-i><use href=#i-trash-2></use></svg></button></td>
       </tr>`;
@@ -228,7 +228,7 @@ function calcFolha(){
   });
 
   const rows=Object.entries(res).map(([cid,d])=>{
-    const col=DB.colabs.find(x=>x.id==cid);if(!col)return null;
+    const col=DB.colabs.find(x=>x.id==cid);if(!col||ehFixo(col))return null;   // fixo não recebe por dia: fica fora da folha
     const diaria=Number(col.diaria||col.salario||0);
     const diasInt=d.dias.length;
     const meias=d.meias.length;

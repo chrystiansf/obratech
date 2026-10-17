@@ -94,3 +94,8 @@ document.addEventListener('wheel',e=>{
   const el=document.activeElement;
   if(el&&el.tagName==='INPUT'&&el.type==='number'&&(e.target===el||el.contains(e.target))) el.blur();
 },{passive:true,capture:true});
+
+// Colaborador fixo (mensalista, sem diária): guardado como etiqueta "[FIXO]" no início da observação
+const OT_FIXO='[FIXO]';
+function ehFixo(c){return !!c&&(c.vinculo==='fixo'||String(c.obs||'').startsWith(OT_FIXO));}
+function obsSemFixo(o){return String(o||'').replace(/^\[FIXO\]\s*/,'');}

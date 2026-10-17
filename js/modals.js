@@ -132,19 +132,28 @@ function openModal(type,editId=null,editId2=null){
       <div class="fg"><label class="lbl">CPF</label><input class="inp" id="c-cpf" value="${c?.cpf||''}" placeholder="000.000.000-00"></div>
       <div class="fg"><label class="lbl">Data de Admissão</label><input type="date" class="inp" id="c-adm" value="${c?.admissao||''}"></div>
       <div class="fg">
+        <label class="lbl">Tipo *</label>
+        <select class="sel" id="c-vinculo" onchange="document.getElementById('c-diaria-fg').style.display=this.value==='fixo'?'none':''">
+          <option value="diarista"${ehFixo(c)?'':' selected'}>Diarista (recebe por dia)</option>
+          <option value="fixo"${ehFixo(c)?' selected':''}>Funcionário fixo (sem diária)</option>
+        </select>
+        <div style="font-size:10px;color:var(--txt3);margin-top:3px">Fixo: só marca presença, não entra na folha semanal</div>
+      </div>
+      <div class="fg" id="c-diaria-fg" style="${ehFixo(c)?'display:none':''}">
         <label class="lbl"><svg class=ot-i><use href=#i-wallet></use></svg> Valor da Diária (R$) *</label>
-        <input type="number" class="inp" id="c-diaria" value="${c?.diaria||c?.salario||''}" placeholder="Ex: 150.00" min="0" step="0.01">
+        <input type="number" class="inp" id="c-diaria" value="${ehFixo(c)?'':(c?.diaria||c?.salario||'')}" placeholder="Ex: 150.00" min="0" step="0.01">
         <div style="font-size:10px;color:var(--txt3);margin-top:3px">Valor pago por dia trabalhado</div>
       </div>
       <div class="fg"><label class="lbl">Telefone</label><input class="inp" id="c-tel" value="${c?.tel||''}" placeholder="(00) 00000-0000"></div>
       <div class="fg"><label class="lbl">PIS / PASEP</label><input class="inp" id="c-pis" value="${c?.pis||''}" placeholder="000.0000.000-0"></div>
-      <div class="fg"><label class="lbl">Observação</label><input class="inp" id="c-obs" value="${c?.obs||''}" placeholder="Ex: diarista, contratado..."></div>
+      <div class="fg"><label class="lbl">Observação</label><input class="inp" id="c-obs" value="${escHtml(obsSemFixo(c?.obs))}" placeholder="Ex: contratado em..."></div>
     </div>`;
     onSave=()=>{
       const nome=document.getElementById('c-nome').value.trim();if(!nome){toast('⚠️','Nome obrigatório!');return false;}
-      const diaria=parseFloat(document.getElementById('c-diaria').value)||0;
-      if(!diaria){toast('⚠️','Informe o valor da diária!');return false;}
-      const dados={nome,funcao:document.getElementById('c-func').value.trim(),cpf:document.getElementById('c-cpf').value.trim(),admissao:document.getElementById('c-adm').value,diaria,salario:diaria,pis:document.getElementById('c-pis').value.trim(),tel:document.getElementById('c-tel').value.trim(),obs:document.getElementById('c-obs').value.trim()};
+      const fixo=document.getElementById('c-vinculo').value==='fixo';
+      const diaria=fixo?0:(parseFloat(document.getElementById('c-diaria').value)||0);
+      if(!fixo&&!diaria){toast('⚠️','Informe o valor da diária!');return false;}
+      const dados={nome,funcao:document.getElementById('c-func').value.trim(),cpf:document.getElementById('c-cpf').value.trim(),admissao:document.getElementById('c-adm').value,diaria,salario:diaria,pis:document.getElementById('c-pis').value.trim(),tel:document.getElementById('c-tel').value.trim(),obs:((fixo?OT_FIXO+' ':'')+obsSemFixo(document.getElementById('c-obs').value.trim())).trim(),vinculo:fixo?'fixo':'diarista'};
       if(c){
         Object.assign(c,dados);
         supaUpdate('colaboradores',c.id,{nome:dados.nome,funcao:dados.funcao,cpf:dados.cpf,admissao:dados.admissao||null,diaria:dados.diaria,salario:dados.salario,pis:dados.pis,telefone:dados.tel,obs:dados.obs});

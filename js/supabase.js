@@ -732,7 +732,7 @@ async function carregarDadosSupabase(){
 // ── Mappers Supabase → formato interno ───────────────────────
 function mapObra(r){return{id:r.id,nome:r.nome,tipo:r.tipo,statusManual:r.status_manual,orc:Number(r.orcamento||0),m2:Number(r.area_m2||0),dataIni:r.data_ini,dataFim:r.data_fim,local:r.local,resp:r.responsavel,cli:r.cliente,obs:r.obs,_supa:true};}
 function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,orc:Number(r.orcamento||0),resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
-function mapColab(r){return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,_supa:true};}
+function mapColab(r){const fixo=String(r.obs||'').startsWith('[FIXO]');return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,vinculo:fixo?'fixo':'diarista',_supa:true};}
 function mapLanc(r){return{_pgtoId:r.pagamento_id||undefined,_medicaoId:r.medicao_id||undefined,id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:r.fotos||[],autor:r.autor||'',_supa:true};}
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
