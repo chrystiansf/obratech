@@ -407,20 +407,25 @@ async function gerarRDOPDF(rdo, opts) {
   y = doc.lastAutoTable.finalY + 8;
 
   // ═══════════════════════════════════════════════════════════════
-  // LISTA DE PRESENCA — MAO DE OBRA CIVIL
+  // LISTAS DE PRESENÇA — MÃO DE OBRA CIVIL (diaristas) e FUNCIONÁRIOS FIXOS
   // ═══════════════════════════════════════════════════════════════
-  const colabsOrdenados = [...DB.colabs].sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-  const presColabRows = [];
-  colabsOrdenados.forEach(col => {
-    const pt = DB.pontos.find(p => String(p.colabId) === String(col.id) && p.data === rdo.data && p.presente);
+  const colabsOrdenados = [...DB.colabs].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+  const linhaPresenca = col => {
+    const pt = DB.pontos.find(p => String(p.colabId) === String(col.id) && p.data === rdo.data && p.presente
+      && (!p.obraId || !rdo.obraId || String(p.obraId) === String(rdo.obraId)));
     let status = 'FALTA';
     if (pt && pt.tipo === 'meia_diaria') status = 'MEIA DIÁRIA';
     else if (pt) status = 'PRESENTE';
-    presColabRows.push([(col.nome||'').toUpperCase(), (col.funcao||'-').toUpperCase(), status]);
-  });
-  if (presColabRows.length) {
+    return [(col.nome||'').toUpperCase(), (col.funcao||'-').toUpperCase(), status];
+  };
+  const listasPresenca = [
+    ['Lista de Presença — Mão de Obra Civil', colabsOrdenados.filter(c => !ehFixo(c)).map(linhaPresenca)],
+    ['Lista de Presença — Funcionários Fixos', colabsOrdenados.filter(c => ehFixo(c)).map(linhaPresenca)],
+  ];
+  for (const [tituloLista, presColabRows] of listasPresenca) {
+    if (!presColabRows.length) continue;
     checkPage(20 + presColabRows.length * 7);
-    y = pSec(doc, y, 'Lista de Presença — Mão de Obra Civil (' + presColabRows.length + ')');
+    y = pSec(doc, y, tituloLista + ' (' + presColabRows.length + ')');
     doc.autoTable({
       startY: y,
       head: [['Nº', 'NOME', 'FUNÇÃO / CARGO', 'PRESENÇA']],
