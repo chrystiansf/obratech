@@ -165,6 +165,7 @@ function renderMedicoes(){
         <td onclick="event.stopPropagation()"><div class="ta-actions">
           ${m.status==='pendente'?`<button class="btn sm" onclick="aprovarMedicao('${m.id}')" title="Aprovar"><svg class=ot-i><use href=#i-check></use></svg></button>`:''}
           ${m.status==='pendente'?`<button class="btn sm ico" onclick="reprovarMedicao('${m.id}')" title="Reprovar" style="color:var(--red)"><svg class=ot-i><use href=#i-x></use></svg></button>`:''}
+          ${m.status==='aprovado'?`<button class="btn sm" onclick="medEditarDataAprov('${m.id}')" title="Editar data de aprovação"><svg class=ot-i><use href=#i-calendar></use></svg> ${m.aprovadoEm?fmtDt(m.aprovadoEm):'Data'}</button>`:''}
           <button class="btn sm ico" onclick="openModal('medicao','${m.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
           <button class="btn sm ico" onclick="delMedicao('${m.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
           <button class="btn sm" onclick="gerarBoletimPDF('${m.id}')" title="Baixar PDF"><svg class=ot-i><use href=#i-download></use></svg></button>
@@ -174,12 +175,46 @@ function renderMedicoes(){
   </table>`;
 }
 
-async function aprovarMedicao(id){
+// Janela de data: usada para aprovar (com a data escolhida) e para corrigir a data de uma medição já aprovada
+function _medJanelaData(m,modo){
+  const editar=modo==='editar';
+  document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:440px;max-width:96vw">
+    <div class="moh"><div class="mot">${ic('calendar')} ${editar?'Data de aprovação':'Aprovar medição'} #${m.numero||''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div>
+    <div class="mob">
+      ${editar?'':`<div class="al i" style="margin-bottom:12px"><span>Ao aprovar, o valor de <b>${fmtR(m.valorMedido)}</b> vira um lançamento no Financeiro e um pagamento no contrato, com esta data.</span></div>`}
+      <div class="fg"><label class="lbl">Data de aprovação *</label><input type="date" class="inp" id="med-apr-data" value="${m.aprovadoEm||hojeISO()}"></div>
+      ${editar?`<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="med-apr-vinc" checked style="margin-top:2px"> Atualizar também a data do lançamento no Financeiro e do pagamento no contrato desta medição</label>`:''}
+    </div>
+    <div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn pri" onclick="${editar?`medSalvarDataAprov('${m.id}')`:`aprovarMedicao('${m.id}',document.getElementById('med-apr-data').value)`}">${ic(editar?'save':'check')} ${editar?'Salvar data':'Aprovar'}</button></div>
+  </div></div>`;
+}
+function medEditarDataAprov(id){const m=DB.medicoes.find(x=>x.id===id);if(m)_medJanelaData(m,'editar');}
+function medSalvarDataAprov(id){
+  const m=DB.medicoes.find(x=>x.id===id);if(!m)return;
+  const dt=document.getElementById('med-apr-data').value;if(!dt){toast('⚠️','Informe a data.');return;}
+  const vinc=document.getElementById('med-apr-vinc')?.checked;
+  m.aprovadoEm=dt;supaUpdate('medicoes',id,{aprovado_em:dt});
+  let n=0;
+  if(vinc){
+    const pref='[BM-'+String(m.numero||'1').padStart(3,'0')+']';
+    (DB.lancs||[]).filter(l=>String(l._medicaoId)===String(id)||(!l._medicaoId&&String(l.desc||'').startsWith(pref)&&Number(l.valor)===Number(m.valorMedido)&&String(l.obraId)===String(m.obraId)))
+      .forEach(l=>{l.data=dt;supaUpdate('lancamentos',l.id,{data:dt});n++;});
+    (DB.pgtos||[]).filter(p=>String(p.medicaoId)===String(id)||(!p.medicaoId&&String(p.desc||'').startsWith(pref)&&String(p.contratoId)===String(m.contratoId)))
+      .forEach(p=>{p.data=dt;supaUpdate('pagamentos',p.id,{data:dt});n++;});
+  }
+  save();closeModal();renderContratos();renderMedicoes();
+  toast('✅','Data de aprovação: '+fmtDt(dt)+(vinc?' ('+n+' registro(s) vinculados atualizados)':''));
+}
+
+async function aprovarMedicao(id,dataAprov){
   const m=DB.medicoes.find(x=>x.id===id);
-  if(!m||!confirm('Aprovar esta medição? Isso gerará um lançamento financeiro e um pagamento no contrato.'))return;
+  if(!m)return;
+  if(!dataAprov){_medJanelaData(m,'aprovar');return;}   // primeiro abre a janela para escolher a data
+  closeModal();
   m.status='aprovado';
   m.aprovadoPor=DB.user.nome;
-  m.aprovadoEm=hojeISO();
+  m.aprovadoEm=dataAprov;
   supaUpdate('medicoes',id,{status:'aprovado',aprovado_por:DB.user.nome,aprovado_em:m.aprovadoEm});
 
   const ct=DB.contratos.find(c=>c.id===m.contratoId);
