@@ -2,7 +2,22 @@
 // ═══════════════════════════════════════════
 // PDF / EXCEL
 // ═══════════════════════════════════════════
-const {jsPDF}=window.jspdf;
+// Todo documento criado salva com nome sem acento: com "Ã", "Ç" etc. o navegador baixava como "download"
+function nomeArquivo(n){
+  return String(n||'arquivo').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s{2,}/g,' ').trim();
+}
+const _JsPDFOriginal=window.jspdf.jsPDF;
+const jsPDF=function(...args){
+  const d=new _JsPDFOriginal(...args);
+  const sv=d.save;
+  d.save=function(nome,opts){return sv.call(this,nomeArquivo(nome),opts);};
+  return d;
+};
+jsPDF.API=_JsPDFOriginal.API;
+(function(){
+  const xls=()=>{if(window.XLSX&&XLSX.writeFile&&!XLSX.__otNome){const wf=XLSX.writeFile;XLSX.writeFile=function(wb,nome,o){return wf.call(this,wb,nomeArquivo(nome),o);};XLSX.__otNome=1;}};
+  xls();setTimeout(xls,3000);
+})();
 // ═══════════════════════════════════════════════════════════════
 // PDF DESIGN SYSTEM CORPORATIVO — ObraTech v1
 // Paleta, utilitários de layout e tipografia profissional
@@ -140,6 +155,16 @@ function _pdfCarregarFontes() {
 // (Manrope não tem itálico: 'italic' usa o Regular). Tenor Sans tem um único peso.
 async function _pdfUsarFontesMarca(doc) {
   const f = await _pdfCarregarFontes(); if (!f) return false;
+  const reg = (arq, familia, estilo) => { doc.addFileToVFS(arq + '.ttf', f[arq]); doc.addFont(arq + '.ttf', familia, estilo); };
+  reg('Manrope-Regular', 'Manrope', 'normal'); reg('Manrope-Regular', 'Manrope', 'italic');
+  reg('Manrope-SemiBold', 'Manrope', 'bold');
+  reg('TenorSans-Regular', 'TenorSans', 'normal'); reg('TenorSans-Regular', 'TenorSans', 'bold');
+  doc.__fonte = true; doc.setFont('Manrope', 'normal');
+  return true;
+}
+// Versão síncrona: registra as fontes se já estiverem carregadas (o carregamento começa ao abrir o sistema)
+function _pdfUsarFontesMarcaSync(doc) {
+  const f = _pdfFontesB64; if (!f) return false;
   const reg = (arq, familia, estilo) => { doc.addFileToVFS(arq + '.ttf', f[arq]); doc.addFont(arq + '.ttf', familia, estilo); };
   reg('Manrope-Regular', 'Manrope', 'normal'); reg('Manrope-Regular', 'Manrope', 'italic');
   reg('Manrope-SemiBold', 'Manrope', 'bold');
@@ -1340,7 +1365,7 @@ function exportCustoM2PDF() {
 // 7. RELATORIO GERENCIAL EXECUTIVO
 // ─────────────────────────────────────────────────────────────────
 function exportMovsPDF(){
-  const {jsPDF}=window.jspdf;
+  // (usa o jsPDF global, que salva com nome sem acento)
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const PX={blue:[25,70,150],ink:[15,15,15],gray:[100,106,120],lgray:[170,175,185],silver:[218,220,225],bg:[246,247,249],white:[255,255,255],green:[22,101,52],amber:[120,53,15],red:[153,27,27]};Object.defineProperty(PX,'navy',{get:function(){return corEmpresa();},enumerable:true});
   const W=doc.internal.pageSize.getWidth();
@@ -1721,7 +1746,7 @@ function exportContratosPDF(){
 }
 
 function exportEstoquePDF(){
-  const {jsPDF}=window.jspdf;
+  // (usa o jsPDF global, que salva com nome sem acento)
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const W=doc.internal.pageSize.getWidth();
   const H=doc.internal.pageSize.getHeight();

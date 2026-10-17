@@ -458,7 +458,7 @@ async function orcGerarPDF(){
 
   if(!gruposFiltrados.length){toast('⚠️','Nenhum item com valor preenchido.');return;}
 
-  const {jsPDF}=window.jspdf;
+  // (usa o jsPDF global, que salva com nome sem acento)
   const doc=new jsPDF();
   const pw=doc.internal.pageSize.getWidth();
   const ph=doc.internal.pageSize.getHeight();
