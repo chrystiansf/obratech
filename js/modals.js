@@ -827,6 +827,7 @@ function openModal(type,editId=null,editId2=null){
           <div style="font-size:11px;color:var(--txt3);margin-top:2px">${DB.user.cargo||_papelAtual||''}</div>
           <div style="font-size:10px;color:var(--txt3);margin-top:4px">Clique no <svg class=ot-i><use href=#i-camera></use></svg> para alterar a foto</div>
         </div>
+        <button type="button" class="btn sm" onclick="closeModal();logout()" title="Sair do sistema neste aparelho"><svg class=ot-i><use href=#i-log-out></use></svg> Sair</button>
       </div>
       <!-- Campos -->
       <div class="g g2">

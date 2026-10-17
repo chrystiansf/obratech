@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="css/style.css?v=20261006b">
-<link rel="stylesheet" href="css/brand.css?v=20261017b">
+<link rel="stylesheet" href="css/brand.css?v=20261017c">
 <script>/* tema antes de pintar a tela: claro é o padrão */try{if(localStorage.getItem('og_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -110,6 +110,7 @@
   <div class="sbfoot" style="flex-direction:column;align-items:center;gap:6px;padding:12px 8px">
     <div class="av" id="user-av" onclick="openUserModal()" style="overflow:hidden;width:36px;height:36px;font-size:14px">?</div>
     <div class="sb-txt" style="text-align:center"><div style="font-size:11px;font-weight:600" id="user-name">Configurar</div><div style="font-size:9px;color:var(--txt3)" id="user-role">Clique aqui</div></div>
+    <button type="button" class="sb-sair" onclick="logout()" title="Sair do sistema"><svg class="ot-i" aria-hidden="true"><use href="#i-log-out"></use></svg><span class="sb-txt">Sair</span></button>
   </div>
 </div>
 <div id="mobile-nav">
@@ -1152,7 +1153,7 @@ Areia média — 8 m³"></textarea></div>
 <script src="js/ajuste-numeros.js?v=20261011a"></script>
 <script src="js/obra-ativa.js?v=20261011c"></script>
 <script src="js/icons.js?v=20261011c"></script>
-<script src="js/supabase.js?v=20261017b"></script>
+<script src="js/supabase.js?v=20261017c"></script>
 <script src="js/auth.js?v=20261017b"></script>
 <script src="js/nav.js?v=20261006b"></script>
 <script src="js/dashboard.js?v=20261012a"></script>
@@ -1170,7 +1171,7 @@ Areia média — 8 m³"></textarea></div>
 <script src="js/caixa.js?v=20261012a"></script>
 <script src="js/fornecedores.js?v=20261012a"></script>
 <script src="js/qualidade.js?v=20261012a"></script>
-<script src="js/modals.js?v=20261017a"></script>
+<script src="js/modals.js?v=20261017c"></script>
 <script src="js/pdf.js?v=20261016a"></script>
 <script src="js/relatorios.js?v=20261012a"></script>
 <script src="js/init.js?v=20261012a"></script>

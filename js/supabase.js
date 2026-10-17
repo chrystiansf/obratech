@@ -1030,7 +1030,8 @@ function iniciarRealtime(){
 
 // ── Adicionar botão Logout no sidebar ─────────────────────────
 function adicionarBotaoLogout(){
-  // Só adiciona uma vez
+  // O botão Sair agora fica fixo no rodapé da barra lateral (index.html, .sb-sair)
+  if(document.querySelector('.sb-sair')) return;
   if(document.getElementById('btn-logout')) return;
   const sb = document.getElementById('sb');
   if(!sb) return;

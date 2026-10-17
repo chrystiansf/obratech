@@ -696,3 +696,15 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
 #ot-aviso-desatualizado { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 10px;
   border: 1px solid var(--ot-warning, #d97706); background: color-mix(in srgb, var(--ot-warning, #d97706) 10%, var(--ot-surface)); color: var(--ot-text); font-size: 13px; }
 #ot-aviso-desatualizado .ot-i { width: 16px; height: 16px; vertical-align: -3px; color: var(--ot-warning, #d97706); }
+
+/* Botão Sair fixo no rodapé da barra lateral (computador) */
+.sb-sair { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 34px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--txt3); font: 600 11px/1 var(--ot-font-sans); cursor: pointer; }
+.sb-sair .ot-i { width: 17px; height: 17px; }
+.sb-sair:hover { background: rgba(255,255,255,.08); color: #fff; }
+#sb:not(:hover) .sb-sair .sb-txt { display: none; }
+/* Barra lateral: o menu rola e o rodapé (avatar + Sair) fica sempre visível */
+#sb { overflow-y: hidden; }
+#sb > nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+#sb > nav::-webkit-scrollbar { display: none; }
+#sb .sbfoot { flex-shrink: 0; }
