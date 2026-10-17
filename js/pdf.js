@@ -163,7 +163,7 @@ function pHdr(doc, title, sub, _accent) {
   doc.setFillColor(...ce); doc.rect(0, 0, W, hdrH, 'F');
 
   const sepX = W * 0.45;
-  const emitido = 'Emitido em ' + new Date().toLocaleDateString('pt-BR');
+  const emitido = doc.__emitido || ('Emitido em ' + new Date().toLocaleDateString('pt-BR'));   // documento com data escolhida (ex.: OC direta)
   let temLogo = false;
 
   // Logo — ocupa toda a área à esquerda do separador, mantendo a proporção

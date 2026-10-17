@@ -147,7 +147,7 @@ function _criarPedidoFromSolicitacao(sol,extra){
 async function _pedSupaSalvar(ped){
   if(typeof supa==='undefined'||!supa||!_empresaId) return;
   const base={id:ped.id,empresa_id:_empresaId,solicitacao_id:ped.solicitacaoId,obra_id:ped.obraId||null,
-    fornecedor:ped.fornecedor,valor_total:ped.valorTotal,status:ped.status||'pendente'};
+    fornecedor:ped.fornecedor,valor_total:ped.valorTotal,status:ped.status||'pendente',...(ped.criadoEm?{criado_em:ped.criadoEm}:{})};
   const prev=ped.previsaoEntrega||'';
   const ehData=/^\d{4}-\d{2}-\d{2}$/.test(prev);
   let {error}=await supa.from('compras_pedidos').insert({...base,previsao_entrega:prev||null,obs:ped.obs||''});
@@ -347,12 +347,12 @@ function renderPedidos(){
       const sol=(DB.solicitacoes||[]).find(s=>String(s.id)===String(p.solicitacaoId));
       const o=DB.obras.find(x=>String(x.id)===String(p.obraId));
       return`<tr>
-        <td class="n">${escHtml(p.fornecedor||'—')}${p.status==='direta'||_solDireta(sol)?` <span class="b bn" title="${escHtml(sol?.obs||'Compra direta')}" style="margin-left:4px">Direta</span>`:''}</td>
+        <td class="n">${escHtml(p.fornecedor||'—')}${_pedEhPagamento(p)?` <span class="b bb" title="${escHtml(sol?.obs||'Autorização de pagamento')}" style="margin-left:4px">Pagamento</span>`:p.status==='direta'||_solDireta(sol)?` <span class="b bn" title="${escHtml(sol?.obs||'Compra direta')}" style="margin-left:4px">Direta</span>`:''}</td>
         <td style="font-size:11px">${escHtml(sol?.item||'—')}</td>
         <td style="font-size:11px">${o?.nome||'—'}</td>
         <td style="text-align:right;font-weight:600">${fmtR(_pedValor(p))}</td>
         <td style="font-size:11px">${p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):escHtml(p.previsaoEntrega)):'—'}</td>
-        <td style="font-size:11px">${p.criadoEm?fmtDt(String(p.criadoEm).slice(0,10)):'—'}</td>
+        <td style="font-size:11px">${p.criadoEm?fmtDt(_pedData(p)):'—'}</td>
         <td><div class="ta-actions">
           <button class="btn sm ico" onclick="pedEditar('${p.id}')" title="Editar itens e valores">${ic('pencil')}</button>
           <button class="btn sm" onclick="gerarOrdemCompraPDF('${p.id}')">PDF</button>
@@ -429,7 +429,7 @@ function openModalCotacao(editId, solId, modo){
   _orc={pedId:modo&&modo.pedId||'',editId:editId||'',solId:sId,itens:JSON.parse(JSON.stringify(c?.detalhe?.itens||[])).map(_orcMarcaTotal),texto:'',direta};
   const fornOpts='<option value="">— Selecionar —</option>'+(DB.fornecedores||[]).map(f=>{const nome=typeof f==='object'?f.nome:f;return`<option${c?.fornecedor===nome?' selected':''}>${escHtml(nome)}</option>`;}).join('');
   const val=x=>Number(x)>0?x:'';
-  document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:820px;max-width:97vw"><div class="moh"><div class="mot">${direta?ic('file-text')+' Ordem de compra direta':c?'Editar orcamento':'Novo orcamento'}${!direta&&sol?' — '+escHtml(sol.item):''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
+  document.getElementById('modal-root').innerHTML=`<div class="ov" onmouseup="if(event.target===this&&!window._modalMousedownInside)closeModal()"><div class="mo" style="width:820px;max-width:97vw"><div class="moh"><div class="mot">${direta?ic('file-text')+' Compra / pagamento direto':c?'Editar orcamento':'Novo orcamento'}${!direta&&sol?' — '+escHtml(sol.item):''}</div><div class="mox" onclick="closeModal()">${ic('x')}</div></div><div class="mob">
     <div style="border:1px dashed var(--ot-border-strong);border-radius:var(--ot-radius-md);padding:12px 14px;margin-bottom:14px;background:var(--ot-surface-sunken)">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         <strong style="font-size:13px;margin-right:4px">Importar orcamento da loja:</strong>
@@ -441,12 +441,14 @@ function openModalCotacao(editId, solId, modo){
       <div style="font-size:12px;color:var(--txt3);margin-top:6px">Os campos preenchidos pela leitura ficam em <span style="background:var(--ot-brand-soft);padding:0 4px;border-radius:4px">laranja</span>: confira antes de salvar.</div>
       <div id="cl-prog" style="display:none;margin-top:10px"></div>
     </div>
-    ${direta?`<div class="al i" style="margin-bottom:12px"><span>Compra sem cotação: gera o pedido e a Ordem de Compra na hora. Fica marcada como <b>Direta</b> na lista de pedidos.</span></div>
+    ${direta?`<div class="al i" style="margin-bottom:12px"><span>Sem cotação: gera na hora a <b>Ordem de Compra</b> ou a <b>Autorização de Pagamento</b>, com a data que você escolher. Fica marcada na lista de pedidos.</span></div>
     <div class="g g2" style="margin-bottom:12px">
-      <div class="fg" style="grid-column:span 2"><label class="lbl">O que está sendo comprado? *</label><input class="inp" id="ocd-item" placeholder="Ex.: Tapume, Areia média, Material elétrico do 2º pavimento"></div>
+      <div class="fg" style="grid-column:span 2"><label class="lbl">O que está sendo comprado ou pago? *</label><input class="inp" id="ocd-item" placeholder="Ex.: Tapume, Areia média, Material elétrico do 2º pavimento"></div>
       <div class="fg"><label class="lbl">Obra *</label><select class="sel" id="ocd-obra"><option value="">— Selecionar —</option>${DB.obras.map(o=>`<option value="${o.id}"${String(o.id)===String((typeof _obraAtiva!=='undefined'&&_obraAtiva)||DB.sel)?' selected':''}>${escHtml(o.nome)}</option>`).join('')}</select></div>
-      <div class="fg"><label class="lbl">Motivo da compra direta</label><input class="inp" id="ocd-motivo" list="ocd-motivos" placeholder="Opcional"><datalist id="ocd-motivos"><option value="Fornecedor fixo"><option value="Preço combinado"><option value="Urgente"><option value="Valor pequeno"><option value="Único fornecedor"></datalist></div>
+      ${_pedCamposDoc(null)}
+      <div class="fg"><label class="lbl">Motivo (sem cotação)</label><input class="inp" id="ocd-motivo" list="ocd-motivos" placeholder="Opcional"><datalist id="ocd-motivos"><option value="Fornecedor fixo"><option value="Preço combinado"><option value="Urgente"><option value="Valor pequeno"><option value="Único fornecedor"></datalist></div>
     </div>`:''}
+    ${!direta&&modo&&modo.pedId?`<div class="g g2" style="margin-bottom:12px">${_pedCamposDoc((DB.pedidosCompra||[]).find(x=>x.id===modo.pedId))}</div>`:''}
     <div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Fornecedor *</label><div style="display:flex;gap:6px"><select class="sel" id="cot-forn">${fornOpts}</select><button type="button" class="btn sm" onclick="orcNovoFornecedor()" title="Cadastrar fornecedor">${ic('plus')}</button></div></div>
       <div class="fg"><label class="lbl">Valor total, antes do desconto (R$) *</label><input type="number" class="inp ot-num" id="cot-vtotal" value="${val(c&&(c.detalhe?.desconto>0?_cotBruto(c):c.valorTotal))}" oninput="_cotCalcLiquido()" min="0" step="0.01" placeholder="0,00"></div>
@@ -462,7 +464,7 @@ function openModalCotacao(editId, solId, modo){
       <div id="orc-itens"></div>
     </div>
     <details id="cl-texto-box" style="margin-top:10px;display:none"><summary style="cursor:pointer;font-size:12px;color:var(--txt3)">Ver texto lido do orcamento</summary><pre id="cl-texto" style="white-space:pre-wrap;font-family:var(--ot-font-mono);font-size:11px;background:var(--ot-surface-sunken);padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:6px"></pre></details>
-  </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button>${direta?`<button class="btn pri" onclick="salvarCompraDireta()">${ic('file-text')} Gerar ordem de compra</button>`:`<button class="btn pri" onclick="salvarCotacao()">${ic('save')} Salvar orcamento</button>`}</div></div></div>`;
+  </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button>${direta?`<button class="btn pri" onclick="salvarCompraDireta()">${ic('file-text')} Gerar documento</button>`:`<button class="btn pri" onclick="salvarCotacao()">${ic('save')} Salvar orcamento</button>`}</div></div></div>`;
   _orcRenderItens();_cotCalcParcela();_cotCalcLiquido();
 }
 function _orcRenderItens(){
@@ -584,7 +586,11 @@ function salvarCotacao(){
     const cot=(DB.cotacoes||[]).find(x=>x.id===(editId||(DB.cotacoes||[]).slice(-1)[0]?.id));
     if(cot&&!cot.vencedor){cot.vencedor=true;supaUpdate('compras_cotacoes',cot.id,{vencedor:true});}
     if(ped&&cot){ped.fornecedor=cot.fornecedor;ped.valorTotal=_cotLiquido(cot)||_cotMelhor(cot);ped.previsaoEntrega=cot.prazoEntrega||ped.previsaoEntrega;
-      supaUpdate('compras_pedidos',ped.id,{fornecedor:ped.fornecedor,valor_total:ped.valorTotal});}
+      const dt=document.getElementById('ocd-data')?.value, tp=document.getElementById('ocd-tipo')?.value;
+      const upd={fornecedor:ped.fornecedor,valor_total:ped.valorTotal};
+      if(dt){ped.criadoEm=dt+'T12:00:00';upd.criado_em=ped.criadoEm;}
+      if(tp){ped.status=tp==='pagamento'?'pagamento':(ped.status==='pagamento'?'direta':ped.status);upd.status=ped.status;}
+      supaUpdate('compras_pedidos',ped.id,upd);}
     save();closeModal();renderPedidos();toast('✅','Pedido atualizado! Gere o PDF de novo.');return;
   }
   save();closeModal();renderCotacoes();toast('✅',editId?'Orcamento atualizado!':'Orcamento de '+forn+' adicionado!');
@@ -611,6 +617,24 @@ function pedEditar(pedId){
     const v=document.getElementById('cot-vtotal');if(v&&!v.value)v.value=p.valorTotal||'';},30);}
 }
 
+// Tipo do documento do pedido: Ordem de Compra (padrão) ou Autorização de Pagamento
+function _pedEhPagamento(p){return p?.status==='pagamento';}
+// Data do documento (aaaa-mm-dd, fuso local): a escolhida na compra direta ou a da emissão
+function _pedData(p){
+  const v=p?.criadoEm;if(!v)return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+  const d=new Date(v);if(isNaN(d))return String(v).slice(0,10);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// Campos de data e tipo do documento (compra direta e edição pelo pedido)
+function _pedCamposDoc(p){
+  const tipo=_pedEhPagamento(p)?'pagamento':'compra';
+  return `<div class="fg"><label class="lbl">Documento *</label><select class="sel" id="ocd-tipo">
+      <option value="compra"${tipo==='compra'?' selected':''}>Ordem de Compra</option>
+      <option value="pagamento"${tipo==='pagamento'?' selected':''}>Autorização de Pagamento</option></select></div>
+    <div class="fg"><label class="lbl">Data do documento *</label><input type="date" class="inp" id="ocd-data" value="${_pedData(p)||hojeISO()}"><div style="font-size:10px;color:var(--txt3);margin-top:3px">Use a data do comprovante de pagamento</div></div>`;
+}
+
 // ── Ordem de compra direta (sem solicitação/cotação) ─────────────────────
 // Cria por baixo: solicitação já aprovada + orçamento vencedor + pedido (marcado como 'direta').
 function abrirCompraDireta(){openModalCotacao(null,null,'direta');setTimeout(()=>document.getElementById('ocd-item')?.focus(),60);}
@@ -619,6 +643,8 @@ async function salvarCompraDireta(){
   const item=document.getElementById('ocd-item').value.trim();
   const obraId=document.getElementById('ocd-obra').value;
   const motivo=document.getElementById('ocd-motivo').value.trim();
+  const dataDoc=document.getElementById('ocd-data').value||hojeISO();
+  const tipoDoc=document.getElementById('ocd-tipo').value;
   if(!item){toast('⚠️','Informe o que está sendo comprado.');document.getElementById('ocd-item').focus();return;}
   if(!obraId){toast('⚠️','Selecione a obra.');return;}
   const col=_cotColetar();if(!col)return;
@@ -633,7 +659,7 @@ async function salvarCompraDireta(){
   const cotId=uuidv4();
   (DB.cotacoes=DB.cotacoes||[]).push({id:cotId,solicitacaoId:solId,...dados,vencedor:true,_supa:true});
   // 3. pedido (marcado como direta)
-  const ped=_criarPedidoFromSolicitacao(sol,{status:'direta',_adiar:true});
+  const ped=_criarPedidoFromSolicitacao(sol,{status:tipoDoc==='pagamento'?'pagamento':'direta',criadoEm:dataDoc+'T12:00:00',_adiar:true});
   save();closeModal();comprasTab('pedidos');
   // Banco: em sequência, porque o orçamento e o pedido apontam para a solicitação
   try{
@@ -642,7 +668,7 @@ async function salvarCompraDireta(){
     await _pedSupaSalvar(ped);
   }catch(e){console.error('compra direta',e);}
   renderPedidos();
-  toast('✅','Ordem de compra gerada!');
+  toast('✅',tipoDoc==='pagamento'?'Autorização de pagamento gerada!':'Ordem de compra gerada!');
   gerarOrdemCompraPDF(ped.id);
 }
 
@@ -772,20 +798,23 @@ async function gerarOrdemCompraPDF(pedId){
   const FS=doc.__fonte?'Manrope':'helvetica';
   const M=9;
 
-  let y=pHdr(doc,'Ordem de Compra',(o?.nome||'')+'  —  '+(p.fornecedor||''));
+  const AP=_pedEhPagamento(p);
+  const dataDoc=_pedData(p)||hojeISO();
+  doc.__emitido='Emitido em '+fmtDt(dataDoc);
+  let y=pHdr(doc,AP?'Autorização de Pagamento':'Ordem de Compra',(o?.nome||'')+'  —  '+(p.fornecedor||''));
   y+=4;
 
   // Dados do fornecedor
-  y=pSec(doc,y,'Dados do Fornecedor');
+  y=pSec(doc,y,AP?'Dados do Favorecido':'Dados do Fornecedor');
   const fornObj=(DB.fornecedores||[]).find(f=>(typeof f==='object'?f.nome:f)===p.fornecedor);
   doc.autoTable({
     startY:y,
     styles:{font:FS},
     body:[
-      ['Fornecedor',p.fornecedor||'—'],
+      [AP?'Favorecido':'Fornecedor',p.fornecedor||'—'],
       ['CNPJ',fornObj?.cnpj||'—'],
       ['Contato',fornObj?.contato||fornObj?.telefone||'—'],
-      ['Previsão de Entrega',p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):p.previsaoEntrega):'—'],
+      AP?['Data do pagamento',fmtDt(dataDoc)]:['Previsão de Entrega',p.previsaoEntrega?(/^\d{4}-\d{2}-\d{2}$/.test(p.previsaoEntrega)?fmtDt(p.previsaoEntrega):p.previsaoEntrega):'—'],
     ],
     bodyStyles:{...bStyle(),fontSize:8,cellPadding:{top:1.8,bottom:1.8,left:3,right:3}},
     columnStyles:{0:{cellWidth:50,fontStyle:'bold',textColor:corEmpresa(),halign:'center'},1:{cellWidth:142,halign:'center'}},
@@ -794,7 +823,7 @@ async function gerarOrdemCompraPDF(pedId){
   y=doc.lastAutoTable.finalY+6;
 
   // Itens
-  y=pSec(doc,y,'Itens do Pedido');
+  y=pSec(doc,y,AP?'Discriminação do Pagamento':'Itens do Pedido');
   doc.autoTable({
     startY:y,
     styles:{font:FS},
@@ -834,7 +863,7 @@ async function gerarOrdemCompraPDF(pedId){
   y=Math.max(y+10,240);
   const W=doc.internal.pageSize.getWidth();
   const assinW=(W-M*2)/2;
-  [['Comprador',DB.user.nome||''],['Fornecedor',p.fornecedor||'']].forEach((a,i)=>{
+  [[AP?'Autorizado por':'Comprador',DB.user.nome||''],[AP?'Favorecido':'Fornecedor',p.fornecedor||'']].forEach((a,i)=>{
     const ax=M+i*assinW;
     doc.setDrawColor(150,150,150);doc.line(ax+4,y+8,ax+assinW-6,y+8);
     _pdfSans(doc,'bold');doc.setFontSize(7);doc.setTextColor(40,40,40);
@@ -844,6 +873,8 @@ async function gerarOrdemCompraPDF(pedId){
   });
 
   pFtr(doc);
-  doc.save('OC_'+(p.fornecedor||'pedido').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
-  toast('📄','Ordem de compra gerada!');
+  // Nome do arquivo no padrão do RDO: "OC FORNECEDOR 15-10-2026.pdf" / "AP FORNECEDOR 15-10-2026.pdf"
+  const [aa,mm,dd]=dataDoc.split('-');
+  doc.save((AP?'AP ':'OC ')+String(p.fornecedor||'pedido').toUpperCase().replace(/[\\/:*?"<>|]+/g,' ').trim()+' '+dd+'-'+mm+'-'+aa+'.pdf');
+  toast('📄',AP?'Autorização de pagamento gerada!':'Ordem de compra gerada!');
 }
