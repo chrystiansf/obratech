@@ -853,9 +853,12 @@ async function gerarOrdemCompraPDF(pedId){
     y=doc.lastAutoTable.finalY+6;
   }
 
-  if(p.obs){
+  // Observações: as digitadas no formulário (ficam no orçamento) + as do pedido, sem repetir
+  const obsTxt=[...new Set([cot?.obs,p.obs].map(x=>String(x||'').trim()).filter(Boolean))].join('\n');
+  if(obsTxt){
+    if(y>235){doc.addPage();y=pHdr(doc,AP?'Autorização de Pagamento':'Ordem de Compra',(o?.nome||'')+'  —  '+(p.fornecedor||''))+6;}
     y=pSec(doc,y,'Observações');
-    doc.autoTable({startY:y,body:[[p.obs]],styles:{font:FS},bodyStyles:{...bStyle(),fontSize:8},margin:{left:M,right:M}});
+    doc.autoTable({startY:y,body:[[obsTxt]],styles:{font:FS},bodyStyles:{...bStyle(),fontSize:8.5,cellPadding:{top:3,bottom:3,left:5,right:5}},margin:{left:M,right:M}});
     y=doc.lastAutoTable.finalY+6;
   }
 
