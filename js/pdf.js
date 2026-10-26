@@ -802,18 +802,18 @@ function exportFinXLS() {
   const ordenados = [...lans].sort((a, b) => String(b.data||'').localeCompare(String(a.data||'')));
   const wb = XLSX.utils.book_new();
 
-  const head = ['Data', 'Tipo', 'Descrição', 'Obra', 'Categoria', 'Centro de Custo', 'Fornecedor', 'NF', 'Valor (R$)'];
+  const head = ['Data', 'Tipo', 'Descrição', 'Obra', 'Categoria', 'Centro de Custo', 'Fornecedor', 'NF', 'Forma de pagamento', 'Valor (R$)'];
   const body = ordenados.map(l => [
     l.data ? fmtDt(l.data) : '—', l.tipo || '—', l.desc || '—', obraNome(l.obraId),
-    l.cat || '—', l.cc || '—', l.forn || '—', l.nf || '—', Number(l.valor || 0)
+    l.cat || '—', l.cc || '—', l.forn || '—', l.nf || '—', l.forma || '—', Number(l.valor || 0)
   ]);
   const totDesp = lans.filter(l => l.tipo === 'Despesa').reduce((a, l) => a + Number(l.valor || 0), 0);
-  const rodape = [[], ['', '', 'TOTAL DESPESAS', '', '', '', '', '', totDesp]];
+  const rodape = [[], ['', '', 'TOTAL DESPESAS', '', '', '', '', '', '', totDesp]];
   const ws = XLSX.utils.aoa_to_sheet([head, ...body, ...rodape]);
-  ws['!cols'] = [{wch:12},{wch:10},{wch:40},{wch:25},{wch:20},{wch:18},{wch:28},{wch:12},{wch:15}];
-  ws['!autofilter'] = { ref: 'A1:I' + (body.length + 1) };
+  ws['!cols'] = [{wch:12},{wch:10},{wch:40},{wch:25},{wch:20},{wch:18},{wch:28},{wch:12},{wch:18},{wch:15}];
+  ws['!autofilter'] = { ref: 'A1:J' + (body.length + 1) };
   for (let r = 1; r < body.length + rodape.length + 1; r++) {
-    const c = ws[XLSX.utils.encode_cell({ r, c: 8 })];
+    const c = ws[XLSX.utils.encode_cell({ r, c: 9 })];
     if (c && typeof c.v === 'number') c.z = '#,##0.00';
   }
   XLSX.utils.book_append_sheet(wb, ws, 'Lancamentos');
@@ -902,8 +902,8 @@ function exportFinPDF() {
   y = pSec(doc, y, 'Lancamentos Detalhados');
   doc.autoTable({
     startY: y,
-    head: [['Data', 'Descricao', 'Obra', 'Categoria', 'Fornecedor', 'Valor (R$)']],
-    body: lans.filter(l=>l.tipo==='Despesa').sort((a,b) => b.data.localeCompare(a.data)).map(l => {
+    head: [['Data', 'Descrição', 'Obra', 'Categoria', 'Fornecedor', 'Pagamento', 'Valor (R$)']],
+    body: lans.filter(l=>l.tipo==='Despesa').sort((a,b) => String(b.data||'').localeCompare(String(a.data||''))).map(l => {
       const o = DB.obras.find(x => x.id == l.obraId);
       return [
         fmtDt(l.data),
@@ -911,6 +911,7 @@ function exportFinPDF() {
         (o?.nome||'—').substring(0,18),
         (l.cat||'—').substring(0,18),
         (l.forn||'—').substring(0,18),
+        (l.forma||'—'),
         fmtR(Number(l.valor))
       ];
     }),
@@ -919,12 +920,13 @@ function exportFinPDF() {
     bodyStyles: bStyle(),
     alternateRowStyles: altRow(),
     columnStyles: {
-      0: { cellWidth: 26, halign: 'center' },
-      1: { cellWidth: 52 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: 28 },
-      4: { cellWidth: 28 },
-      5: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+      0: { cellWidth: 22, halign: 'center' },
+      1: { cellWidth: 46 },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 24 },
+      4: { cellWidth: 24 },
+      5: { cellWidth: 24, halign: 'center' },
+      6: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
     },
     margin: { left: 9, right: 9 }
   });

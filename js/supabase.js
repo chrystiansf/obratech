@@ -284,6 +284,7 @@ function mostrarApp(){
     document.getElementById('app').style.display='flex';
     document.getElementById('portal-cliente').style.display='none';
     if(!window._paginaAtual) window._paginaAtual='dashboard';
+    if(typeof otEscolherAoAbrir==='function') setTimeout(otEscolherAoAbrir,0);   // escolha da obra é a primeira coisa a aparecer
   }
 }
 
@@ -706,7 +707,10 @@ async function carregarDadosSupabase(){
     }
     if(etapas.data)      DB.etapas     = etapas.data.map(mapEtapa);
     if(colaboradores.data) DB.colabs   = colaboradores.data.map(mapColab);
-    if(lancamentos.data) DB.lancs      = lancamentos.data.map(mapLanc);
+    if(lancamentos.data){
+      if(lancamentos.data.length) window._otTemFormaPagto=Object.prototype.hasOwnProperty.call(lancamentos.data[0],'forma_pagamento');
+      DB.lancs = lancamentos.data.map(mapLanc);
+    }
     if(rdos.data)        DB.rdos       = rdos.data.map(mapRdo);
     if(estoque.data)     DB.estoque    = estoque.data.map(mapEstoque);
     if(movs.data)        DB.movs       = movs.data.map(mapMov);
@@ -760,7 +764,7 @@ async function carregarDadosSupabase(){
 function mapObra(r){return{id:r.id,nome:r.nome,tipo:r.tipo,statusManual:r.status_manual,orc:Number(r.orcamento||0),m2:Number(r.area_m2||0),dataIni:r.data_ini,dataFim:r.data_fim,local:r.local,resp:r.responsavel,cli:r.cliente,obs:r.obs,_supa:true};}
 function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,orc:Number(r.orcamento||0),resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
 function mapColab(r){const fixo=String(r.obs||'').startsWith('[FIXO]');return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,vinculo:fixo?'fixo':'diarista',_supa:true};}
-function mapLanc(r){return{_pgtoId:r.pagamento_id||undefined,_medicaoId:r.medicao_id||undefined,id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,_supa:true};}
+function mapLanc(r){return{_pgtoId:r.pagamento_id||undefined,_medicaoId:r.medicao_id||undefined,id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,forma:r.forma_pagamento||'',_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:r.fotos||[],autor:r.autor||'',_supa:true};}
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
 function mapMov(r){return{id:r.id,estId:r.estoque_id,obraId:r.obra_id,tipo:/^sa[ií]da$/i.test(r.tipo||'')?'Saida':r.tipo,qtd:Number(r.quantidade||0),data:r.data,nf:r.nota_fiscal,obs:r.obs,_supa:true};}
@@ -872,12 +876,24 @@ async function recarregarTabela(tabela){
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE SYNC — salvar/atualizar/excluir em tempo real
 // ═══════════════════════════════════════════════════════════════
+// Colunas criadas por SQL novo: se o banco ainda não tiver, grava o resto e avisa (uma vez)
+const _OT_COLS_OPCIONAIS={forma_pagamento:'sql/lancamentos_forma_pagamento.sql'};
+function _otColunaOpcional(error){
+  const col=(String(error.message||'').match(/'([a-z_]+)' column/)||[])[1];
+  if(!col||!_OT_COLS_OPCIONAIS[col]) return null;
+  window._otAvisouCol=window._otAvisouCol||{};
+  if(!window._otAvisouCol[col]){window._otAvisouCol[col]=1;toast('⚠️','Salvo, mas o campo "'+col.replace('_',' ')+'" só fica no banco após rodar '+_OT_COLS_OPCIONAIS[col]+' no Supabase.');}
+  return col;
+}
 async function supaInsert(tabela, dados){
   if(!supa){console.warn('supaInsert: supa null');return dados.id||null;}
   if(!_empresaId){console.warn('supaInsert: _empresaId null');return dados.id||null;}
   try{
-    const payload={..._semTags(dados), id:dados.id||uuidv4(), empresa_id:_empresaId};
-    const {data,error}=await supa.from(tabela).insert(payload).select('id').single();
+    let payload={..._semTags(dados), id:dados.id||uuidv4(), empresa_id:_empresaId};
+    let {data,error}=await supa.from(tabela).insert(payload).select('id').single();
+    // Coluna nova ainda não criada no banco (SQL não rodado): grava o resto e avisa uma vez
+    const colFalta=error&&_otColunaOpcional(error);
+    if(colFalta&&colFalta in payload){const {[colFalta]:_x,...semCol}=payload;payload=semCol;({data,error}=await supa.from(tabela).insert(payload).select('id').single());}
     if(error){
       console.error('supaInsert ERRO',tabela,error.message,error.code,JSON.stringify(payload).substring(0,300));
       if(error.message&&error.message.includes('Could not find')){
@@ -921,6 +937,8 @@ async function supaUpdate(tabela, id, dados){
     const comData=!semAtualizado.includes(tabela)&&!window._otSemAtualizadoEm.has(tabela);
     const payload=comData?{..._semTags(dados),atualizado_em:new Date().toISOString()}:{..._semTags(dados)};
     let {data,error}=await supa.from(tabela).update(payload).eq('id',id).eq('empresa_id',_empresaId).select('id');
+    const colFaltaU=error&&_otColunaOpcional(error);
+    if(colFaltaU&&colFaltaU in payload){const {[colFaltaU]:_y,...semCol}=payload;({data,error}=await supa.from(tabela).update(semCol).eq('id',id).eq('empresa_id',_empresaId).select('id'));}
     // Tabela sem a coluna atualizado_em (ex.: terceirizados): antes a alteração inteira era recusada. Reenvia sem ela.
     if(error&&comData&&/atualizado_em/.test(error.message||'')){
       window._otSemAtualizadoEm.add(tabela);

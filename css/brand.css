@@ -708,3 +708,11 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
 #sb > nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
 #sb > nav::-webkit-scrollbar { display: none; }
 #sb .sbfoot { flex-shrink: 0; }
+
+/* Orçamento no celular: nome do grupo em cima; %, total e botões embaixo (nada sai do card) */
+@media (max-width: 768px) {
+  .orc-grupo-linha { flex-wrap: wrap; row-gap: 6px; }
+  .orc-grupo-linha .orc-grupo-nome { flex: 1 1 calc(100% - 60px) !important; }
+  .orc-grupo-linha > span:nth-child(4) { margin-left: 46px; }
+  .orc-grupo-linha > span:nth-child(5) { flex: 1; min-width: 0 !important; }
+}

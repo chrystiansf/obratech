@@ -207,7 +207,10 @@ function openModal(type,editId=null,editId2=null){
         <div id="l-forn-dropdown" style="display:none;max-height:150px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-top:4px"></div>
       </div>
       <div id="l-forn-novo-area" style="display:none;grid-column:span 2"></div>
-      <div class="fg" style="grid-column:span 2"><label class="lbl">Nota Fiscal / Referência</label>
+      <div class="fg"><label class="lbl">Forma de pagamento</label>
+        <select class="sel" id="l-forma"><option value="">— Selecionar —</option>${FORMAS_PAGTO.map(f=>`<option${l?.forma===f?' selected':''}>${f}</option>`).join('')}${l?.forma&&!FORMAS_PAGTO.includes(l.forma)?`<option selected>${escHtml(l.forma)}</option>`:''}</select>
+      </div>
+      <div class="fg"><label class="lbl">Nota Fiscal / Referência</label>
         <input class="inp" id="l-nf" value="${l?.nf||''}" placeholder="NF 00123">
       </div>
     </div>`;
@@ -223,16 +226,17 @@ function openModal(type,editId=null,editId2=null){
         valor,data:document.getElementById('l-data').value,
         obraId:document.getElementById('l-obra').value||null,
         forn:fornTxt||'',
-        nf:document.getElementById('l-nf').value.trim()
+        nf:document.getElementById('l-nf').value.trim(),
+        forma:document.getElementById('l-forma')?.value||''
       };
       if(l){
         Object.assign(l,dados);
-        supaUpdate('lancamentos',l.id,{tipo:dados.tipo,descricao:dados.desc,categoria:dados.cat,centro_custo:dados.etapa||'',valor:dados.valor,data:dados.data,fornecedor:dados.forn,nota_fiscal:dados.nf,obra_id:dados.obraId||null});
+        supaUpdate('lancamentos',l.id,{tipo:dados.tipo,descricao:dados.desc,categoria:dados.cat,centro_custo:dados.etapa||'',valor:dados.valor,data:dados.data,fornecedor:dados.forn,nota_fiscal:dados.nf,obra_id:dados.obraId||null,forma_pagamento:dados.forma||null});
       } else {
         const novoId=uuidv4();
         const nl={id:novoId,...dados,_supa:true};
         DB.lancs.push(nl);
-        supaInsert('lancamentos',{id:novoId,tipo:dados.tipo,descricao:dados.desc,categoria:dados.cat,centro_custo:dados.etapa||'',valor:dados.valor,data:dados.data,fornecedor:dados.forn,nota_fiscal:dados.nf,obra_id:dados.obraId||null});
+        supaInsert('lancamentos',{id:novoId,tipo:dados.tipo,descricao:dados.desc,categoria:dados.cat,centro_custo:dados.etapa||'',valor:dados.valor,data:dados.data,fornecedor:dados.forn,nota_fiscal:dados.nf,obra_id:dados.obraId||null,forma_pagamento:dados.forma||null});
       }
       save();renderFin();toast('✅',l?'Lançamento atualizado!':'Lançamento registrado!');return true;
     };

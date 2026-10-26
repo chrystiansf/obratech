@@ -312,10 +312,10 @@ async function renderOrcamento(){
     const pct=totalGeral>0?(gTotal/totalGeral*100).toFixed(1):'0.0';
 
     html+=`<div style="margin-bottom:2px">
-      <div onclick="orcToggleGrupo('${obraId}','${g.cod}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;transition:.15s${isOpen?';border-color:#1F7A50':''}">
+      <div class="orc-grupo-linha" onclick="orcToggleGrupo('${obraId}','${g.cod}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;transition:.15s${isOpen?';border-color:#1F7A50':''}">
         <span style="font-size:12px;transition:.2s;transform:rotate(${isOpen?'90':'0'}deg)">▶</span>
         <span style="font-weight:700;font-size:12px;color:#1F7A50;min-width:28px">${g.cod}</span>
-        <span style="font-weight:600;font-size:12px;flex:1">${g.nome}</span>
+        <span class="orc-grupo-nome" style="font-weight:600;font-size:12px;flex:1;min-width:0">${g.nome}</span>
         <span style="font-size:10px;color:var(--txt3);margin-right:4px">${pct}%</span>
         <span style="font-weight:700;font-size:12px;color:#1F7A50;min-width:90px;text-align:right">${fmtR(gTotal)}</span>
         <button class="btn sm ico" onclick="event.stopPropagation();orcAdicionarItem('${obraId}',${gi})" title="Adicionar subitem" style="font-size:10px">＋</button>

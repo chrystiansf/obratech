@@ -376,6 +376,9 @@ function parseImportRows(rows){
       etapa:String(findCol(row,['etapa','stage','fase'])||'').trim(),
       forn:String(findCol(row,['fornecedor','forn','supplier','vendor'])||'').trim(),
       nf:String(findCol(row,['nf','nota','invoice','nota fiscal'])||'').trim(),
+      forma:(()=>{const v=norm(findCol(row,['forma de pagamento','forma','pagamento','meio']));if(!v)return '';
+        if(v.includes('pix'))return 'PIX';if(v.includes('cart')||v.includes('credito'))return 'Cartão de crédito';if(v.includes('bolet'))return 'Boleto';
+        if(v.includes('cheq'))return 'Cheque';if(v.includes('transf')||v.includes('ted')||v.includes('doc'))return 'Transferência';return '';})(),
     };
   }).filter(r=>(r.valor>0||r.desc)&&r.tipo!=='Receita'); // receitas/aportes ficam na aba Caixa
 
@@ -432,13 +435,14 @@ function executarImportObra(){
       id:novoId,obraId:novaObra.id,
       tipo:l.tipo,desc:l.desc,cat:l.cat||'Sem Categoria',
       valor:l.valor,data:l.data,
-      etapa:l.etapa||'',forn:l.forn||'',nf:l.nf||'',cc:'',_supa:true
+      etapa:l.etapa||'',forn:l.forn||'',nf:l.nf||'',forma:l.forma||'',cc:'',_supa:true
     };
     DB.lancs.push(novoLanc);
     lancsParaSupa.push({
       id:novoId,obra_id:novaObra.id,tipo:l.tipo,descricao:l.desc,
       categoria:l.cat||'Sem Categoria',centro_custo:l.etapa||'',
-      valor:l.valor,data:l.data,fornecedor:l.forn||'',nota_fiscal:l.nf||''
+      valor:l.valor,data:l.data,fornecedor:l.forn||'',nota_fiscal:l.nf||'',
+      ...(window._otTemFormaPagto&&l.forma?{forma_pagamento:l.forma}:{})   // só se a coluna já existir no banco
     });
     okCount++;
   });
@@ -610,6 +614,9 @@ function _parseImportLancs(rows){
       etapa:String(findCol(row,['etapa','stage','fase'])||'').trim(),
       forn:String(findCol(row,['fornecedor','forn','supplier','vendor'])||'').trim(),
       nf:String(findCol(row,['nf','nota','invoice','nota fiscal'])||'').trim(),
+      forma:(()=>{const v=norm(findCol(row,['forma de pagamento','forma','pagamento','meio']));if(!v)return '';
+        if(v.includes('pix'))return 'PIX';if(v.includes('cart')||v.includes('credito'))return 'Cartão de crédito';if(v.includes('bolet'))return 'Boleto';
+        if(v.includes('cheq'))return 'Cheque';if(v.includes('transf')||v.includes('ted')||v.includes('doc'))return 'Transferência';return '';})(),
     };
   }).filter(r=>(r.valor>0||r.desc)&&r.tipo!=='Receita'); // receitas/aportes ficam na aba Caixa
 }
@@ -647,12 +654,13 @@ async function executarImportFinanceiro(){
       id:novoId,obraId:obraId,
       tipo:l.tipo,desc:l.desc,cat:l.cat||'Sem Categoria',
       valor:l.valor,data:l.data,
-      etapa:l.etapa||'',forn:l.forn||'',nf:l.nf||'',cc:'',_supa:true
+      etapa:l.etapa||'',forn:l.forn||'',nf:l.nf||'',forma:l.forma||'',cc:'',_supa:true
     });
     lancsParaSupa.push({
       id:novoId,obra_id:obraId,tipo:l.tipo,descricao:l.desc,
       categoria:l.cat||'Sem Categoria',centro_custo:l.etapa||'',
-      valor:l.valor,data:l.data,fornecedor:l.forn||'',nota_fiscal:l.nf||''
+      valor:l.valor,data:l.data,fornecedor:l.forn||'',nota_fiscal:l.nf||'',
+      ...(window._otTemFormaPagto&&l.forma?{forma_pagamento:l.forma}:{})   // só se a coluna já existir no banco
     });
     okCount++;
   });

@@ -117,6 +117,7 @@ const _finFiltros={
   cat: null,        // Set de strings
   cc: null,         // Set de strings
   forn: null,       // Set de strings
+  forma: null,      // Set de strings (forma de pagamento)
   dataIni: '',
   dataFim: '',
 };
@@ -135,6 +136,7 @@ function _finOpcoes(campo){
     else if(campo==='cat')vals.add(l.cat||'—');
     else if(campo==='cc')vals.add(l.cc||'—');
     else if(campo==='forn')vals.add(l.forn||'—');
+    else if(campo==='forma')vals.add(l.forma||'—');
   });
   if(campo==='obra') return [...vals].map(v=>JSON.parse(v)).sort((a,b)=>_alfa(a.nome,b.nome));
   return [...vals].sort(_alfa);
@@ -359,6 +361,7 @@ function _finPassa(l){
   if(_finFiltros.cat!==null&&!_finFiltros.cat.has(l.cat||'—')) return false;
   if(_finFiltros.cc!==null&&!_finFiltros.cc.has(l.cc||'—')) return false;
   if(_finFiltros.forn!==null&&!_finFiltros.forn.has(l.forn||'—')) return false;
+  if(_finFiltros.forma!==null&&!_finFiltros.forma.has(l.forma||'—')) return false;
   const d=_dataISO(l.data);
   if(_finFiltros.dataIni&&(!d||d<_finFiltros.dataIni)) return false;
   if(_finFiltros.dataFim&&(!d||d>_finFiltros.dataFim)) return false;
@@ -413,6 +416,7 @@ function renderFin(){
     if(_finFiltros.cat!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-folder-open></use></svg> ${_finFiltros.cat.size} categ.<button onclick="_finFiltros.cat=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     if(_finFiltros.cc!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-tag></use></svg> ${_finFiltros.cc.size} CC<button onclick="_finFiltros.cc=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     if(_finFiltros.forn!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-building-2></use></svg> ${_finFiltros.forn.size} forn.<button onclick="_finFiltros.forn=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
+    if(_finFiltros.forma!==null)chips.push(`<span class="fin-fchip"><svg class=ot-i><use href=#i-credit-card></use></svg> ${[..._finFiltros.forma].join(', ')}<button onclick="_finFiltros.forma=null;renderFin()"><svg class=ot-i><use href=#i-x></use></svg></button></span>`);
     chipsEl.innerHTML=chips.join('');
   }
 
@@ -427,10 +431,11 @@ function renderFin(){
         <th>${_finThBtn('cat','CATEGORIA')}</th>
         <th>${_finThBtn('cc','C. CUSTO')}</th>
         <th>${_finThBtn('forn','FORNECEDOR')}</th>
+        <th>${_finThBtn('forma','PAGAMENTO')}</th>
         <th style="text-align:right">VALOR</th>
         <th></th>
       </tr>`
-      +(lans.length?'':'<tr><td colspan="9" class="t-empty">Nenhum lançamento com os filtros atuais. <button class="btn sm" onclick="finLimparFiltros()" style="margin-left:8px"><svg class=ot-i><use href=#i-x></use></svg> Limpar filtros</button></td></tr>')
+      +(lans.length?'':'<tr><td colspan="10" class="t-empty">Nenhum lançamento com os filtros atuais. <button class="btn sm" onclick="finLimparFiltros()" style="margin-left:8px"><svg class=ot-i><use href=#i-x></use></svg> Limpar filtros</button></td></tr>')
       +lans.sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))).map(l=>{
         const o=DB.obras.find(x=>x.id==l.obraId);
         const neg=l.tipo==='Despesa';
@@ -442,6 +447,7 @@ function renderFin(){
           <td>${l.cat||'—'}</td>
           <td>${l.cc?`<span class="b bn">${l.cc}</span>`:'—'}</td>
           <td style="font-size:11px;color:var(--txt2)">${l.forn||'—'}</td>
+          <td style="font-size:11px">${l.forma?`<span class="b bn">${escHtml(l.forma)}</span>`:'—'}</td>
           <td style="text-align:right;font-weight:600;color:${neg?'var(--red)':'var(--green)'}">${neg?'−':'+'}${fmtR(Number(l.valor))}</td>
           <td><div class="ta-actions">
             <button class="btn sm ico" onclick="openModal('lanc','${String(l.id).replace(/'/g,"\\'")}')"><svg class=ot-i><use href=#i-pencil></use></svg></button>

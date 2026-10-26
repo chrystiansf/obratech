@@ -99,3 +99,6 @@ document.addEventListener('wheel',e=>{
 const OT_FIXO='[FIXO]';
 function ehFixo(c){return !!c&&(c.vinculo==='fixo'||String(c.obs||'').startsWith(OT_FIXO));}
 function obsSemFixo(o){return String(o||'').replace(/^\[FIXO\]\s*/,'');}
+
+// Formas de pagamento dos lançamentos
+const FORMAS_PAGTO=['PIX','Cartão de crédito','Boleto','Cheque','Transferência'];

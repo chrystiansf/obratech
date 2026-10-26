@@ -97,6 +97,29 @@ function otAposCarregar() {
   _otAtualizarChip();
 }
 
+// Ao abrir o sistema: a escolha da obra aparece antes de tudo, com a lista de obras guardada no aparelho.
+// Sem lista guardada (1º acesso), busca só as obras no banco (rápido) em vez de esperar todos os dados.
+let _otAbrindo = false;
+async function otEscolherAoAbrir() {
+  if (_otPerguntou || _otAbrindo || (typeof _papelAtual !== 'undefined' && _papelAtual === 'cliente')) return;
+  _otAbrindo = true;
+  try {
+    let sess = null; try { sess = sessionStorage.getItem('ot_obra_ativa'); } catch (e) {}
+    let obras = (_otTudo.obras || DB.obras || []);
+    if (!obras.length && typeof supa !== 'undefined' && supa && typeof _empresaId !== 'undefined' && _empresaId) {
+      try {
+        const { data } = await supa.from('obras').select('*').eq('empresa_id', _empresaId);
+        if (Array.isArray(data) && data.length && !(DB.obras || []).length) { DB.obras = data.map(mapObra); obras = DB.obras; }
+      } catch (e) {}
+    }
+    if (_otPerguntou || !obras.length) return;
+    _otPerguntou = true;
+    if (sess) { otDefinirObra(sess === '*' ? null : sess); return; }    // recarregou a página: mantém
+    if (obras.length === 1) { otDefinirObra(obras[0].id); return; }
+    otEscolherObra(true);
+  } finally { _otAbrindo = false; }
+}
+
 // Tela de escolha da obra
 function otEscolherObra(inicial) {
   const obras = (_otTudo.obras || DB.obras || []).slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));

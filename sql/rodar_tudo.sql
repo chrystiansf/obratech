@@ -95,3 +95,6 @@ begin
     alter table public.compras_pedidos alter column previsao_entrega type text using previsao_entrega::text;
   end if;
 end $$;
+
+-- Financeiro: forma de pagamento dos lançamentos
+alter table public.lancamentos add column if not exists forma_pagamento text;
