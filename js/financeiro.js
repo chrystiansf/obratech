@@ -420,6 +420,12 @@ function renderFin(){
     chipsEl.innerHTML=chips.join('');
   }
 
+  // Aviso fixo: o banco ainda não tem o campo da forma de pagamento (SQL não rodado)
+  {const av=document.getElementById('fin-aviso-forma');
+   if(window._otTemFormaPagto===false){if(!av){const d=document.createElement('div');d.id='fin-aviso-forma';d.className='al i';d.style.cssText='margin-bottom:10px;border-color:var(--ot-danger,#dc2626)';
+     d.innerHTML='<span><b>A forma de pagamento ainda não está sendo salva no banco.</b> Rode no Supabase (SQL Editor): <code style="user-select:all">alter table public.lancamentos add column if not exists forma_pagamento text;</code> — as formas já escolhidas neste aparelho serão enviadas sozinhas depois.</span>';
+     document.getElementById('fin-filtros')?.before(d);}}
+   else if(av) av.remove();}
   const el=document.getElementById('lanc-tbl');
   {
     el.innerHTML=`<table class="tbl tbl-filter-hdr">

@@ -709,7 +709,7 @@ async function carregarDadosSupabase(){
     if(colaboradores.data) DB.colabs   = colaboradores.data.map(mapColab);
     if(lancamentos.data){
       if(lancamentos.data.length) window._otTemFormaPagto=Object.prototype.hasOwnProperty.call(lancamentos.data[0],'forma_pagamento');
-      DB.lancs = lancamentos.data.map(mapLanc);
+      DB.lancs = _lancMesclarForma(lancamentos.data);
     }
     if(rdos.data)        DB.rdos       = rdos.data.map(mapRdo);
     if(estoque.data)     DB.estoque    = estoque.data.map(mapEstoque);
@@ -764,6 +764,17 @@ async function carregarDadosSupabase(){
 function mapObra(r){return{id:r.id,nome:r.nome,tipo:r.tipo,statusManual:r.status_manual,orc:Number(r.orcamento||0),m2:Number(r.area_m2||0),dataIni:r.data_ini,dataFim:r.data_fim,local:r.local,resp:r.responsavel,cli:r.cliente,obs:r.obs,_supa:true};}
 function mapEtapa(r){return{id:r.id,obraId:r.obra_id,nome:r.nome,status:r.status,pct:r.pct,pctEsp:r.pct_esperado,orc:Number(r.orcamento||0),resp:r.responsavel,inicio:r.inicio,fim:r.fim,sp:r.sp,wp:r.wp,_supa:true};}
 function mapColab(r){const fixo=String(r.obs||'').startsWith('[FIXO]');return{id:r.id,nome:r.nome,funcao:r.funcao,cpf:r.cpf,admissao:r.admissao,diaria:Number(r.diaria||0),salario:Number(r.salario||0),pis:r.pis,tel:r.telefone,obs:r.obs,vinculo:fixo?'fixo':'diarista',_supa:true};}
+// Forma de pagamento escolhida neste aparelho e que o banco ainda não tem:
+// sem a coluna no banco → mantém a local (não some); com a coluna → envia ao banco
+function _lancMesclarForma(rows){
+  const loc=new Map((DB.lancs||[]).filter(l=>l&&l.forma).map(l=>[String(l.id),l.forma]));
+  const subir=[];
+  const out=rows.map(r=>{const l=mapLanc(r);const f=loc.get(String(r.id));
+    if(!l.forma&&f){l.forma=f;if(window._otTemFormaPagto)subir.push([l.id,f]);}
+    return l;});
+  if(subir.length&&typeof supaUpdate==='function') setTimeout(()=>subir.forEach(([id,f])=>supaUpdate('lancamentos',id,{forma_pagamento:f})),800);
+  return out;
+}
 function mapLanc(r){return{_pgtoId:r.pagamento_id||undefined,_medicaoId:r.medicao_id||undefined,id:r.id,obraId:r.obra_id,tipo:r.tipo,desc:r.descricao,cat:r.categoria,cc:r.centro_custo,valor:Number(r.valor||0),data:r.data,forn:r.fornecedor,nf:r.nota_fiscal,etapa:r.etapa_id,forma:r.forma_pagamento||'',_supa:true};}
 function mapRdo(r){return{id:r.id,obraId:r.obra_id,data:r.data,clima:r.clima,prev:r.previsto,real:r.realizado,serv:r.servicos,obs:r.obs,mat:r.materiais,status:r.status,fotos:r.fotos||[],autor:r.autor||'',_supa:true};}
 function mapEstoque(r){return{id:r.id,material:r.material,un:r.unidade,qtd:0,min:Number(r.estoque_min||0),preco:Number(r.preco||0),forn:r.fornecedor,_supa:true};}
@@ -881,6 +892,7 @@ const _OT_COLS_OPCIONAIS={forma_pagamento:'sql/lancamentos_forma_pagamento.sql'}
 function _otColunaOpcional(error){
   const col=(String(error.message||'').match(/'([a-z_]+)' column/)||[])[1];
   if(!col||!_OT_COLS_OPCIONAIS[col]) return null;
+  if(col==='forma_pagamento'&&window._otTemFormaPagto!==false){window._otTemFormaPagto=false;setTimeout(()=>{if(typeof renderFin==='function'&&window._paginaAtual==='financeiro')renderFin();},50);}
   window._otAvisouCol=window._otAvisouCol||{};
   if(!window._otAvisouCol[col]){window._otAvisouCol[col]=1;toast('⚠️','Salvo, mas o campo "'+col.replace('_',' ')+'" só fica no banco após rodar '+_OT_COLS_OPCIONAIS[col]+' no Supabase.');}
   return col;
@@ -1005,7 +1017,7 @@ function iniciarRealtime(){
       const m={obras:r=>{DB.obras=r.map(mapObra);renderDash();fillSelects();renderObras();renderPaginaAtual&&renderPaginaAtual();},
         etapas:r=>{DB.etapas=r.map(mapEtapa);renderCron&&renderCron();},
         colaboradores:r=>{DB.colabs=r.map(mapColab);renderPaginaAtual&&renderPaginaAtual();fillSelects();},
-        lancamentos:r=>{DB.lancs=r.map(mapLanc);renderFin();},
+        lancamentos:r=>{if(r.length)window._otTemFormaPagto=Object.prototype.hasOwnProperty.call(r[0],'forma_pagamento');DB.lancs=_lancMesclarForma(r);renderFin();},
         rdos:r=>{DB.rdos=r.map(mapRdo);renderRDOHist();},
         estoque:r=>{DB.estoque=r.map(mapEstoque);if(document.getElementById('p-estoque')?.style.display!=='none')renderEstoque();},
         movimentacoes:r=>{DB.movs=r.map(mapMov);if(document.getElementById('p-estoque')?.style.display!=='none')renderEstoqueSaldo();},
