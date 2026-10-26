@@ -285,7 +285,8 @@ function pcRdoPdf(id) {
   const r = (_pcDados.rdos || []).find(x => String(x.id) === String(id)); if (!r) return;
   const o = _pcDados.obra;
   DB.obras = [{ id: o.id, nome: o.nome, local: o.local, resp: o.responsavel }];
-  gerarRDOPDF({ id: r.id, obraId: o.id, data: r.data, clima: r.clima, serv: r.servicos, obs: r.obs, mat: r.materiais, status: r.status, fotos: r.fotos || [], autor: r.autor || '' });
+  const numero = rdoNumero({ id: r.id, obraId: o.id, data: r.data, status: r.status }, (_pcDados.rdos || []).map(x => ({ id: x.id, obraId: o.id, data: x.data, status: x.status })));
+  gerarRDOPDF({ id: r.id, obraId: o.id, data: r.data, clima: r.clima, serv: r.servicos, obs: r.obs, mat: r.materiais, status: r.status, fotos: r.fotos || [], autor: r.autor || '' }, { numero });
 }
 
 function pcGerarPdf(tab) {

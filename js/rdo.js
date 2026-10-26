@@ -344,6 +344,7 @@ function renderRDOHist(){
     +rdos.map(r=>{
       const obra=DB.obras.find(o=>String(o.id)===String(r.obraId));
       return `<div onclick="visualizarRDO('${r.id}')" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;cursor:pointer;transition:.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
+        <span class="b bn" style="font-size:10px" title="Número do RDO nesta obra">Nº ${rdoNumero(r)}</span>
         <span style="font-weight:600;font-size:12px;min-width:75px">${fmtDt(r.data)}</span>
         <span style="font-size:13px">${climaIco(r.clima)}</span>
         <span style="font-size:11px;color:var(--txt2);flex:1;min-width:60px">${obra?.nome||''}</span>

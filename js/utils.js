@@ -102,3 +102,13 @@ function obsSemFixo(o){return String(o||'').replace(/^\[FIXO\]\s*/,'');}
 
 // Formas de pagamento dos lançamentos
 const FORMAS_PAGTO=['PIX','Cartão de crédito','Boleto','Cheque','Transferência'];
+
+// Número do RDO na obra: ordem cronológica dos RDOs finalizados daquela obra (o mais antigo é o Nº 1).
+// Um rascunho recebe o número que terá ao ser finalizado. 'lista' permite usar outra fonte (ex.: portal).
+function rdoNumero(rdo,lista){
+  if(!rdo) return 0;
+  const doObra=(lista||DB.rdos||[]).filter(r=>r&&String(r.obraId??r.obra_id)===String(rdo.obraId)&&(r.status==='finalizado'||String(r.id)===String(rdo.id)));
+  if(!doObra.some(r=>String(r.id)===String(rdo.id))) doObra.push(rdo);
+  doObra.sort((a,b)=>String(a.data||'').localeCompare(String(b.data||''))||String(a.criadoEm||a.id).localeCompare(String(b.criadoEm||b.id)));
+  return doObra.findIndex(r=>String(r.id)===String(rdo.id))+1;
+}

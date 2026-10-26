@@ -336,7 +336,8 @@ async function gerarRDOPDF(rdo, opts) {
   if (lote) { if (opts.novaPagina) doc.addPage(); }
   else await _pdfUsarFontesMarca(doc);            // Manrope + Tenor Sans (Helvetica se não carregar)
   const FS = doc.__fonte ? 'Manrope' : 'helvetica';
-  const TIT = 'Relatório Diário de Obra';
+  const numRDO = opts?.numero || rdoNumero(rdo);
+  const TIT = 'Relatório Diário de Obra Nº ' + numRDO;
   const W = doc.internal.pageSize.getWidth();
   const M = 14; // margem lateral padrao
   const CW = W - M * 2; // largura util
