@@ -330,8 +330,11 @@ function pBar(doc, x, y, w, h, pct, _color) {
 
 async function gerarRDOPDF(rdo, opts) {
   if (!rdo) { toast('⚠️', 'Sem RDO selecionado!'); return; }
-  const doc = new jsPDF();
-  await _pdfUsarFontesMarca(doc);                 // Manrope + Tenor Sans (Helvetica se não carregar)
+  // Lote: acrescenta este RDO ao documento recebido (nova página), sem salvar nem numerar páginas
+  const lote = opts?.doc || null;
+  const doc = lote || new jsPDF();
+  if (lote) { if (opts.novaPagina) doc.addPage(); }
+  else await _pdfUsarFontesMarca(doc);            // Manrope + Tenor Sans (Helvetica se não carregar)
   const FS = doc.__fonte ? 'Manrope' : 'helvetica';
   const TIT = 'Relatório Diário de Obra';
   const W = doc.internal.pageSize.getWidth();
@@ -609,6 +612,7 @@ async function gerarRDOPDF(rdo, opts) {
   drawSigBox(M + sigW + 4, y, sigW, sigH, 'LOCAL E DATA', (obra?.local || '-') + ',  ' + fmtDt(rdo.data));
   doc.setLineWidth(0.2);
 
+  if (lote) return doc;                           // o lote numera as páginas e salva no final
   pFtr(doc);
   if(opts?.preview){
     // Retornar o doc para preview inline
@@ -1040,44 +1044,30 @@ function exportQualPDF() {
   doc.save('Qualidade_NCs_ObraTech.pdf');
   toast('📄', 'Relatorio de Qualidade exportado com sucesso!');
 }
-function exportRDOsLote(){
-  const oId  = document.getElementById('rel-obra').value;
-  const de   = document.getElementById('rel-de').value;
-  const ate  = document.getElementById('rel-ate').value;
+// RDOs em lote: cada RDO completo (fotos, presenças, assinaturas), igual ao individual, num PDF único
+async function exportRDOsLote(){
+  const oId  = document.getElementById('rel-obra')?.value || '';
+  const de   = document.getElementById('rel-de')?.value || '';
+  const ate  = document.getElementById('rel-ate')?.value || '';
   const rdos = DB.rdos.filter(r =>
-    (!oId || r.obraId == oId) &&
-    (!de  || r.data >= de)    &&
-    (!ate || r.data <= ate)   &&
+    (!oId || String(r.obraId) === String(oId)) &&
+    (!de  || String(r.data||'') >= de)    &&
+    (!ate || String(r.data||'') <= ate)   &&
     r.status === 'finalizado'
-  );
-  if (!rdos.length) { toast('⚠️','Nenhum RDO finalizado no periodo!'); return; }
-
-  const doc = new jsPDF(); let first = true;
-  rdos.slice().sort((a,b) => a.data.localeCompare(b.data)).forEach(rdo => {
-    if (!first) doc.addPage(); first = false;
-    const obra = DB.obras.find(o => o.id == rdo.obraId);
-    let y = pHdr(doc, 'Relatorio Diario de Obra', (obra?.nome||'—') + '   —   ' + fmtDt(rdo.data));
-    y += 5;
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...PX.gray);
-    doc.text('Clima: ' + (rdo.clima||'—') + '     Responsavel: ' + (obra?.resp||'—'), 9, y+4);
-    doc.setDrawColor(...PX.silver); doc.setLineWidth(0.3); doc.line(9, y+7, 201, y+7);
-    y += 13;
-    doc.autoTable({
-      startY: y,
-      head: [['Campo', 'Informacao']],
-      body: [
-        ['Servicos Executados',     rdo.serv||'Nao informado.'],
-        ['Ocorrencias / Observacoes', rdo.obs||'Nenhuma.'],
-        ['Materiais Recebidos',     rdo.mat||'Sem recebimentos.'],
-      ],
-      theme: 'plain', headStyles: hStyle(), bodyStyles: { ...bStyle(), minCellHeight: 10, valign: 'top' },
-      columnStyles: { 0: { cellWidth: 50, fontStyle:'bold', fillColor: PX.bg, textColor: PX.gray }, 1: { cellWidth: 142 } },
-      margin: { left: 9, right: 9 }
-    });
-  });
+  ).sort((a,b) => String(a.data||'').localeCompare(String(b.data||'')));
+  if (!rdos.length) { toast('⚠️','Nenhum RDO finalizado no período!'); return; }
+  const doc = new jsPDF();
+  await _pdfUsarFontesMarca(doc);
+  for (let i = 0; i < rdos.length; i++) {
+    toast('⏳', 'Gerando RDO ' + (i+1) + ' de ' + rdos.length + '...');
+    await gerarRDOPDF(rdos[i], { doc, novaPagina: i > 0 });
+  }
   pFtr(doc);
-  doc.save('RDOs_' + (de||'todos') + '_' + (ate||'hoje') + '.pdf');
-  toast('📄', rdos.length + ' RDO(s) exportados com sucesso!');
+  const ob = oId ? DB.obras.find(o => String(o.id) === String(oId)) : null;
+  const br = d => d ? d.split('-').reverse().join('-') : '';
+  doc.save(('RDOs ' + (ob ? ob.nome.toUpperCase() + ' ' : '') + (de||ate ? br(de) + (ate ? ' a ' + br(ate) : '') : '')).trim() + '.pdf');
+  const nf = rdos.reduce((a, r) => a + (r.fotos?.length || 0), 0);
+  toast('📄', rdos.length + ' RDO(s) exportados (' + nf + ' foto(s))!');
 }
 // ══════════════════════════════════════════════
 // CUSTO POR M²
