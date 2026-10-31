@@ -844,100 +844,99 @@ function exportFinXLS() {
   toast('📊', 'Planilha financeira exportada (' + lans.length + ' lancamentos)!');
 }
 
-function exportFinPDF() {
+async function exportFinPDF() {
   const lans = _finLancsFiltrados().filter(l => l.tipo === 'Despesa');
-  if (!lans.length) { toast('⚠️', 'Nenhum lancamento nos filtros atuais!'); return; }
+  if (!lans.length) { toast('⚠️', 'Nenhum lançamento nos filtros atuais!'); return; }
 
-  const dep   = lans.filter(l => l.tipo==='Despesa').reduce((a,l) => a+Number(l.valor), 0);
-  const nDep  = lans.filter(l => l.tipo==='Despesa').length;
-  const nTotal = lans.length;
+  const dep  = lans.reduce((a,l) => a+Number(l.valor||0), 0);
+  const nDep = lans.length;
+
+  // Obra(s) do relatório: vai para o cabeçalho (sem coluna "Obra" na tabela)
+  const idsObra = [...new Set(lans.map(l => String(l.obraId||'')))].filter(Boolean);
+  const obrasRel = idsObra.map(id => DB.obras.find(o => String(o.id) === id)).filter(Boolean);
+  const umaObra = obrasRel.length === 1 ? obrasRel[0] : null;
+  const nomeObras = umaObra ? umaObra.nome : (obrasRel.length ? obrasRel.length + ' obras' : 'Todas as obras');
+  const datas = lans.map(l => _dataISO(l.data)).filter(Boolean).sort();
+  const periodo = datas.length ? fmtDt(datas[0]) + ' a ' + fmtDt(datas[datas.length-1]) : '';
 
   const doc = new jsPDF();
-  let y = pHdr(doc, 'Relatorio Financeiro de Obra', nTotal + ' lancamentos   —   ' + new Date().toLocaleDateString('pt-BR'));
-  y += 4;
+  await _pdfUsarFontesMarca(doc);
+  const FS = doc.__fonte ? 'Manrope' : 'helvetica';
+  const TIT = 'DRE Financeiro';
+  const SUB = 'Obra: ' + nomeObras + (periodo ? '  -  ' + periodo : '');
+  let y = pHdr(doc, TIT, SUB) + 2;
 
-  // ── 3 KPIs
-  const cw = 62, ch = 24, gap = 2;
-  pKpi(doc, 9,           y, cw, ch, 'Total de Despesas', fmtR(dep),   nDep+' lancamentos');
-  const obraFiltro = _finFiltros.obra ? DB.obras.find(o=>_finFiltros.obra.has(String(o.id))) : null;
-  const orc = obraFiltro ? obraFiltro.orc||0 : DB.obras.reduce((a,o)=>a+Number(o.orc||0),0);
+  // Faixa com a obra, bem visível abaixo do cabeçalho
+  const W = doc.internal.pageSize.getWidth(), M = 9, CW = W - M*2;
+  doc.setFillColor(...PX.bg); doc.setDrawColor(...PX.silver); doc.setLineWidth(0.2);
+  doc.rect(M, y, CW, 13, 'FD');
+  doc.setFillColor(...corEmpresa()); doc.rect(M, y, 2.2, 13, 'F');
+  _pdfSans(doc, 'normal'); doc.setFontSize(6.5); doc.setTextColor(...PX.gray);
+  doc.text(umaObra ? 'OBRA' : 'OBRAS', M + 6, y + 5);
+  _pdfTitulo(doc); doc.setFontSize(12); doc.setTextColor(...PX.ink);
+  doc.text(umaObra ? umaObra.nome.toUpperCase() : obrasRel.map(o => o.nome).join(', ').toUpperCase().substring(0, 90) || 'TODAS AS OBRAS', M + 6, y + 10.5);
+  if (periodo) { _pdfSans(doc, 'normal'); doc.setFontSize(7.5); doc.setTextColor(...PX.gray); doc.text('Período: ' + periodo + '   ·   ' + nDep + ' lançamento' + (nDep > 1 ? 's' : ''), W - M - 4, y + 8, { align: 'right' }); }
+  y += 19;
+
+  // ── 3 indicadores
+  const cw = (CW - 4) / 3, ch = 24, gap = 2;
+  pKpi(doc, M, y, cw, ch, 'Total de Despesas', fmtR(dep), nDep + ' lançamentos');
+  const obraFiltro = umaObra || (_finFiltros.obra ? DB.obras.find(o=>_finFiltros.obra.has(String(o.id))) : null);
+  const orc = obraFiltro ? Number(obraFiltro.orc||0) : obrasRel.reduce((a,o)=>a+Number(o.orc||0),0);
   const saldoOrc = orc - dep;
-  pKpi(doc, 9+cw+gap,    y, cw, ch, 'Orcamento', fmtR(orc),  orc>0 ? 'previsto' : 'nao informado');
-  pKpi(doc, 9+2*(cw+gap),y, cw, ch, 'Saldo Orcamentario',  fmtR(saldoOrc), saldoOrc>=0 ? 'Dentro do orcado' : 'Acima do orcado');
+  pKpi(doc, M+cw+gap, y, cw, ch, 'Orçamento', fmtR(orc), orc>0 ? 'previsto' : 'não informado');
+  pKpi(doc, M+2*(cw+gap), y, cw, ch, 'Saldo Orçamentário', fmtR(saldoOrc), saldoOrc>=0 ? 'Dentro do orçado' : 'Acima do orçado');
   y += ch + 8;
+
+  const tab = { theme: 'plain', styles: { font: FS, overflow: 'linebreak' }, headStyles: hStyle(),
+    bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15, cellPadding: { top: 2.6, bottom: 2.6, left: 3, right: 3 }, valign: 'middle' },
+    margin: { left: M, right: M, top: 40 }, tableWidth: CW };
+  const zebra = d => { if (d.section === 'body' && d.row.index % 2 === 0) d.cell.styles.fillColor = [250, 251, 253]; };
 
   // ── Resumo por categoria
   y = pSec(doc, y, 'Resumo por Categoria');
-  const m2Obra = obraFiltro ? Number(obraFiltro.m2||0) : DB.obras.reduce((a,o)=>a+Number(o.m2||0),0);
-  const catsData = [...new Set(lans.filter(l=>l.tipo==='Despesa').map(l => l.cat||'Sem Categoria'))].map(cat => {
-    const d2 = lans.filter(l => l.cat===cat && l.tipo==='Despesa').reduce((a,l)=>a+Number(l.valor),0);
-    const custoM2 = m2Obra>0 ? d2/m2Obra : 0;
-    return {cat, d2, custoM2};
+  const m2Obra = obraFiltro ? Number(obraFiltro.m2||0) : obrasRel.reduce((a,o)=>a+Number(o.m2||0),0);
+  const catsData = [...new Set(lans.map(l => l.cat||'Sem Categoria'))].map(cat => {
+    const d2 = lans.filter(l => (l.cat||'Sem Categoria')===cat).reduce((a,l)=>a+Number(l.valor||0),0);
+    return { cat, d2, custoM2: m2Obra>0 ? d2/m2Obra : 0 };
   }).sort((a,b) => b.d2 - a.d2);
-  doc.autoTable({
-    startY: y,
-    head: [['Categoria', 'Valor (R$)', 'R$/m²', '% do Total']],
+  doc.autoTable({ ...tab, startY: y,
+    head: [['CATEGORIA', 'VALOR (R$)', 'R$/M²', '% DO TOTAL']],
     body: [
-      ...catsData.map(c => [c.cat, fmtR(c.d2), m2Obra>0 ? fmtR(c.custoM2) : '—', dep>0 ? (c.d2/dep*100).toFixed(2)+'%' : '0.00%']),
-      ['TOTAL GERAL', fmtR(dep), m2Obra>0 ? fmtR(dep/m2Obra) : '—', '100.00%']
+      ...catsData.map(c => [c.cat, fmtR(c.d2), m2Obra>0 ? fmtR(c.custoM2) : '—', dep>0 ? (c.d2/dep*100).toFixed(2).replace('.', ',')+'%' : '0,00%']),
+      ['TOTAL GERAL', fmtR(dep), m2Obra>0 ? fmtR(dep/m2Obra) : '—', '100,00%']
     ],
-    theme: 'striped',
-    headStyles: hStyle(),
-    bodyStyles: bStyle(),
-    alternateRowStyles: altRow(),
-    columnStyles: {
-      0: { cellWidth: 80 },
-      1: { cellWidth: 40, halign: 'right', fontStyle: 'bold' },
-      2: { cellWidth: 25, halign: 'center' },
-      3: { cellWidth: 30, halign: 'center' }
-    },
-    didParseCell: (d) => {
-      if (d.section === 'body' && d.row.index === catsData.length) {
-        d.cell.styles.fillColor   = PX.navy;
-        d.cell.styles.textColor   = [255,255,255];
-        d.cell.styles.fontStyle   = 'bold';
-      }
-    },
-    margin: { left: 9, right: 9 }
+    columnStyles: { 0: {}, 1: { cellWidth: 'wrap', halign: 'right', fontStyle: 'bold' }, 2: { cellWidth: 'wrap', halign: 'right' }, 3: { cellWidth: 'wrap', halign: 'center' } },
+    didParseCell: d => { zebra(d); if (d.section === 'body' && d.row.index === catsData.length) { d.cell.styles.fillColor = corEmpresa(); d.cell.styles.textColor = [255,255,255]; d.cell.styles.fontStyle = 'bold'; } },
+    didDrawPage: d => { if (d.pageNumber > 1 && d.cursor) {} }
   });
   y = doc.lastAutoTable.finalY + 9;
 
-  // ── Lançamentos detalhados
-  if (y > 215) { doc.addPage(); y = pHdr(doc, 'Relatorio Financeiro — Lancamentos', 'Continuacao') + 8; }
-  y = pSec(doc, y, 'Lancamentos Detalhados');
-  doc.autoTable({
-    startY: y,
-    head: [['Data', 'Descrição', 'Obra', 'Categoria', 'Fornecedor', 'Pagamento', 'Valor (R$)']],
-    body: lans.filter(l=>l.tipo==='Despesa').sort((a,b) => String(b.data||'').localeCompare(String(a.data||''))).map(l => {
-      const o = DB.obras.find(x => x.id == l.obraId);
-      return [
-        fmtDt(l.data),
-        (l.desc||'—').substring(0,40),
-        (o?.nome||'—').substring(0,18),
-        (l.cat||'—').substring(0,18),
-        (l.forn||'—').substring(0,18),
-        (l.forma||'—'),
-        fmtR(Number(l.valor))
-      ];
-    }),
-    theme: 'striped',
-    headStyles: hStyle(),
-    bodyStyles: bStyle(),
-    alternateRowStyles: altRow(),
+  // ── Lançamentos detalhados: do mais antigo para o mais recente, sem cortar textos
+  if (y > 230) { doc.addPage(); y = pHdr(doc, TIT, SUB) + 6; }
+  y = pSec(doc, y, 'Lançamentos Detalhados');
+  const ordenados = lans.slice().sort((a,b) => _dataISO(a.data).localeCompare(_dataISO(b.data)) || String(a.desc||'').localeCompare(String(b.desc||''), 'pt-BR'));
+  doc.autoTable({ ...tab, startY: y,
+    head: [['DATA', 'DESCRIÇÃO', 'CATEGORIA', 'FORNECEDOR', 'PAGAMENTO', 'VALOR (R$)']],
+    body: ordenados.map(l => [fmtDt(l.data), l.desc||'—', l.cat||'—', l.forn||'—', l.forma||'—', fmtR(Number(l.valor||0))]),
+    foot: [[{ content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } }, { content: fmtR(dep), styles: { halign: 'right' } }]],
+    footStyles: { ...totRow(), font: FS, fontSize: 8, cellPadding: { top: 2.6, bottom: 2.6, left: 3, right: 3 } },
+    showFoot: 'lastPage',
     columnStyles: {
-      0: { cellWidth: 22, halign: 'center' },
-      1: { cellWidth: 46 },
-      2: { cellWidth: 24 },
-      3: { cellWidth: 24 },
-      4: { cellWidth: 24 },
-      5: { cellWidth: 24, halign: 'center' },
-      6: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
+      0: { cellWidth: 'wrap', halign: 'center' },          // data numa linha só
+      1: { },                                              // descrição: largura que sobrar, quebra só entre palavras
+      2: { },
+      3: { },
+      4: { cellWidth: 'wrap', halign: 'center' },
+      5: { cellWidth: 'wrap', halign: 'right', fontStyle: 'bold' }
     },
-    margin: { left: 9, right: 9 }
+    didParseCell: zebra,
+    didDrawPage: d => { if (d.pageNumber > 1) pHdr(doc, TIT, SUB); }
   });
 
   pFtr(doc);
-  doc.save('DRE_Financeiro_ObraTech.pdf');
+  const hoje = hojeISO().split('-').reverse().join('-');
+  doc.save('DRE Financeiro ' + (umaObra ? umaObra.nome.toUpperCase() + ' ' : '') + hoje + '.pdf');
   toast('📄', 'DRE Financeiro exportado com sucesso!');
 }
 // ─────────────────────────────────────────────────────────────────
