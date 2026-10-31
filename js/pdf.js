@@ -890,7 +890,7 @@ async function exportFinPDF() {
 
   const tab = { theme: 'plain', styles: { font: FS, overflow: 'linebreak' }, headStyles: hStyle(),
     bodyStyles: { ...bStyle(), lineColor: [235, 237, 240], lineWidth: 0.15, cellPadding: { top: 2.6, bottom: 2.6, left: 3, right: 3 }, valign: 'middle' },
-    margin: { left: M, right: M, top: 40 }, tableWidth: CW };
+    margin: { left: M, right: M, top: 40 }, tableWidth: CW, rowPageBreak: 'avoid' };   // linha nunca se divide entre páginas
   const zebra = d => { if (d.section === 'body' && d.row.index % 2 === 0) d.cell.styles.fillColor = [250, 251, 253]; };
 
   // ── Resumo por categoria
@@ -923,16 +923,55 @@ async function exportFinPDF() {
     footStyles: { ...totRow(), font: FS, fontSize: 8, cellPadding: { top: 2.6, bottom: 2.6, left: 3, right: 3 } },
     showFoot: 'lastPage',
     columnStyles: {
-      0: { cellWidth: 'wrap', halign: 'center' },          // data numa linha só
+      0: { cellWidth: 24, halign: 'center' },              // data numa linha só
       1: { },                                              // descrição: largura que sobrar, quebra só entre palavras
       2: { },
       3: { },
-      4: { cellWidth: 'wrap', halign: 'center' },
-      5: { cellWidth: 'wrap', halign: 'right', fontStyle: 'bold' }
+      4: { cellWidth: 30, halign: 'center' },
+      5: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
     },
     didParseCell: zebra,
     didDrawPage: d => { if (d.pageNumber > 1) pHdr(doc, TIT, SUB); }
   });
+  y = doc.lastAutoTable.finalY + 10;
+
+  // ── Resumo por forma de pagamento: só as formas que têm lançamentos (sem forma = "Não informado")
+  const porForma = {};
+  lans.forEach(l => { const f = l.forma || 'Não informado'; (porForma[f] = porForma[f] || { n: 0, v: 0 }); porForma[f].n++; porForma[f].v += Number(l.valor || 0); });
+  const formas = Object.entries(porForma).sort((a, b) => (a[0] === 'Não informado') - (b[0] === 'Não informado') || b[1].v - a[1].v);
+  if (formas.length) {
+    if (y + 22 + formas.length * 9 > 275) { doc.addPage(); y = pHdr(doc, TIT, SUB) + 6; }
+    y = pSec(doc, y, 'Resumo por Forma de Pagamento');
+    doc.autoTable({ ...tab, startY: y,
+      head: [['FORMA DE PAGAMENTO', 'LANÇAMENTOS', 'VALOR (R$)', '% DO TOTAL']],
+      body: [
+        ...formas.map(([f, x]) => [f, String(x.n), fmtR(x.v), dep > 0 ? (x.v / dep * 100).toFixed(2).replace('.', ',') + '%' : '0,00%']),
+        ['TOTAL', String(nDep), fmtR(dep), '100,00%']
+      ],
+      columnStyles: { 0: { fontStyle: 'bold' }, 1: { cellWidth: 32, halign: 'center' }, 2: { cellWidth: 45, halign: 'right', fontStyle: 'bold' }, 3: { cellWidth: 32, halign: 'center' } },
+      didParseCell: d => { zebra(d);
+        if (d.section === 'body' && d.row.index === formas.length) { d.cell.styles.fillColor = corEmpresa(); d.cell.styles.textColor = [255,255,255]; d.cell.styles.fontStyle = 'bold'; }
+        else if (d.section === 'body' && d.row.raw[0] === 'Não informado') { d.cell.styles.textColor = PX.gray; d.cell.styles.fontStyle = 'italic'; } },
+      didDrawPage: d => { if (d.pageNumber > 1) pHdr(doc, TIT, SUB); }
+    });
+    // Barra de proporção por forma (mesma cor da empresa, tons diferentes)
+    y = doc.lastAutoTable.finalY + 5;
+    if (dep > 0 && y + 12 < 278) {
+      let x = M; const cor = corEmpresa();
+      formas.forEach(([f, v], i) => {
+        const w = CW * v.v / dep; if (w <= 0) return;
+        const t = Math.min(0.85, i * 0.22); doc.setFillColor(...cor.map(c => Math.round(c + (255 - c) * t)));
+        doc.rect(x, y, w, 4, 'F'); x += w;
+      });
+      let lx = M; _pdfSans(doc, 'normal'); doc.setFontSize(6.8);
+      formas.forEach(([f, v], i) => {
+        const t = Math.min(0.85, i * 0.22); doc.setFillColor(...corEmpresa().map(c => Math.round(c + (255 - c) * t)));
+        doc.rect(lx, y + 7, 3, 3, 'F'); doc.setTextColor(...PX.gray);
+        const rot = f + ' ' + (v.v / dep * 100).toFixed(0) + '%'; doc.text(rot, lx + 4.5, y + 9.4); lx += doc.getTextWidth(rot) + 11;
+      });
+      doc.setTextColor(...PX.ink);
+    }
+  }
 
   pFtr(doc);
   const hoje = hojeISO().split('-').reverse().join('-');
