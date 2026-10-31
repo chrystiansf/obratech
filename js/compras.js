@@ -451,7 +451,7 @@ function openModalCotacao(editId, solId, modo){
     ${!direta&&modo&&modo.pedId?`<div class="g g2" style="margin-bottom:12px">${_pedCamposDoc((DB.pedidosCompra||[]).find(x=>x.id===modo.pedId))}</div>`:''}
     <div class="g g2">
       <div class="fg" style="grid-column:span 2"><label class="lbl">Fornecedor *</label><div style="display:flex;gap:6px"><select class="sel" id="cot-forn">${fornOpts}</select><button type="button" class="btn sm" onclick="orcNovoFornecedor()" title="Cadastrar fornecedor">${ic('plus')}</button></div></div>
-      <div class="fg"><label class="lbl">Valor total, antes do desconto (R$) *</label><input type="number" class="inp ot-num" id="cot-vtotal" value="${val(c&&(c.detalhe?.desconto>0?_cotBruto(c):c.valorTotal))}" oninput="_cotCalcLiquido()" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fg"><label class="lbl">Valor total, antes do desconto (R$) *</label><input type="number" class="inp ot-num" id="cot-vtotal" value="${val(c&&(c.detalhe?.desconto>0?_cotBruto(c):c.valorTotal))}" oninput="_orc.totalAuto=false;_cotCalcLiquido()" min="0" step="0.01" placeholder="0,00"></div>
       <div class="fg"><label class="lbl">Total a vista / PIX (R$)</label><input type="number" class="inp ot-num" id="cot-vpix" value="${val(c?.valorPix)}" min="0" step="0.01" placeholder="0,00"></div>
       <div class="fg"><label class="lbl">Total no cartao de credito (R$)</label><input type="number" class="inp ot-num" id="cot-vcartao" value="${val(c?.valorCartao)}" min="0" step="0.01" placeholder="0,00" oninput="_cotCalcParcela()"></div>
       <div class="fg"><label class="lbl">Parcelas sem juros</label><input type="number" class="inp ot-num" id="cot-parcelas" value="${val(c?.parcelas)}" min="1" max="48" step="1" placeholder="Ex: 10" oninput="_cotCalcParcela()"><div id="cot-parcela-info" style="font-size:12px;color:var(--txt3);min-height:16px"></div></div>
@@ -465,6 +465,9 @@ function openModalCotacao(editId, solId, modo){
     </div>
     <details id="cl-texto-box" style="margin-top:10px;display:none"><summary style="cursor:pointer;font-size:12px;color:var(--txt3)">Ver texto lido do orcamento</summary><pre id="cl-texto" style="white-space:pre-wrap;font-family:var(--ot-font-mono);font-size:11px;background:var(--ot-surface-sunken);padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:6px"></pre></details>
   </div><div class="mof"><button class="btn" onclick="closeModal()">Cancelar</button>${direta?`<button class="btn pri" onclick="salvarCompraDireta()">${ic('file-text')} Gerar documento</button>`:`<button class="btn pri" onclick="salvarCotacao()">${ic('save')} Salvar orcamento</button>`}</div></div></div>`;
+  // Total acompanha os itens: em orçamento novo, ou quando o total salvo já era a soma dos itens
+  {const soma=+(_orc.itens||[]).reduce((a,x)=>a+(Number(x.total)||0),0).toFixed(2);
+   _orc.totalAuto=!c||!soma||Math.abs(_cotBruto(c)-soma)<0.01;}
   _orcRenderItens();_cotCalcParcela();_cotCalcLiquido();
 }
 function _orcRenderItens(){
@@ -479,6 +482,7 @@ function _orcRenderItens(){
       <td><input type="number" class="inp ot-num" style="min-height:34px;text-align:right" value="${i.total||''}" step="0.01" id="orc-it-t-${k}" oninput="_orcItem(${k},'total',this.value)"></td>
       <td><button type="button" class="btn sm ico" onclick="_orc.itens.splice(${k},1);_orcRenderItens()" title="Remover">${ic('x')}</button></td></tr>`).join('')}
     <tr><td colspan="3" style="text-align:right;font-weight:600;color:var(--txt)">Soma dos itens</td><td style="text-align:right;font-weight:600" class="ot-num" id="orc-soma">${fmtR(soma)}</td><td></td></tr></table></div>`;
+  _orcTotalSegueItens();
 }
 // Total que não bate com qtd × unitário veio da loja (arredondado): não é recalculado
 function _orcMarcaTotal(i){if(Number(i.total)&&Number(i.qtd)&&Number(i.unit)&&Math.abs(i.qtd*i.unit-i.total)>0.005)i._totalManual=true;return i;}
@@ -489,6 +493,15 @@ function _orcItem(k,campo,v){
   if(campo==='total') i._totalManual=v!=='';
   if((campo==='qtd'||campo==='unit')&&Number(i.qtd)&&Number(i.unit)&&!i._totalManual){i.total=+(i.qtd*i.unit).toFixed(2);const t=document.getElementById('orc-it-t-'+k);if(t)t.value=i.total;}
   const s=document.getElementById('orc-soma');if(s)s.textContent=fmtR(_orc.itens.reduce((a,x)=>a+(Number(x.total)||0),0));
+  _orcTotalSegueItens();
+}
+// Enquanto houver itens e o usuário não tiver digitado outro total, o "Valor total, antes do desconto" = soma dos itens
+function _orcTotalSegueItens(){
+  if(!_orc||_orc.totalAuto===false) return;
+  const soma=+(_orc.itens||[]).reduce((a,x)=>a+(Number(x.total)||0),0).toFixed(2);
+  const f=document.getElementById('cot-vtotal');
+  if(f&&soma>0){f.value=soma;}
+  if(typeof _cotCalcLiquido==='function')_cotCalcLiquido();
 }
 function orcNovoFornecedor(){
   const nome=(prompt('Nome do novo fornecedor:')||'').trim();if(!nome)return;
@@ -545,7 +558,11 @@ function _cotColetar(){
   const somaItens=+itens.reduce((a,i)=>a+i.total,0).toFixed(2);
   let total=parseFloat(document.getElementById('cot-vtotal').value)||0;
   const desconto=parseFloat(document.getElementById('cot-desc').value)||0;
-  // Total informado (ou a soma dos itens, se vazio) é o valor antes do desconto
+  // Total informado (ou a soma dos itens, se vazio) é o valor antes do desconto.
+  // Com itens e total diferente da soma, pergunta: os itens são a composição do documento.
+  if(somaItens>0&&total&&Math.abs(total-somaItens)>=0.01){
+    if(confirm('O valor total antes do desconto ('+fmtR(total)+') é diferente da soma dos itens ('+fmtR(somaItens)+').\n\nOK = usar a soma dos itens ('+fmtR(somaItens)+')\nCancelar = manter o valor digitado ('+fmtR(total)+')')) total=somaItens;
+  }
   const bruto=total||somaItens;
   if(desconto>bruto&&bruto>0){toast('⚠️','O desconto é maior que o valor total.');return null;}
   total=bruto?+(bruto-desconto).toFixed(2):0;
@@ -599,6 +616,16 @@ function salvarCotacao(){
 // Valor do pedido com o desconto do orçamento vencedor (corrige pedidos gravados com a soma bruta)
 function _pedValor(p){
   const cot=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(p.solicitacaoId)&&c.vencedor);
+  // Compra/pagamento direto: os itens são a composição do documento → total = soma dos itens − desconto
+  if(cot&&(p.status==='direta'||p.status==='pagamento')&&cot.detalhe?.itens?.length){
+    const soma=+cot.detalhe.itens.reduce((a,i)=>a+(Number(i.total)||0),0).toFixed(2);
+    const d=Number(cot.detalhe.desconto)||0, liqItens=+(soma-d).toFixed(2);
+    if(soma>0&&liqItens>=0&&Math.abs((Number(cot.valorTotal)||0)-liqItens)>=0.01){
+      cot.detalhe={...cot.detalhe,produtos:soma,bruto:soma,liquido:true};cot.valorTotal=liqItens;
+      supaUpdate('compras_cotacoes',cot.id,{valor_total:liqItens,detalhe:cot.detalhe});
+      p.valorTotal=liqItens;supaUpdate('compras_pedidos',p.id,{valor_total:liqItens});save();
+    }
+  }
   const liq=cot?_cotLiquido(cot):0;
   if(cot&&liq&&Number(cot.detalhe?.desconto)>0&&Math.abs((Number(p.valorTotal)||0)-liq)>=0.01&&Math.abs((Number(p.valorTotal)||0)-liq-Number(cot.detalhe.desconto))<0.01){
     p.valorTotal=liq;supaUpdate('compras_pedidos',p.id,{valor_total:liq});
