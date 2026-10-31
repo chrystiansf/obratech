@@ -560,8 +560,10 @@ function _cotColetar(){
   const desconto=parseFloat(document.getElementById('cot-desc').value)||0;
   // Total informado (ou a soma dos itens, se vazio) é o valor antes do desconto.
   // Com itens e total diferente da soma, pergunta: os itens são a composição do documento.
+  // Com itens, o total é sempre a soma deles (o documento lista os itens e o total tem de bater)
   if(somaItens>0&&total&&Math.abs(total-somaItens)>=0.01){
-    if(confirm('O valor total antes do desconto ('+fmtR(total)+') é diferente da soma dos itens ('+fmtR(somaItens)+').\n\nOK = usar a soma dos itens ('+fmtR(somaItens)+')\nCancelar = manter o valor digitado ('+fmtR(total)+')')) total=somaItens;
+    toast('ℹ️','Total ajustado para a soma dos itens: '+fmtR(somaItens));
+    total=somaItens;
   }
   const bruto=total||somaItens;
   if(desconto>bruto&&bruto>0){toast('⚠️','O desconto é maior que o valor total.');return null;}
@@ -616,8 +618,8 @@ function salvarCotacao(){
 // Valor do pedido com o desconto do orçamento vencedor (corrige pedidos gravados com a soma bruta)
 function _pedValor(p){
   const cot=(DB.cotacoes||[]).find(c=>String(c.solicitacaoId)===String(p.solicitacaoId)&&c.vencedor);
-  // Compra/pagamento direto: os itens são a composição do documento → total = soma dos itens − desconto
-  if(cot&&(p.status==='direta'||p.status==='pagamento')&&cot.detalhe?.itens?.length){
+  // Os itens são a composição do documento → total = soma dos itens − desconto (vale para todo pedido com itens)
+  if(cot&&cot.detalhe?.itens?.length){
     const soma=+cot.detalhe.itens.reduce((a,i)=>a+(Number(i.total)||0),0).toFixed(2);
     const d=Number(cot.detalhe.desconto)||0, liqItens=+(soma-d).toFixed(2);
     if(soma>0&&liqItens>=0&&Math.abs((Number(cot.valorTotal)||0)-liqItens)>=0.01){
