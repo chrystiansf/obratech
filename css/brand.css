@@ -716,3 +716,8 @@ select:disabled[id$="-obra"] { opacity: 1; cursor: not-allowed; background-color
   .orc-grupo-linha > span:nth-child(4) { margin-left: 46px; }
   .orc-grupo-linha > span:nth-child(5) { flex: 1; min-width: 0 !important; }
 }
+
+/* Foto ampliada com botão Baixar (sistema e portal) */
+#ot-foto-ampliada .pcx-lightbox { z-index: 10000; }
+.pcx-lb-cap .ot-lb-baixar { margin-left: 12px; vertical-align: middle; }
+.pcx-lb-cap .ot-lb-baixar { background: var(--ot-brand, #EE5A24) !important; border-color: var(--ot-brand, #EE5A24) !important; color: #fff !important; }

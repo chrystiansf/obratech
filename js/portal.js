@@ -238,11 +238,14 @@ function pcAbrirFoto(rdoId, i) {
       <button class="pcx-lb-x" onclick="closeModal()" aria-label="Fechar">${ic('x')}</button>
       ${lista.length > 1 ? `<button class="pcx-lb-nav esq" onclick="window._pcLb(-1)" aria-label="Anterior">‹</button><button class="pcx-lb-nav dir" onclick="window._pcLb(1)" aria-label="Próxima">›</button>` : ''}
       <img src="${pcEsc(pcFotoSrc(f))}" alt="">
-      <div class="pcx-lb-cap"><span class="ot-num">${pcDt(r.data)} · ${k + 1}/${lista.length}</span>${f.desc ? ' — ' + pcEsc(f.desc) : ''}</div>
+      <div class="pcx-lb-cap"><span class="ot-num">${pcDt(r.data)} · ${k + 1}/${lista.length}</span>${f.desc ? ' — ' + pcEsc(f.desc) : ''}
+        <button class="btn sm pri ot-lb-baixar" onclick="otBaixarFoto(window._pcFotoSrc, window._pcFotoNome)">${ic('download')} Baixar</button></div>
     </div>`;
   };
-  window._pcLb = s => { k = (k + s + lista.length) % lista.length; draw(); };
-  draw();
+  const draw0 = draw;
+  const drawComNome = () => { draw0(); window._pcFotoSrc = pcFotoSrc(lista[k]); window._pcFotoNome = 'Foto ' + pcDt(r.data).replace(/\//g, '-') + ' - ' + String(k + 1).padStart(2, '0') + (lista[k].desc ? ' - ' + lista[k].desc : ''); };
+  window._pcLb = s => { k = (k + s + lista.length) % lista.length; drawComNome(); };
+  drawComNome();
 }
 
 // ── Financeiro ───────────────────────────────────────────────

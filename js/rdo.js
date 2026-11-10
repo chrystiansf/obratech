@@ -184,7 +184,7 @@ function renderFotoGrid(){
       const f=rdoFotos[i];const imgSrc=f.url||f.data||'';
       const outro=tipo==='material'?'Serviços':'Materiais';
       return`<div class="pc rdo-foto" style="flex-direction:column;height:auto;padding:0;overflow:hidden;border-radius:7px;border:1px solid var(--border)">
-        <div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block">
+        <div style="position:relative;width:100%;height:90px;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:90px;object-fit:cover;display:block;cursor:zoom-in" onclick="otVerFoto(rdoFotos.filter(x=>_rdoTipo(x)==='${tipo}'),${pos},'RDO')" title="Ver foto ampliada">
           <button class="rm" onclick="rdoFotos.splice(${i},1);renderFotoGrid()" style="top:4px;right:4px" title="Remover foto">×</button>
           <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);padding:2px 5px"><span style="font-size:9px;color:#fff">#${pos+1}</span></div></div>
         <div class="rdo-foto-ord">
@@ -353,6 +353,7 @@ function renderRDOHist(){
         <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
           <button class="btn sm ico" onclick="carregarRDO('${r.id}')" title="Editar"><svg class=ot-i><use href=#i-pencil></use></svg></button>
           <button class="btn sm" onclick="gerarRDOPDF(DB.rdos.find(x=>x.id==='${r.id}'))" title="Baixar PDF" style="font-size:11px"><svg class=ot-i><use href=#i-download></use></svg> PDF</button>
+          ${(r.fotos||[]).length?`<button class="btn sm" onclick="otBaixarFotosRDO('${r.id}')" title="Baixar as fotos deste RDO (.zip)" style="font-size:11px"><svg class=ot-i><use href=#i-camera></use></svg> Fotos</button>`:''}
           <button class="btn sm ico" onclick="delRDO('${r.id}')" title="Excluir"><svg class=ot-i><use href=#i-trash-2></use></svg></button>
         </div>
       </div>`;
@@ -396,6 +397,7 @@ async function visualizarRDO(id){
       <span style="font-weight:700;font-size:14px;color:#fff">${fmtDt(rdo.data)} — ${obra?.nome||'Obra'}${rdo.autor?' (por '+rdo.autor+')':''}</span>
       <div style="display:flex;gap:6px">
         <a href="${blobUrl}" download="${nomeArq}" class="btn pri sm" style="text-decoration:none;font-size:12px"><svg class=ot-i><use href=#i-download></use></svg> Baixar PDF</a>
+        ${(rdo.fotos||[]).length?`<button class="btn sm" onclick="otBaixarFotosRDO('${id}')" style="font-size:12px"><svg class=ot-i><use href=#i-camera></use></svg> Baixar fotos</button>`:''}
         <button class="btn sm" onclick="carregarRDO('${id}');document.getElementById('rdo-preview-overlay').style.display='none'" style="font-size:12px"><svg class=ot-i><use href=#i-pencil></use></svg> Editar</button>
         <button class="btn sm" onclick="this.closest('#rdo-preview-overlay').style.display='none'" style="font-size:12px;background:rgba(255,255,255,.15);color:#fff"><svg class=ot-i><use href=#i-x></use></svg> Fechar</button>
       </div>
